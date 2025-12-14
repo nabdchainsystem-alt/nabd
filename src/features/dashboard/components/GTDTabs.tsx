@@ -19,7 +19,7 @@ export const GTDTabs: React.FC<GTDTabsProps> = ({ activePhase, onChange }) => {
     ];
 
     return (
-        <div className="flex items-center justify-center gap-12 mb-10">
+        <div className="flex items-center justify-center gap-12">
             {tabs.map((tab) => {
                 const isActive = activePhase === tab.id;
                 return (

@@ -67,34 +67,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated }) => {
     switch (action) {
       case 'project':
         setProjects(prev => [itemToMove, ...prev]);
-        setActivePhase('organize');
         break;
       case 'next':
         setNextActions(prev => [itemToMove, ...prev]);
-        setActivePhase('engage');
         break;
       case 'delegate':
         setWaitingFor(prev => [itemToMove, ...prev]);
-        setActivePhase('organize');
         break;
       case 'someday':
         setSomeday(prev => [itemToMove, ...prev]);
-        setActivePhase('organize');
         break;
       case 'reference':
         setReference(prev => [itemToMove, ...prev]);
-        setActivePhase('organize');
         break;
       case 'scheduled':
         setScheduled(prev => [itemToMove, ...prev]);
-        setActivePhase('organize');
         break;
       case 'done':
         setCompleted(prev => [itemToMove, ...prev]);
-        setActivePhase('reflect');
         break;
       case 'trash':
-        setActivePhase('capture');
         break;
     }
 
@@ -151,199 +143,201 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated }) => {
   };
 
   return (
-    <div className="flex-1 bg-white dark:bg-[#050505] p-4 overflow-y-auto h-full font-serif text-[#1A1A1A] dark:text-white transition-colors duration-300">
+    <div className="flex-1 bg-white dark:bg-[#050505] h-full overflow-hidden font-serif text-[#1A1A1A] dark:text-white transition-colors duration-300">
       <div className="max-w-5xl mx-auto h-full flex flex-col items-center pt-6">
 
         {/* 1. Header */}
-        <div className="flex items-center gap-2 mb-8 opacity-60 hover:opacity-100 transition-opacity cursor-help">
-          <h1 className="text-xl font-serif italic tracking-wide">Getting Things Done</h1>
-          <Info size={14} className="text-gray-400" />
-        </div>
-
-        {/* 2. Tabs */}
-        <GTDTabs activePhase={activePhase} onChange={setActivePhase} />
-
-        {/* 3. Main Content Area */}
-        <AnimatePresence mode="wait">
-          {activePhase === 'capture' && (
-            <motion.div
-              key="capture"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full max-w-5xl flex flex-col items-center"
-            >
-              <h2 className="text-4xl font-black tracking-widest uppercase mb-8">Capture</h2>
-
-              {/* Minimalist Input */}
-              <form onSubmit={handleCapture} className="relative w-full max-w-2xl mb-16 group">
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val.length === 1) {
-                      setInputText(val.toUpperCase());
-                    } else {
-                      setInputText(val);
-                    }
-                  }}
-                  placeholder="Write it down..."
-                  className="w-full bg-transparent border-b-2 border-gray-200 dark:border-white/10 py-3 text-center text-2xl font-serif italic placeholder-gray-200 dark:placeholder-gray-700 focus:outline-none focus:border-black dark:focus:border-white transition-colors duration-300"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 text-[10px] font-bold tracking-widest uppercase text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-black dark:hover:text-white"
-                >
-                  Enter
-                </button>
-              </form>
-
-              {/* 3-Column Layout */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-                {/* YESTERDAY */}
-                <GTDInboxColumn title="Yesterday" subtitle="Review" count={yesterdayItems.length} delay={0.1}>
-                  {yesterdayItems.length > 0 && (
-                    <div className="w-full space-y-4 max-h-[250px] overflow-y-auto px-4">
-                      {yesterdayItems.map(item => (
-                        <div key={item.id} onClick={() => handleItemClick(item.id)} className="text-left group cursor-pointer hover:opacity-80">
-                          <div className="text-lg font-serif italic text-gray-800 dark:text-gray-200">{item.title}</div>
-                          <div className="text-[10px] text-gray-400 uppercase tracking-wider">{formatTime(item.createdAt)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </GTDInboxColumn>
-
-                {/* TODAY */}
-                <GTDInboxColumn title="Today" subtitle="Inbox" count={todayItems.length} delay={0.2}>
-                  {todayItems.length > 0 && (
-                    <div className="w-full space-y-6 max-h-[250px] overflow-y-auto px-6 py-2">
-                      {todayItems.map(item => (
-                        <div key={item.id} onClick={() => handleItemClick(item.id)} className="text-left group cursor-pointer hover:opacity-80 transition-opacity">
-                          <div className="text-xl font-serif italic text-[#1A1A1A] dark:text-white mb-1">{item.title}</div>
-                          <div className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{formatTime(item.createdAt)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </GTDInboxColumn>
-
-                {/* PENDING */}
-                <GTDInboxColumn title="Pending" subtitle="Backlog" count={pendingItems.length} delay={0.3}>
-                  {pendingItems.length > 0 && (
-                    <div className="w-full space-y-4 max-h-[250px] overflow-y-auto px-4">
-                      {pendingItems.map(item => (
-                        <div key={item.id} onClick={() => handleItemClick(item.id)} className="text-left group cursor-pointer hover:opacity-80">
-                          <div className="text-lg font-serif italic text-gray-500">{item.title}</div>
-                          <div className="text-[10px] text-gray-600 uppercase tracking-wider">{new Date(item.createdAt).toLocaleDateString()}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </GTDInboxColumn>
-              </div>
-
-            </motion.div>
-          )}
-
-          {activePhase === 'clarify' && (
-            <motion.div
-              key="clarify"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="w-full"
-            >
-              <GTDClarifyView
-                items={inboxItems}
-                initialItemId={selectedItemId}
-                onProcess={handleProcess}
-              />
-            </motion.div>
-          )}
-
-          {activePhase === 'organize' && (
-            <motion.div
-              key="organize"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full"
-            >
-              <GTDOrganizeView
-                projects={projects}
-                nextActions={nextActions}
-                waitingFor={waitingFor}
-                scheduled={scheduled}
-                someday={someday}
-                reference={reference}
-                onDelete={handleDelete}
-              />
-            </motion.div>
-          )}
-
-          {activePhase === 'reflect' && (
-            <motion.div
-              key="reflect"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full"
-            >
-              <GTDReflectView
-                counts={{
-                  inbox: inboxItems.length,
-                  nextActions: nextActions.length,
-                  waitingFor: waitingFor.length,
-                  projects: projects.length,
-                  someday: someday.length,
-                  completed: completed.length
-                }}
-              />
-            </motion.div>
-          )}
-
-          {activePhase === 'engage' && (
-            <motion.div
-              key="engage"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full"
-            >
-              <GTDEngageView
-                nextActions={nextActions}
-                onComplete={handleComplete}
-                onDelete={handleDelete}
-              />
-            </motion.div>
-          )}
-          {activePhase !== 'capture' && activePhase !== 'clarify' && activePhase !== 'organize' && activePhase !== 'reflect' && activePhase !== 'engage' && (
-            <motion.div
-              key="other"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center justify-center h-64 text-gray-300 italics"
-            >
-              Phase content coming soon...
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Global Back Button */}
-        {activePhase !== 'capture' && (
-          <div className="mt-8">
+        <div className="flex-none w-full relative flex items-center justify-center mb-8 px-8 opacity-60 hover:opacity-100 transition-opacity">
+          {activePhase !== 'capture' && (
             <button
               onClick={() => setActivePhase('capture')}
-              className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-white uppercase tracking-widest transition-colors"
+              className="absolute left-8 top-1/2 -translate-y-1/2 flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-white uppercase tracking-widest transition-colors"
             >
-              <ArrowLeft size={16} /> Back
+              <ArrowLeft size={16} /> <span className="hidden sm:inline">Back</span>
             </button>
+          )}
+          <div className="flex items-center gap-2 cursor-help">
+            <h1 className="text-xl font-serif italic tracking-wide">Getting Things Done</h1>
+            <Info size={14} className="text-gray-400" />
           </div>
-        )}
+        </div>
+
+        {/* 2. Navigation */}
+        <div className="flex-none relative w-full max-w-5xl flex items-center justify-center py-6 mb-8 px-8">
+          <GTDTabs activePhase={activePhase} onChange={setActivePhase} />
+        </div>
+
+        {/* 3. Main Content Area (Scrollable) */}
+        <div className="flex-1 w-full overflow-y-auto scrollbar-hide flex flex-col items-center relative">
+          <AnimatePresence mode="wait">
+            {activePhase === 'capture' && (
+              <motion.div
+                key="capture"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="w-full max-w-5xl flex flex-col items-center"
+              >
+                <h2 className="text-4xl font-black tracking-widest uppercase mb-8">Capture</h2>
+
+                {/* Minimalist Input */}
+                <form onSubmit={handleCapture} className="relative w-full max-w-2xl mb-16 group">
+                  <input
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.length === 1) {
+                        setInputText(val.toUpperCase());
+                      } else {
+                        setInputText(val);
+                      }
+                    }}
+                    placeholder="Write it down..."
+                    className="w-full bg-transparent border-b-2 border-gray-200 dark:border-white/10 py-3 text-center text-2xl font-serif italic placeholder-gray-200 dark:placeholder-gray-700 focus:outline-none focus:border-black dark:focus:border-white transition-colors duration-300"
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-[10px] font-bold tracking-widest uppercase text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-black dark:hover:text-white"
+                  >
+                    Enter
+                  </button>
+                </form>
+
+                {/* 3-Column Layout */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full pb-8">
+                  {/* YESTERDAY */}
+                  <GTDInboxColumn title="Yesterday" subtitle="Review" count={yesterdayItems.length} delay={0.1}>
+                    {yesterdayItems.length > 0 && (
+                      <div className="w-full space-y-4 max-h-[250px] overflow-y-auto scrollbar-hide px-4">
+                        {yesterdayItems.map(item => (
+                          <div key={item.id} onClick={() => handleItemClick(item.id)} className="text-left group cursor-pointer hover:opacity-80">
+                            <div className="text-lg font-serif italic text-gray-800 dark:text-gray-200">{item.title}</div>
+                            <div className="text-[10px] text-gray-400 uppercase tracking-wider">{formatTime(item.createdAt)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </GTDInboxColumn>
+
+                  {/* TODAY */}
+                  <GTDInboxColumn title="Today" subtitle="Inbox" count={todayItems.length} delay={0.2}>
+                    {todayItems.length > 0 && (
+                      <div className="w-full space-y-6 max-h-[250px] overflow-y-auto scrollbar-hide px-6 py-2">
+                        {todayItems.map(item => (
+                          <div key={item.id} onClick={() => handleItemClick(item.id)} className="text-left group cursor-pointer hover:opacity-80 transition-opacity">
+                            <div className="text-xl font-serif italic text-[#1A1A1A] dark:text-white mb-1">{item.title}</div>
+                            <div className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{formatTime(item.createdAt)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </GTDInboxColumn>
+
+                  {/* PENDING */}
+                  <GTDInboxColumn title="Pending" subtitle="Backlog" count={pendingItems.length} delay={0.3}>
+                    {pendingItems.length > 0 && (
+                      <div className="w-full space-y-4 max-h-[250px] overflow-y-auto scrollbar-hide px-4">
+                        {pendingItems.map(item => (
+                          <div key={item.id} onClick={() => handleItemClick(item.id)} className="text-left group cursor-pointer hover:opacity-80">
+                            <div className="text-lg font-serif italic text-gray-500">{item.title}</div>
+                            <div className="text-[10px] text-gray-600 uppercase tracking-wider">{new Date(item.createdAt).toLocaleDateString()}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </GTDInboxColumn>
+                </div>
+
+              </motion.div>
+            )}
+
+            {activePhase === 'clarify' && (
+              <motion.div
+                key="clarify"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                className="w-full"
+              >
+                <GTDClarifyView
+                  items={inboxItems}
+                  initialItemId={selectedItemId}
+                  onProcess={handleProcess}
+                />
+              </motion.div>
+            )}
+
+            {activePhase === 'organize' && (
+              <motion.div
+                key="organize"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="w-full"
+              >
+                <GTDOrganizeView
+                  projects={projects}
+                  nextActions={nextActions}
+                  waitingFor={waitingFor}
+                  scheduled={scheduled}
+                  someday={someday}
+                  reference={reference}
+                  onDelete={handleDelete}
+                />
+              </motion.div>
+            )}
+
+            {activePhase === 'reflect' && (
+              <motion.div
+                key="reflect"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="w-full"
+              >
+                <GTDReflectView
+                  lists={{
+                    inbox: inboxItems,
+                    nextActions: nextActions,
+                    waitingFor: waitingFor,
+                    projects: projects,
+                    someday: someday,
+                    completed: completed
+                  }}
+                />
+              </motion.div>
+            )}
+
+            {activePhase === 'engage' && (
+              <motion.div
+                key="engage"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="w-full"
+              >
+                <GTDEngageView
+                  nextActions={nextActions}
+                  onComplete={handleComplete}
+                  onDelete={handleDelete}
+                />
+              </motion.div>
+            )}
+            {activePhase !== 'capture' && activePhase !== 'clarify' && activePhase !== 'organize' && activePhase !== 'reflect' && activePhase !== 'engage' && (
+              <motion.div
+                key="other"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center justify-center h-64 text-gray-300 italics"
+              >
+                Phase content coming soon...
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
       </div>
     </div>
