@@ -1,0 +1,1394 @@
+{
+  "meta": {
+    "name": "Fleet Semantic Master",
+    "version": "2.0.0",
+    "generated_at": "2025-12-19T07:10:22.682620Z",
+    "scope": "fleet",
+    "languages": [
+      "en",
+      "ar"
+    ],
+    "intent": "Always-filled Fleet dashboards (vehicles, drivers, maintenance, utilization, cost, safety)"
+  },
+  "dashboards": [
+    {
+      "id": "F01",
+      "name": {
+        "en": "Fleet Daily Control",
+        "ar": "التحكم اليومي للأسطول"
+      },
+      "purpose": {
+        "en": "Daily snapshot for operations: availability, trips, delays, and alerts.",
+        "ar": "ملخص يومي للتشغيل: الجاهزية، الرحلات، التأخير، والتنبيهات."
+      },
+      "kpis": [
+        "available_vehicles",
+        "vehicles_in_transit",
+        "trips_today",
+        "late_trips",
+        "breakdowns_today",
+        "avg_trip_time",
+        "fuel_used_today",
+        "critical_alerts"
+      ],
+      "charts": {
+        "bar": [
+          "vehicles_by_status"
+        ],
+        "others": [
+          "trips_hourly",
+          "fleet_utilization_by_site",
+          "alerts_by_severity",
+          "top_routes_by_volume"
+        ]
+      },
+      "table": "live_fleet_activity"
+    },
+    {
+      "id": "F02",
+      "name": {
+        "en": "Utilization & Capacity",
+        "ar": "الاستغلال والسعة"
+      },
+      "purpose": {
+        "en": "Utilization by vehicle/site, load factor, idle time, and capacity planning.",
+        "ar": "استغلال حسب المركبة/الموقع، معامل الحمولة، وقت التوقف، وتخطيط السعة."
+      },
+      "kpis": [
+        "utilization_pct",
+        "load_factor_pct",
+        "idle_time_hours",
+        "empty_miles_pct",
+        "trips_per_vehicle",
+        "capacity_used_tons",
+        "capacity_available_tons",
+        "route_efficiency"
+      ],
+      "charts": {
+        "bar": [
+          "utilization_by_vehicle_type"
+        ],
+        "others": [
+          "utilization_trend",
+          "idle_time_by_site",
+          "load_factor_distribution",
+          "empty_miles_trend"
+        ]
+      },
+      "table": "utilization_table"
+    },
+    {
+      "id": "F03",
+      "name": {
+        "en": "Maintenance & Reliability",
+        "ar": "الصيانة والاعتمادية"
+      },
+      "purpose": {
+        "en": "Preventive vs corrective maintenance, downtime, MTBF/MTTR, and open work orders.",
+        "ar": "صيانة وقائية مقابل إصلاحية، التوقف، MTBF/MTTR، وأوامر العمل المفتوحة."
+      },
+      "kpis": [
+        "maintenance_due",
+        "open_work_orders",
+        "downtime_hours",
+        "mtbf_days",
+        "mttr_hours",
+        "repeat_failures",
+        "maintenance_cost_mtd",
+        "parts_shortage_cases"
+      ],
+      "charts": {
+        "bar": [
+          "work_orders_by_status"
+        ],
+        "others": [
+          "downtime_trend",
+          "failure_reasons_pareto",
+          "maintenance_by_vehicle",
+          "pm_compliance_trend"
+        ]
+      },
+      "table": "maintenance_work_orders"
+    },
+    {
+      "id": "F04",
+      "name": {
+        "en": "Fuel & Cost",
+        "ar": "الوقود والتكلفة"
+      },
+      "purpose": {
+        "en": "Fuel spend, efficiency, cost per km, and anomalies (fraud/leaks).",
+        "ar": "مصروف الوقود، الكفاءة، تكلفة لكل كيلومتر، وشذوذات (تلاعب/تسريب)."
+      },
+      "kpis": [
+        "fuel_cost_today",
+        "fuel_cost_mtd",
+        "avg_fuel_efficiency",
+        "cost_per_km",
+        "fuel_anomalies",
+        "fuel_theft_suspects",
+        "co2_estimate",
+        "top_cost_vehicles"
+      ],
+      "charts": {
+        "bar": [
+          "fuel_cost_by_vehicle"
+        ],
+        "others": [
+          "fuel_trend",
+          "efficiency_distribution",
+          "cost_per_km_by_route",
+          "anomalies_trend"
+        ]
+      },
+      "table": "fuel_cost_table"
+    },
+    {
+      "id": "F05",
+      "name": {
+        "en": "Safety & Compliance",
+        "ar": "السلامة والالتزام"
+      },
+      "purpose": {
+        "en": "Driver safety, incidents, violations, and compliance status.",
+        "ar": "سلامة السائقين، الحوادث، المخالفات، وحالة الالتزام."
+      },
+      "kpis": [
+        "incidents_today",
+        "violations_today",
+        "driver_score_avg",
+        "overspeed_events",
+        "harsh_brake_events",
+        "fatigue_flags",
+        "license_expiring_soon",
+        "insurance_expiring_soon"
+      ],
+      "charts": {
+        "bar": [
+          "violations_by_type"
+        ],
+        "others": [
+          "incidents_trend",
+          "driver_score_distribution",
+          "overspeed_by_route",
+          "compliance_expiry_timeline"
+        ]
+      },
+      "table": "safety_compliance_table"
+    },
+    {
+      "id": "F06",
+      "name": {
+        "en": "Dispatch & Route Performance",
+        "ar": "الإرسال وأداء المسارات"
+      },
+      "purpose": {
+        "en": "Route KPIs, on-time pickup/delivery, and bottlenecks by lane/site.",
+        "ar": "مؤشرات المسارات، الالتزام بالمواعيد، والاختناقات حسب الخط/الموقع."
+      },
+      "kpis": [
+        "on_time_pickup_pct",
+        "on_time_delivery_pct",
+        "avg_route_delay",
+        "failed_pickups",
+        "failed_deliveries",
+        "avg_stop_time",
+        "route_variance_pct",
+        "top_bottleneck_lane"
+      ],
+      "charts": {
+        "bar": [
+          "on_time_by_route"
+        ],
+        "others": [
+          "route_delay_reasons",
+          "lane_volume_trend",
+          "stop_time_distribution",
+          "route_efficiency_trend"
+        ]
+      },
+      "table": "routes_performance_table"
+    }
+  ],
+  "kpis_dictionary": {
+    "available_vehicles": {
+      "en": "Available Vehicles",
+      "ar": "مركبات جاهزة"
+    },
+    "vehicles_in_transit": {
+      "en": "Vehicles In Transit",
+      "ar": "مركبات في الطريق"
+    },
+    "trips_today": {
+      "en": "Trips Today",
+      "ar": "رحلات اليوم"
+    },
+    "late_trips": {
+      "en": "Late Trips",
+      "ar": "رحلات متأخرة"
+    },
+    "breakdowns_today": {
+      "en": "Breakdowns Today",
+      "ar": "أعطال اليوم"
+    },
+    "avg_trip_time": {
+      "en": "Avg Trip Time",
+      "ar": "متوسط زمن الرحلة"
+    },
+    "fuel_used_today": {
+      "en": "Fuel Used (Today)",
+      "ar": "وقود مستخدم (اليوم)"
+    },
+    "critical_alerts": {
+      "en": "Critical Alerts",
+      "ar": "تنبيهات حرجة"
+    },
+    "utilization_pct": {
+      "en": "Utilization %",
+      "ar": "نسبة الاستغلال %"
+    },
+    "load_factor_pct": {
+      "en": "Load Factor %",
+      "ar": "معامل الحمولة %"
+    },
+    "idle_time_hours": {
+      "en": "Idle Time (Hours)",
+      "ar": "وقت توقف (ساعات)"
+    },
+    "empty_miles_pct": {
+      "en": "Empty Miles %",
+      "ar": "نسبة المسافات الفارغة %"
+    },
+    "trips_per_vehicle": {
+      "en": "Trips per Vehicle",
+      "ar": "رحلات لكل مركبة"
+    },
+    "capacity_used_tons": {
+      "en": "Capacity Used (Tons)",
+      "ar": "سعة مستخدمة (طن)"
+    },
+    "capacity_available_tons": {
+      "en": "Capacity Available (Tons)",
+      "ar": "سعة متاحة (طن)"
+    },
+    "route_efficiency": {
+      "en": "Route Efficiency",
+      "ar": "كفاءة المسار"
+    },
+    "maintenance_due": {
+      "en": "Maintenance Due",
+      "ar": "صيانة مستحقة"
+    },
+    "open_work_orders": {
+      "en": "Open Work Orders",
+      "ar": "أوامر عمل مفتوحة"
+    },
+    "downtime_hours": {
+      "en": "Downtime (Hours)",
+      "ar": "توقف (ساعات)"
+    },
+    "mtbf_days": {
+      "en": "MTBF (Days)",
+      "ar": "MTBF (أيام)"
+    },
+    "mttr_hours": {
+      "en": "MTTR (Hours)",
+      "ar": "MTTR (ساعات)"
+    },
+    "repeat_failures": {
+      "en": "Repeat Failures",
+      "ar": "أعطال متكررة"
+    },
+    "maintenance_cost_mtd": {
+      "en": "Maintenance Cost (MTD)",
+      "ar": "تكلفة الصيانة (حتى الآن)"
+    },
+    "parts_shortage_cases": {
+      "en": "Parts Shortage Cases",
+      "ar": "حالات نقص قطع"
+    },
+    "fuel_cost_today": {
+      "en": "Fuel Cost (Today)",
+      "ar": "تكلفة الوقود (اليوم)"
+    },
+    "fuel_cost_mtd": {
+      "en": "Fuel Cost (MTD)",
+      "ar": "تكلفة الوقود (حتى الآن)"
+    },
+    "avg_fuel_efficiency": {
+      "en": "Avg Fuel Efficiency",
+      "ar": "متوسط كفاءة الوقود"
+    },
+    "cost_per_km": {
+      "en": "Cost per KM",
+      "ar": "تكلفة لكل كيلومتر"
+    },
+    "fuel_anomalies": {
+      "en": "Fuel Anomalies",
+      "ar": "شذوذات الوقود"
+    },
+    "fuel_theft_suspects": {
+      "en": "Fuel Theft Suspects",
+      "ar": "اشتباه تلاعب وقود"
+    },
+    "co2_estimate": {
+      "en": "CO2 Estimate",
+      "ar": "تقدير CO2"
+    },
+    "top_cost_vehicles": {
+      "en": "Top Cost Vehicles",
+      "ar": "أعلى مركبات تكلفة"
+    },
+    "incidents_today": {
+      "en": "Incidents Today",
+      "ar": "حوادث اليوم"
+    },
+    "violations_today": {
+      "en": "Violations Today",
+      "ar": "مخالفات اليوم"
+    },
+    "driver_score_avg": {
+      "en": "Avg Driver Score",
+      "ar": "متوسط تقييم السائق"
+    },
+    "overspeed_events": {
+      "en": "Over-speed Events",
+      "ar": "تجاوزات سرعة"
+    },
+    "harsh_brake_events": {
+      "en": "Harsh Brakes",
+      "ar": "فرامل حادة"
+    },
+    "fatigue_flags": {
+      "en": "Fatigue Flags",
+      "ar": "إشارات إرهاق"
+    },
+    "license_expiring_soon": {
+      "en": "Licenses Expiring Soon",
+      "ar": "رخص تنتهي قريبًا"
+    },
+    "insurance_expiring_soon": {
+      "en": "Insurance Expiring Soon",
+      "ar": "تأمين ينتهي قريبًا"
+    },
+    "on_time_pickup_pct": {
+      "en": "On-Time Pickup %",
+      "ar": "التقاط في الوقت %"
+    },
+    "on_time_delivery_pct": {
+      "en": "On-Time Delivery %",
+      "ar": "تسليم في الوقت %"
+    },
+    "avg_route_delay": {
+      "en": "Avg Route Delay",
+      "ar": "متوسط تأخير المسار"
+    },
+    "failed_pickups": {
+      "en": "Failed Pickups",
+      "ar": "التقاط فاشل"
+    },
+    "failed_deliveries": {
+      "en": "Failed Deliveries",
+      "ar": "تسليم فاشل"
+    },
+    "avg_stop_time": {
+      "en": "Avg Stop Time",
+      "ar": "متوسط زمن التوقف"
+    },
+    "route_variance_pct": {
+      "en": "Route Variance %",
+      "ar": "انحراف المسار %"
+    },
+    "top_bottleneck_lane": {
+      "en": "Top Bottleneck Lane",
+      "ar": "أكثر مسار اختناقًا"
+    }
+  },
+  "chart_dimensions": [
+    {
+      "key": "by_vehicle",
+      "name": {
+        "en": "By Vehicle",
+        "ar": "حسب المركبة"
+      },
+      "aliases": {
+        "en": [
+          "vehicle",
+          "truck",
+          "car",
+          "van",
+          "unit"
+        ],
+        "ar": [
+          "مركبة",
+          "شاحنة",
+          "سيارة",
+          "فان",
+          "وحدة"
+        ]
+      }
+    },
+    {
+      "key": "by_vehicle_type",
+      "name": {
+        "en": "By Vehicle Type",
+        "ar": "حسب نوع المركبة"
+      },
+      "aliases": {
+        "en": [
+          "vehicle type",
+          "truck type",
+          "fleet type"
+        ],
+        "ar": [
+          "نوع المركبة",
+          "نوع الشاحنة",
+          "تصنيف الأسطول"
+        ]
+      }
+    },
+    {
+      "key": "by_driver",
+      "name": {
+        "en": "By Driver",
+        "ar": "حسب السائق"
+      },
+      "aliases": {
+        "en": [
+          "driver",
+          "operator"
+        ],
+        "ar": [
+          "سائق",
+          "المشغل"
+        ]
+      }
+    },
+    {
+      "key": "by_route",
+      "name": {
+        "en": "By Route/Lane",
+        "ar": "حسب المسار/الخط"
+      },
+      "aliases": {
+        "en": [
+          "route",
+          "lane",
+          "corridor",
+          "from-to"
+        ],
+        "ar": [
+          "مسار",
+          "خط",
+          "من-إلى"
+        ]
+      }
+    },
+    {
+      "key": "by_site",
+      "name": {
+        "en": "By Site",
+        "ar": "حسب الموقع"
+      },
+      "aliases": {
+        "en": [
+          "site",
+          "plant",
+          "branch",
+          "depot"
+        ],
+        "ar": [
+          "موقع",
+          "مصنع",
+          "فرع",
+          "مستودع"
+        ]
+      }
+    },
+    {
+      "key": "by_status",
+      "name": {
+        "en": "By Status",
+        "ar": "حسب الحالة"
+      },
+      "aliases": {
+        "en": [
+          "status",
+          "state"
+        ],
+        "ar": [
+          "الحالة",
+          "ستاتس"
+        ]
+      }
+    },
+    {
+      "key": "by_time_day",
+      "name": {
+        "en": "By Day",
+        "ar": "حسب اليوم"
+      },
+      "aliases": {
+        "en": [
+          "daily",
+          "by day"
+        ],
+        "ar": [
+          "يومي",
+          "حسب اليوم"
+        ]
+      }
+    },
+    {
+      "key": "by_time_week",
+      "name": {
+        "en": "By Week",
+        "ar": "حسب الأسبوع"
+      },
+      "aliases": {
+        "en": [
+          "weekly",
+          "by week"
+        ],
+        "ar": [
+          "أسبوعي",
+          "حسب الأسبوع"
+        ]
+      }
+    },
+    {
+      "key": "by_time_month",
+      "name": {
+        "en": "By Month",
+        "ar": "حسب الشهر"
+      },
+      "aliases": {
+        "en": [
+          "monthly",
+          "by month"
+        ],
+        "ar": [
+          "شهري",
+          "حسب الشهر"
+        ]
+      }
+    },
+    {
+      "key": "severity_buckets",
+      "name": {
+        "en": "Severity Buckets",
+        "ar": "شرائح الخطورة"
+      },
+      "aliases": {
+        "en": [
+          "severity",
+          "risk buckets"
+        ],
+        "ar": [
+          "خطورة",
+          "شرائح الخطر"
+        ]
+      }
+    }
+  ],
+  "tables": {
+    "live_fleet_activity": {
+      "name": {
+        "en": "Live Fleet Activity",
+        "ar": "سجل نشاط الأسطول المباشر"
+      },
+      "aliases": {
+        "en": [
+          "fleet activity log",
+          "live log",
+          "activity feed"
+        ],
+        "ar": [
+          "سجل الأسطول",
+          "سجل مباشر",
+          "سجل النشاط"
+        ]
+      },
+      "columns": [
+        "time",
+        "vehicle_id",
+        "driver",
+        "event",
+        "route",
+        "status",
+        "eta",
+        "notes"
+      ]
+    },
+    "utilization_table": {
+      "name": {
+        "en": "Utilization Table",
+        "ar": "جدول الاستغلال"
+      },
+      "aliases": {
+        "en": [
+          "utilization table",
+          "capacity table",
+          "idle table"
+        ],
+        "ar": [
+          "جدول الاستغلال",
+          "جدول السعة",
+          "جدول التوقف"
+        ]
+      },
+      "columns": [
+        "vehicle_id",
+        "vehicle_type",
+        "site",
+        "utilization_pct",
+        "load_factor_pct",
+        "idle_time_hours",
+        "trips_today",
+        "empty_miles_pct",
+        "capacity_used_tons",
+        "capacity_available_tons"
+      ]
+    },
+    "maintenance_work_orders": {
+      "name": {
+        "en": "Maintenance Work Orders",
+        "ar": "أوامر الصيانة"
+      },
+      "aliases": {
+        "en": [
+          "work orders",
+          "maintenance orders",
+          "service orders"
+        ],
+        "ar": [
+          "أوامر صيانة",
+          "أوامر عمل",
+          "أوامر خدمة"
+        ]
+      },
+      "columns": [
+        "work_order_id",
+        "vehicle_id",
+        "maintenance_type",
+        "priority",
+        "status",
+        "opened_date",
+        "due_date",
+        "downtime_hours",
+        "cost",
+        "root_cause",
+        "parts_needed"
+      ]
+    },
+    "fuel_cost_table": {
+      "name": {
+        "en": "Fuel & Cost Table",
+        "ar": "جدول الوقود والتكلفة"
+      },
+      "aliases": {
+        "en": [
+          "fuel table",
+          "fuel cost",
+          "cost table",
+          "efficiency table"
+        ],
+        "ar": [
+          "جدول الوقود",
+          "تكلفة الوقود",
+          "جدول التكلفة",
+          "جدول الكفاءة"
+        ]
+      },
+      "columns": [
+        "date",
+        "vehicle_id",
+        "driver",
+        "fuel_liters",
+        "fuel_cost",
+        "km_driven",
+        "efficiency",
+        "cost_per_km",
+        "anomaly_flag",
+        "station"
+      ]
+    },
+    "safety_compliance_table": {
+      "name": {
+        "en": "Safety & Compliance",
+        "ar": "السلامة والالتزام"
+      },
+      "aliases": {
+        "en": [
+          "safety table",
+          "compliance table",
+          "violations table"
+        ],
+        "ar": [
+          "جدول السلامة",
+          "جدول الالتزام",
+          "جدول المخالفات"
+        ]
+      },
+      "columns": [
+        "date",
+        "driver",
+        "vehicle_id",
+        "incident_type",
+        "severity",
+        "violation_type",
+        "overspeed_events",
+        "harsh_brake_events",
+        "fatigue_flag",
+        "license_expiry",
+        "insurance_expiry"
+      ]
+    },
+    "routes_performance_table": {
+      "name": {
+        "en": "Routes Performance",
+        "ar": "أداء المسارات"
+      },
+      "aliases": {
+        "en": [
+          "routes table",
+          "lane performance",
+          "dispatch performance"
+        ],
+        "ar": [
+          "جدول المسارات",
+          "أداء الخطوط",
+          "أداء الإرسال"
+        ]
+      },
+      "columns": [
+        "route",
+        "site",
+        "trips_count",
+        "on_time_pickup_pct",
+        "on_time_delivery_pct",
+        "avg_route_delay",
+        "failed_pickups",
+        "failed_deliveries",
+        "avg_stop_time",
+        "route_efficiency"
+      ]
+    }
+  },
+  "columns": [
+    {
+      "canonical_key": "vehicle_id",
+      "entity": "vehicle",
+      "datatype": "string",
+      "name": {
+        "en": "Vehicle ID",
+        "ar": "رقم المركبة"
+      },
+      "aliases": {
+        "en": [
+          "vehicle id",
+          "truck id",
+          "unit id",
+          "fleet id",
+          "plate",
+          "plate number",
+          "license plate",
+          "registration"
+        ],
+        "ar": [
+          "رقم المركبة",
+          "رقم الشاحنة",
+          "رقم الوحدة",
+          "رقم الأسطول",
+          "لوحة",
+          "رقم اللوحة",
+          "استمارة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "vehicle_type",
+      "entity": "vehicle",
+      "datatype": "string",
+      "name": {
+        "en": "Vehicle Type",
+        "ar": "نوع المركبة"
+      },
+      "aliases": {
+        "en": [
+          "vehicle type",
+          "truck type",
+          "van type",
+          "fleet type",
+          "body type"
+        ],
+        "ar": [
+          "نوع المركبة",
+          "نوع الشاحنة",
+          "نوع الفان",
+          "تصنيف المركبة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "driver",
+      "entity": "driver",
+      "datatype": "string",
+      "name": {
+        "en": "Driver",
+        "ar": "السائق"
+      },
+      "aliases": {
+        "en": [
+          "driver",
+          "operator",
+          "chauffeur"
+        ],
+        "ar": [
+          "سائق",
+          "السائق",
+          "المشغل"
+        ]
+      }
+    },
+    {
+      "canonical_key": "driver_id",
+      "entity": "driver",
+      "datatype": "string",
+      "name": {
+        "en": "Driver ID",
+        "ar": "رقم السائق"
+      },
+      "aliases": {
+        "en": [
+          "driver id",
+          "employee id",
+          "badge id"
+        ],
+        "ar": [
+          "رقم السائق",
+          "رقم الموظف",
+          "رقم البادج"
+        ]
+      }
+    },
+    {
+      "canonical_key": "site",
+      "entity": "site",
+      "datatype": "string",
+      "name": {
+        "en": "Site",
+        "ar": "الموقع"
+      },
+      "aliases": {
+        "en": [
+          "site",
+          "plant",
+          "branch",
+          "depot",
+          "yard"
+        ],
+        "ar": [
+          "موقع",
+          "مصنع",
+          "فرع",
+          "مستودع",
+          "ساحة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "status",
+      "entity": "status",
+      "datatype": "string",
+      "name": {
+        "en": "Status",
+        "ar": "الحالة"
+      },
+      "aliases": {
+        "en": [
+          "status",
+          "state",
+          "availability",
+          "vehicle status"
+        ],
+        "ar": [
+          "الحالة",
+          "ستاتس",
+          "جاهزية",
+          "حالة المركبة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "trip_id",
+      "entity": "trip",
+      "datatype": "string",
+      "name": {
+        "en": "Trip ID",
+        "ar": "رقم الرحلة"
+      },
+      "aliases": {
+        "en": [
+          "trip id",
+          "run id",
+          "dispatch id",
+          "route run"
+        ],
+        "ar": [
+          "رقم الرحلة",
+          "رقم التشغيل",
+          "رقم الإرسال",
+          "تشغيل المسار"
+        ]
+      }
+    },
+    {
+      "canonical_key": "route",
+      "entity": "route",
+      "datatype": "string",
+      "name": {
+        "en": "Route/Lane",
+        "ar": "المسار/الخط"
+      },
+      "aliases": {
+        "en": [
+          "route",
+          "lane",
+          "corridor",
+          "from-to",
+          "origin-destination"
+        ],
+        "ar": [
+          "مسار",
+          "خط",
+          "من-إلى",
+          "المسار"
+        ]
+      }
+    },
+    {
+      "canonical_key": "eta",
+      "entity": "time",
+      "datatype": "date",
+      "name": {
+        "en": "ETA",
+        "ar": "موعد الوصول المتوقع (ETA)"
+      },
+      "aliases": {
+        "en": [
+          "eta",
+          "expected arrival",
+          "estimated arrival"
+        ],
+        "ar": [
+          "ETA",
+          "موعد الوصول المتوقع",
+          "تاريخ الوصول المتوقع"
+        ]
+      }
+    },
+    {
+      "canonical_key": "km_driven",
+      "entity": "metrics",
+      "datatype": "number",
+      "name": {
+        "en": "KM Driven",
+        "ar": "كيلومترات مقطوعة"
+      },
+      "aliases": {
+        "en": [
+          "km",
+          "kilometers",
+          "distance",
+          "mileage"
+        ],
+        "ar": [
+          "كم",
+          "كيلومترات",
+          "مسافة",
+          "عداد"
+        ]
+      }
+    },
+    {
+      "canonical_key": "fuel_liters",
+      "entity": "fuel",
+      "datatype": "number",
+      "name": {
+        "en": "Fuel (Liters)",
+        "ar": "وقود (لتر)"
+      },
+      "aliases": {
+        "en": [
+          "fuel liters",
+          "liters",
+          "fuel amount",
+          "fuel qty"
+        ],
+        "ar": [
+          "وقود",
+          "لترات",
+          "كمية الوقود",
+          "لتر"
+        ]
+      }
+    },
+    {
+      "canonical_key": "fuel_cost",
+      "entity": "fuel",
+      "datatype": "number",
+      "name": {
+        "en": "Fuel Cost",
+        "ar": "تكلفة الوقود"
+      },
+      "aliases": {
+        "en": [
+          "fuel cost",
+          "fuel spend",
+          "fuel amount"
+        ],
+        "ar": [
+          "تكلفة الوقود",
+          "مصروف الوقود",
+          "قيمة الوقود"
+        ]
+      }
+    },
+    {
+      "canonical_key": "efficiency",
+      "entity": "fuel",
+      "datatype": "number",
+      "name": {
+        "en": "Fuel Efficiency",
+        "ar": "كفاءة الوقود"
+      },
+      "aliases": {
+        "en": [
+          "fuel efficiency",
+          "km/l",
+          "l/100km",
+          "mpg"
+        ],
+        "ar": [
+          "كفاءة الوقود",
+          "كم/لتر",
+          "لتر/100كم",
+          "MPG"
+        ]
+      }
+    },
+    {
+      "canonical_key": "cost_per_km",
+      "entity": "finance",
+      "datatype": "number",
+      "name": {
+        "en": "Cost per KM",
+        "ar": "تكلفة لكل كيلومتر"
+      },
+      "aliases": {
+        "en": [
+          "cost per km",
+          "cost/km",
+          "unit cost distance"
+        ],
+        "ar": [
+          "تكلفة لكل كم",
+          "تكلفة/كم",
+          "تكلفة المسافة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "work_order_id",
+      "entity": "maintenance",
+      "datatype": "string",
+      "name": {
+        "en": "Work Order ID",
+        "ar": "رقم أمر العمل"
+      },
+      "aliases": {
+        "en": [
+          "work order",
+          "wo",
+          "service order",
+          "maintenance order"
+        ],
+        "ar": [
+          "أمر عمل",
+          "WO",
+          "أمر صيانة",
+          "أمر خدمة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "maintenance_type",
+      "entity": "maintenance",
+      "datatype": "string",
+      "name": {
+        "en": "Maintenance Type",
+        "ar": "نوع الصيانة"
+      },
+      "aliases": {
+        "en": [
+          "maintenance type",
+          "preventive",
+          "corrective",
+          "pm",
+          "cm"
+        ],
+        "ar": [
+          "نوع الصيانة",
+          "وقائي",
+          "إصلاحي",
+          "PM",
+          "CM"
+        ]
+      }
+    },
+    {
+      "canonical_key": "downtime_hours",
+      "entity": "maintenance",
+      "datatype": "number",
+      "name": {
+        "en": "Downtime (Hours)",
+        "ar": "توقف (ساعات)"
+      },
+      "aliases": {
+        "en": [
+          "downtime",
+          "downtime hours",
+          "out of service time"
+        ],
+        "ar": [
+          "توقف",
+          "ساعات توقف",
+          "خارج الخدمة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "incident_type",
+      "entity": "safety",
+      "datatype": "string",
+      "name": {
+        "en": "Incident Type",
+        "ar": "نوع الحادث"
+      },
+      "aliases": {
+        "en": [
+          "incident",
+          "accident",
+          "event type"
+        ],
+        "ar": [
+          "حادث",
+          "نوع الحادث",
+          "واقعة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "violation_type",
+      "entity": "safety",
+      "datatype": "string",
+      "name": {
+        "en": "Violation Type",
+        "ar": "نوع المخالفة"
+      },
+      "aliases": {
+        "en": [
+          "violation",
+          "offense",
+          "breach"
+        ],
+        "ar": [
+          "مخالفة",
+          "نوع المخالفة",
+          "تجاوز"
+        ]
+      }
+    },
+    {
+      "canonical_key": "severity",
+      "entity": "safety",
+      "datatype": "string",
+      "name": {
+        "en": "Severity",
+        "ar": "الخطورة"
+      },
+      "aliases": {
+        "en": [
+          "severity",
+          "criticality",
+          "risk level"
+        ],
+        "ar": [
+          "الخطورة",
+          "مستوى الخطر",
+          "حدة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "license_expiry",
+      "entity": "compliance",
+      "datatype": "date",
+      "name": {
+        "en": "License Expiry",
+        "ar": "انتهاء الرخصة"
+      },
+      "aliases": {
+        "en": [
+          "license expiry",
+          "driver license expiry",
+          "license exp date"
+        ],
+        "ar": [
+          "انتهاء الرخصة",
+          "انتهاء رخصة السائق",
+          "تاريخ انتهاء الرخصة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "insurance_expiry",
+      "entity": "compliance",
+      "datatype": "date",
+      "name": {
+        "en": "Insurance Expiry",
+        "ar": "انتهاء التأمين"
+      },
+      "aliases": {
+        "en": [
+          "insurance expiry",
+          "policy expiry",
+          "insurance exp date"
+        ],
+        "ar": [
+          "انتهاء التأمين",
+          "انتهاء الوثيقة",
+          "تاريخ انتهاء التأمين"
+        ]
+      }
+    }
+  ],
+  "keyword_groups": {
+    "vehicle": {
+      "en": [
+        "vehicle",
+        "truck",
+        "van",
+        "unit",
+        "fleet"
+      ],
+      "ar": [
+        "مركبة",
+        "شاحنة",
+        "فان",
+        "وحدة",
+        "أسطول"
+      ]
+    },
+    "maintenance": {
+      "en": [
+        "maintenance",
+        "service",
+        "work order",
+        "pm",
+        "cm",
+        "repair"
+      ],
+      "ar": [
+        "صيانة",
+        "خدمة",
+        "أمر عمل",
+        "وقائي",
+        "إصلاحي",
+        "إصلاح"
+      ]
+    },
+    "fuel": {
+      "en": [
+        "fuel",
+        "diesel",
+        "gas",
+        "efficiency",
+        "mpg",
+        "km/l"
+      ],
+      "ar": [
+        "وقود",
+        "ديزل",
+        "بنزين",
+        "كفاءة",
+        "كم/لتر"
+      ]
+    },
+    "safety": {
+      "en": [
+        "safety",
+        "incident",
+        "accident",
+        "violation",
+        "overspeed"
+      ],
+      "ar": [
+        "سلامة",
+        "حادث",
+        "مخالفة",
+        "سرعة زائدة"
+      ]
+    },
+    "dispatch": {
+      "en": [
+        "dispatch",
+        "trip",
+        "route",
+        "lane",
+        "pickup",
+        "delivery"
+      ],
+      "ar": [
+        "إرسال",
+        "رحلة",
+        "مسار",
+        "التقاط",
+        "تسليم"
+      ]
+    },
+    "compliance": {
+      "en": [
+        "compliance",
+        "license",
+        "insurance",
+        "expiry",
+        "inspection"
+      ],
+      "ar": [
+        "التزام",
+        "رخصة",
+        "تأمين",
+        "انتهاء",
+        "فحص"
+      ]
+    },
+    "cost": {
+      "en": [
+        "cost",
+        "spend",
+        "tco",
+        "cost per km",
+        "overtime"
+      ],
+      "ar": [
+        "تكلفة",
+        "صرف",
+        "تكلفة كلية",
+        "تكلفة/كم",
+        "ساعات إضافية"
+      ]
+    }
+  }
+}

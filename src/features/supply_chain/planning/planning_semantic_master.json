@@ -1,0 +1,152 @@
+{
+  "meta": {
+    "name": "Planning Semantic Master",
+    "version": "2.0.0",
+    "generated_at": "2025-12-19T07:14:33.466644Z",
+    "languages": [
+      "en",
+      "ar"
+    ],
+    "intent": "Always-filled Planning dashboards (demand, supply, capacity, forecasting)"
+  },
+  "dashboards": [
+    {
+      "id": "P01",
+      "name_en": "Planning Daily Control",
+      "name_ar": "التحكم اليومي للتخطيط"
+    },
+    {
+      "id": "P02",
+      "name_en": "Demand Planning",
+      "name_ar": "تخطيط الطلب"
+    },
+    {
+      "id": "P03",
+      "name_en": "Supply Planning",
+      "name_ar": "تخطيط التوريد"
+    },
+    {
+      "id": "P04",
+      "name_en": "Capacity & Constraints",
+      "name_ar": "السعة والقيود"
+    },
+    {
+      "id": "P05",
+      "name_en": "Forecast Accuracy & Scenarios",
+      "name_ar": "دقة التنبؤ والسيناريوهات"
+    },
+    {
+      "id": "P06",
+      "name_en": "Planning Risks & Exceptions",
+      "name_ar": "مخاطر واستثناءات التخطيط"
+    }
+  ],
+  "columns": [
+    {
+      "key": "item_code",
+      "en": "Item Code",
+      "ar": "كود الصنف",
+      "aliases_en": [
+        "sku",
+        "material code",
+        "item number"
+      ],
+      "aliases_ar": [
+        "كود الصنف",
+        "SKU",
+        "رقم الصنف"
+      ]
+    },
+    {
+      "key": "forecast_qty",
+      "en": "Forecast Quantity",
+      "ar": "الكمية المتوقعة",
+      "aliases_en": [
+        "forecast",
+        "forecast demand"
+      ],
+      "aliases_ar": [
+        "توقع",
+        "تنبؤ الطلب"
+      ]
+    },
+    {
+      "key": "actual_qty",
+      "en": "Actual Quantity",
+      "ar": "الكمية الفعلية",
+      "aliases_en": [
+        "actual",
+        "actual demand"
+      ],
+      "aliases_ar": [
+        "فعلي",
+        "طلب فعلي"
+      ]
+    },
+    {
+      "key": "forecast_accuracy",
+      "en": "Forecast Accuracy",
+      "ar": "دقة التنبؤ",
+      "aliases_en": [
+        "accuracy",
+        "mape"
+      ],
+      "aliases_ar": [
+        "دقة",
+        "MAPE"
+      ]
+    },
+    {
+      "key": "supply_qty",
+      "en": "Supply Quantity",
+      "ar": "كمية التوريد",
+      "aliases_en": [
+        "supply",
+        "available supply"
+      ],
+      "aliases_ar": [
+        "توريد",
+        "كمية متاحة"
+      ]
+    },
+    {
+      "key": "capacity",
+      "en": "Capacity",
+      "ar": "السعة",
+      "aliases_en": [
+        "capacity limit",
+        "max capacity"
+      ],
+      "aliases_ar": [
+        "سعة",
+        "حد السعة"
+      ]
+    },
+    {
+      "key": "constraint",
+      "en": "Constraint",
+      "ar": "قيد",
+      "aliases_en": [
+        "bottleneck",
+        "limitation"
+      ],
+      "aliases_ar": [
+        "قيد",
+        "اختناق"
+      ]
+    },
+    {
+      "key": "scenario",
+      "en": "Scenario",
+      "ar": "سيناريو",
+      "aliases_en": [
+        "what-if",
+        "simulation"
+      ],
+      "aliases_ar": [
+        "سيناريو",
+        "ماذا لو"
+      ]
+    }
+  ]
+}

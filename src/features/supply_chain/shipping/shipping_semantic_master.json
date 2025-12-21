@@ -1,0 +1,1389 @@
+{
+  "meta": {
+    "name": "Shipping Semantic Master",
+    "version": "2.0.0",
+    "generated_at": "2025-12-19T07:07:35.313562Z",
+    "scope": "shipping",
+    "languages": [
+      "en",
+      "ar"
+    ],
+    "intent": "Always-filled Shipping & Logistics dashboards (inbound/outbound/last-mile)"
+  },
+  "dashboards": [
+    {
+      "id": "S01",
+      "name": {
+        "en": "Shipping Daily Control",
+        "ar": "التحكم اليومي للشحن"
+      },
+      "purpose": {
+        "en": "Daily snapshot of shipments, on-time performance, and critical alerts.",
+        "ar": "ملخص يومي للشحنات، الالتزام بالمواعيد، والتنبيهات الحرجة."
+      },
+      "kpis": [
+        "shipments_created_today",
+        "shipments_dispatched_today",
+        "deliveries_today",
+        "late_shipments",
+        "in_transit_shipments",
+        "avg_transit_time",
+        "otif_shipping",
+        "critical_alerts"
+      ],
+      "charts": {
+        "bar": [
+          "shipments_by_status"
+        ],
+        "others": [
+          "hourly_dispatch",
+          "carrier_activity",
+          "route_activity",
+          "alerts_by_severity"
+        ]
+      },
+      "table": "live_shipping_activity_log"
+    },
+    {
+      "id": "S02",
+      "name": {
+        "en": "Outbound Dispatch & SLA",
+        "ar": "الإرسال والصادر وSLA"
+      },
+      "purpose": {
+        "en": "Dispatch throughput, SLA compliance, and delay reasons.",
+        "ar": "إنتاجية الإرسال، الالتزام بـ SLA، وأسباب التأخير."
+      },
+      "kpis": [
+        "dispatch_sla_compliance",
+        "avg_dispatch_delay",
+        "open_dispatches",
+        "missed_cutoff",
+        "pick_pack_to_dispatch_time",
+        "carrier_rejections",
+        "high_priority_backlog",
+        "failed_dispatch_attempts"
+      ],
+      "charts": {
+        "bar": [
+          "dispatch_by_warehouse"
+        ],
+        "others": [
+          "dispatch_trend",
+          "cutoff_miss_trend",
+          "delay_reasons",
+          "priority_split"
+        ]
+      },
+      "table": "dispatch_queue"
+    },
+    {
+      "id": "S03",
+      "name": {
+        "en": "In-Transit Visibility",
+        "ar": "رؤية الشحنات أثناء الطريق"
+      },
+      "purpose": {
+        "en": "Track in-transit shipments, ETA risk, and location updates.",
+        "ar": "تتبع الشحنات أثناء الطريق، مخاطر ETA، وتحديثات المواقع."
+      },
+      "kpis": [
+        "in_transit_shipments",
+        "eta_at_risk",
+        "avg_eta_variance",
+        "stalled_shipments",
+        "no_update_over_6h",
+        "no_update_over_24h",
+        "temperature_excursions",
+        "exception_events"
+      ],
+      "charts": {
+        "bar": [
+          "in_transit_by_carrier"
+        ],
+        "others": [
+          "eta_risk_trend",
+          "update_frequency",
+          "stalled_by_route",
+          "exceptions_pareto"
+        ]
+      },
+      "table": "in_transit_table"
+    },
+    {
+      "id": "S04",
+      "name": {
+        "en": "Delivery Performance (Last Mile)",
+        "ar": "أداء التسليم (آخر ميل)"
+      },
+      "purpose": {
+        "en": "On-time delivery, first-attempt success, and customer delivery outcomes.",
+        "ar": "التسليم في الوقت، نجاح المحاولة الأولى، ونتائج التسليم للعملاء."
+      },
+      "kpis": [
+        "on_time_delivery_pct",
+        "first_attempt_success_pct",
+        "failed_deliveries",
+        "avg_delivery_time",
+        "pod_compliance_pct",
+        "returns_from_delivery",
+        "customer_complaints_delivery",
+        "redelivery_rate"
+      ],
+      "charts": {
+        "bar": [
+          "delivery_status_split"
+        ],
+        "others": [
+          "otd_trend",
+          "first_attempt_trend",
+          "delivery_fail_reasons",
+          "pod_trend"
+        ]
+      },
+      "table": "deliveries_table"
+    },
+    {
+      "id": "S05",
+      "name": {
+        "en": "Carrier Cost & Claims",
+        "ar": "تكلفة الناقل والمطالبات"
+      },
+      "purpose": {
+        "en": "Shipping spend, cost per shipment, claims, and loss/damage analysis.",
+        "ar": "صرف الشحن، تكلفة لكل شحنة، المطالبات، وتحليل الفقد/التلف."
+      },
+      "kpis": [
+        "shipping_cost_today",
+        "shipping_cost_mtd",
+        "cost_per_shipment",
+        "fuel_surcharge",
+        "claims_open",
+        "claims_value",
+        "loss_damage_rate",
+        "invoice_disputes"
+      ],
+      "charts": {
+        "bar": [
+          "cost_by_carrier"
+        ],
+        "others": [
+          "cost_trend",
+          "cost_by_route",
+          "claims_by_reason",
+          "damage_trend"
+        ]
+      },
+      "table": "carrier_cost_claims_table"
+    },
+    {
+      "id": "S06",
+      "name": {
+        "en": "Shipping Risks & Exceptions",
+        "ar": "مخاطر واستثناءات الشحن"
+      },
+      "purpose": {
+        "en": "Action board for delays, holds, customs issues, and compliance exceptions.",
+        "ar": "لوحة تدخل: تأخير/تعليق/جمارك/استثناءات التزام."
+      },
+      "kpis": [
+        "critical_alerts",
+        "late_shipments",
+        "eta_at_risk",
+        "customs_holds",
+        "address_issues",
+        "documentation_missing",
+        "repeated_exceptions",
+        "high_value_at_risk"
+      ],
+      "charts": {
+        "bar": [
+          "exceptions_by_type"
+        ],
+        "others": [
+          "risk_trend",
+          "exceptions_by_warehouse",
+          "aging_exceptions",
+          "root_cause_pareto"
+        ]
+      },
+      "table": "shipping_exceptions_table"
+    }
+  ],
+  "kpis_dictionary": {
+    "shipments_created_today": {
+      "en": "Shipments Created Today",
+      "ar": "شحنات تم إنشاؤها اليوم"
+    },
+    "shipments_dispatched_today": {
+      "en": "Dispatched Today",
+      "ar": "تم الإرسال اليوم"
+    },
+    "deliveries_today": {
+      "en": "Deliveries Today",
+      "ar": "تسليمات اليوم"
+    },
+    "late_shipments": {
+      "en": "Late Shipments",
+      "ar": "شحنات متأخرة"
+    },
+    "in_transit_shipments": {
+      "en": "In-Transit",
+      "ar": "شحنات في الطريق"
+    },
+    "avg_transit_time": {
+      "en": "Avg Transit Time",
+      "ar": "متوسط زمن النقل"
+    },
+    "otif_shipping": {
+      "en": "OTIF (Shipping)",
+      "ar": "OTIF (الشحن)"
+    },
+    "critical_alerts": {
+      "en": "Critical Alerts",
+      "ar": "تنبيهات حرجة"
+    },
+    "dispatch_sla_compliance": {
+      "en": "Dispatch SLA %",
+      "ar": "التزام SLA للإرسال %"
+    },
+    "avg_dispatch_delay": {
+      "en": "Avg Dispatch Delay",
+      "ar": "متوسط تأخير الإرسال"
+    },
+    "open_dispatches": {
+      "en": "Open Dispatches",
+      "ar": "إرسالات مفتوحة"
+    },
+    "missed_cutoff": {
+      "en": "Missed Cutoff",
+      "ar": "تخطي وقت الإقفال"
+    },
+    "pick_pack_to_dispatch_time": {
+      "en": "Pick/Pack to Dispatch Time",
+      "ar": "زمن التجهيز حتى الإرسال"
+    },
+    "carrier_rejections": {
+      "en": "Carrier Rejections",
+      "ar": "رفض الناقل"
+    },
+    "high_priority_backlog": {
+      "en": "High Priority Backlog",
+      "ar": "تراكم أولويات عالية"
+    },
+    "failed_dispatch_attempts": {
+      "en": "Failed Dispatch Attempts",
+      "ar": "محاولات إرسال فاشلة"
+    },
+    "eta_at_risk": {
+      "en": "ETA At Risk",
+      "ar": "ETA في خطر"
+    },
+    "avg_eta_variance": {
+      "en": "Avg ETA Variance",
+      "ar": "متوسط انحراف ETA"
+    },
+    "stalled_shipments": {
+      "en": "Stalled Shipments",
+      "ar": "شحنات متوقفة"
+    },
+    "no_update_over_6h": {
+      "en": "No Update > 6h",
+      "ar": "بدون تحديث > 6 ساعات"
+    },
+    "no_update_over_24h": {
+      "en": "No Update > 24h",
+      "ar": "بدون تحديث > 24 ساعة"
+    },
+    "temperature_excursions": {
+      "en": "Temperature Excursions",
+      "ar": "تجاوزات حرارة"
+    },
+    "exception_events": {
+      "en": "Exception Events",
+      "ar": "أحداث استثناء"
+    },
+    "on_time_delivery_pct": {
+      "en": "On-Time Delivery %",
+      "ar": "التسليم في الوقت %"
+    },
+    "first_attempt_success_pct": {
+      "en": "First Attempt Success %",
+      "ar": "نجاح المحاولة الأولى %"
+    },
+    "failed_deliveries": {
+      "en": "Failed Deliveries",
+      "ar": "تسليمات فاشلة"
+    },
+    "avg_delivery_time": {
+      "en": "Avg Delivery Time",
+      "ar": "متوسط زمن التسليم"
+    },
+    "pod_compliance_pct": {
+      "en": "POD Compliance %",
+      "ar": "التزام POD %"
+    },
+    "returns_from_delivery": {
+      "en": "Returns from Delivery",
+      "ar": "مرتجعات من التسليم"
+    },
+    "customer_complaints_delivery": {
+      "en": "Delivery Complaints",
+      "ar": "شكاوى التسليم"
+    },
+    "redelivery_rate": {
+      "en": "Redelivery Rate",
+      "ar": "نسبة إعادة التسليم"
+    },
+    "shipping_cost_today": {
+      "en": "Shipping Cost (Today)",
+      "ar": "تكلفة الشحن (اليوم)"
+    },
+    "shipping_cost_mtd": {
+      "en": "Shipping Cost (MTD)",
+      "ar": "تكلفة الشحن (حتى الآن)"
+    },
+    "cost_per_shipment": {
+      "en": "Cost per Shipment",
+      "ar": "تكلفة لكل شحنة"
+    },
+    "fuel_surcharge": {
+      "en": "Fuel Surcharge",
+      "ar": "رسوم الوقود"
+    },
+    "claims_open": {
+      "en": "Open Claims",
+      "ar": "مطالبات مفتوحة"
+    },
+    "claims_value": {
+      "en": "Claims Value",
+      "ar": "قيمة المطالبات"
+    },
+    "loss_damage_rate": {
+      "en": "Loss/Damage Rate",
+      "ar": "نسبة فقد/تلف"
+    },
+    "invoice_disputes": {
+      "en": "Invoice Disputes",
+      "ar": "نزاعات الفواتير"
+    },
+    "customs_holds": {
+      "en": "Customs Holds",
+      "ar": "تعليق جمركي"
+    },
+    "address_issues": {
+      "en": "Address Issues",
+      "ar": "مشاكل العنوان"
+    },
+    "documentation_missing": {
+      "en": "Missing Documents",
+      "ar": "نواقص مستندات"
+    },
+    "repeated_exceptions": {
+      "en": "Repeated Exceptions",
+      "ar": "استثناءات متكررة"
+    },
+    "high_value_at_risk": {
+      "en": "High Value At Risk",
+      "ar": "قيمة عالية في خطر"
+    }
+  },
+  "chart_dimensions": [
+    {
+      "key": "by_status",
+      "name": {
+        "en": "By Status",
+        "ar": "حسب الحالة"
+      },
+      "aliases": {
+        "en": [
+          "status",
+          "state",
+          "shipping status"
+        ],
+        "ar": [
+          "الحالة",
+          "ستاتس",
+          "حالة الشحن"
+        ]
+      }
+    },
+    {
+      "key": "by_carrier",
+      "name": {
+        "en": "By Carrier",
+        "ar": "حسب الناقل"
+      },
+      "aliases": {
+        "en": [
+          "carrier",
+          "courier",
+          "shipping company",
+          "3pl"
+        ],
+        "ar": [
+          "الناقل",
+          "شركة الشحن",
+          "3PL",
+          "شركة لوجستية"
+        ]
+      }
+    },
+    {
+      "key": "by_route",
+      "name": {
+        "en": "By Route",
+        "ar": "حسب المسار"
+      },
+      "aliases": {
+        "en": [
+          "route",
+          "lane",
+          "corridor",
+          "origin-destination"
+        ],
+        "ar": [
+          "مسار",
+          "خط",
+          "مسار شحن",
+          "من-إلى"
+        ]
+      }
+    },
+    {
+      "key": "by_warehouse",
+      "name": {
+        "en": "By Warehouse",
+        "ar": "حسب المخزن"
+      },
+      "aliases": {
+        "en": [
+          "warehouse",
+          "site",
+          "plant",
+          "shipping point"
+        ],
+        "ar": [
+          "المخزن",
+          "موقع",
+          "نقطة الشحن"
+        ]
+      }
+    },
+    {
+      "key": "by_customer",
+      "name": {
+        "en": "By Customer",
+        "ar": "حسب العميل"
+      },
+      "aliases": {
+        "en": [
+          "customer",
+          "client",
+          "consignee"
+        ],
+        "ar": [
+          "العميل",
+          "الزبون",
+          "المستلم"
+        ]
+      }
+    },
+    {
+      "key": "by_time_day",
+      "name": {
+        "en": "By Day",
+        "ar": "حسب اليوم"
+      },
+      "aliases": {
+        "en": [
+          "daily",
+          "by day"
+        ],
+        "ar": [
+          "يومي",
+          "حسب اليوم"
+        ]
+      }
+    },
+    {
+      "key": "by_time_week",
+      "name": {
+        "en": "By Week",
+        "ar": "حسب الأسبوع"
+      },
+      "aliases": {
+        "en": [
+          "weekly",
+          "by week"
+        ],
+        "ar": [
+          "أسبوعي",
+          "حسب الأسبوع"
+        ]
+      }
+    },
+    {
+      "key": "by_time_month",
+      "name": {
+        "en": "By Month",
+        "ar": "حسب الشهر"
+      },
+      "aliases": {
+        "en": [
+          "monthly",
+          "by month"
+        ],
+        "ar": [
+          "شهري",
+          "حسب الشهر"
+        ]
+      }
+    },
+    {
+      "key": "aging_buckets",
+      "name": {
+        "en": "Aging Buckets",
+        "ar": "شرائح التقادم"
+      },
+      "aliases": {
+        "en": [
+          "aging",
+          "age buckets"
+        ],
+        "ar": [
+          "تقادم",
+          "شرائح التقادم"
+        ]
+      }
+    }
+  ],
+  "tables": {
+    "live_shipping_activity_log": {
+      "name": {
+        "en": "Live Shipping Activity",
+        "ar": "سجل نشاط الشحن المباشر"
+      },
+      "aliases": {
+        "en": [
+          "shipping activity log",
+          "live log",
+          "activity feed"
+        ],
+        "ar": [
+          "سجل الشحن",
+          "سجل مباشر",
+          "سجل النشاط"
+        ]
+      },
+      "columns": [
+        "time",
+        "shipment_id",
+        "event",
+        "user",
+        "carrier",
+        "route",
+        "amount",
+        "shipping_status"
+      ]
+    },
+    "dispatch_queue": {
+      "name": {
+        "en": "Dispatch Queue",
+        "ar": "طابور الإرسال"
+      },
+      "aliases": {
+        "en": [
+          "dispatch list",
+          "outbound queue",
+          "shipping queue"
+        ],
+        "ar": [
+          "قائمة الإرسال",
+          "طابور الشحن",
+          "الصادر"
+        ]
+      },
+      "columns": [
+        "shipment_id",
+        "order_id",
+        "warehouse",
+        "priority",
+        "pick_status",
+        "pack_status",
+        "dispatch_status",
+        "cutoff_time",
+        "dispatch_date",
+        "carrier",
+        "tracking_number",
+        "sla_status"
+      ]
+    },
+    "in_transit_table": {
+      "name": {
+        "en": "In-Transit Shipments",
+        "ar": "الشحنات في الطريق"
+      },
+      "aliases": {
+        "en": [
+          "in transit table",
+          "tracking table",
+          "visibility table"
+        ],
+        "ar": [
+          "جدول الشحنات في الطريق",
+          "جدول التتبع",
+          "الرؤية"
+        ]
+      },
+      "columns": [
+        "shipment_id",
+        "carrier",
+        "route",
+        "departure_time",
+        "eta_date",
+        "last_update_time",
+        "last_known_location",
+        "eta_risk_flag",
+        "exception_status"
+      ]
+    },
+    "deliveries_table": {
+      "name": {
+        "en": "Deliveries",
+        "ar": "التسليمات"
+      },
+      "aliases": {
+        "en": [
+          "deliveries table",
+          "pod table",
+          "delivery list"
+        ],
+        "ar": [
+          "جدول التسليمات",
+          "جدول POD",
+          "قائمة التسليم"
+        ]
+      },
+      "columns": [
+        "shipment_id",
+        "order_id",
+        "customer",
+        "delivery_address",
+        "delivery_status",
+        "delivered_date",
+        "first_attempt_flag",
+        "pod_status",
+        "pod_date",
+        "return_flag",
+        "complaint_flag"
+      ]
+    },
+    "carrier_cost_claims_table": {
+      "name": {
+        "en": "Carrier Cost & Claims",
+        "ar": "تكلفة الناقل والمطالبات"
+      },
+      "aliases": {
+        "en": [
+          "carrier cost table",
+          "claims table",
+          "freight cost"
+        ],
+        "ar": [
+          "جدول تكلفة الشحن",
+          "جدول المطالبات",
+          "تكلفة النقل"
+        ]
+      },
+      "columns": [
+        "carrier",
+        "period",
+        "shipments_count",
+        "freight_cost",
+        "fuel_surcharge",
+        "cost_per_shipment",
+        "claims_open",
+        "claims_value",
+        "loss_damage_rate",
+        "invoice_disputes"
+      ]
+    },
+    "shipping_exceptions_table": {
+      "name": {
+        "en": "Shipping Exceptions",
+        "ar": "استثناءات الشحن"
+      },
+      "aliases": {
+        "en": [
+          "exceptions table",
+          "shipping risks table",
+          "delay exceptions"
+        ],
+        "ar": [
+          "جدول الاستثناءات",
+          "مخاطر الشحن",
+          "استثناءات التأخير"
+        ]
+      },
+      "columns": [
+        "shipment_id",
+        "exception_type",
+        "severity",
+        "root_cause",
+        "owner",
+        "age_days",
+        "carrier",
+        "route",
+        "warehouse",
+        "status",
+        "next_action"
+      ]
+    }
+  },
+  "columns": [
+    {
+      "canonical_key": "shipment_id",
+      "entity": "shipment",
+      "datatype": "string",
+      "name": {
+        "en": "Shipment ID",
+        "ar": "رقم الشحنة"
+      },
+      "aliases": {
+        "en": [
+          "shipment id",
+          "dispatch id",
+          "delivery note",
+          "dn number",
+          "awb",
+          "waybill",
+          "bill of lading",
+          "bol"
+        ],
+        "ar": [
+          "رقم الشحنة",
+          "رقم الإرسال",
+          "إذن تسليم",
+          "AWB",
+          "بوليصة",
+          "بوليصة شحن",
+          "BOL"
+        ]
+      }
+    },
+    {
+      "canonical_key": "order_id",
+      "entity": "order",
+      "datatype": "string",
+      "name": {
+        "en": "Order ID",
+        "ar": "رقم الأمر"
+      },
+      "aliases": {
+        "en": [
+          "order id",
+          "order number",
+          "so",
+          "po",
+          "doc no"
+        ],
+        "ar": [
+          "رقم الأمر",
+          "رقم الطلب",
+          "SO",
+          "PO",
+          "رقم المستند"
+        ]
+      }
+    },
+    {
+      "canonical_key": "shipping_status",
+      "entity": "status",
+      "datatype": "string",
+      "name": {
+        "en": "Shipping Status",
+        "ar": "حالة الشحن"
+      },
+      "aliases": {
+        "en": [
+          "shipping status",
+          "status",
+          "state",
+          "shipment status",
+          "delivery status"
+        ],
+        "ar": [
+          "حالة الشحن",
+          "الحالة",
+          "ستاتس",
+          "حالة الشحنة",
+          "حالة التسليم"
+        ]
+      }
+    },
+    {
+      "canonical_key": "carrier",
+      "entity": "carrier",
+      "datatype": "string",
+      "name": {
+        "en": "Carrier",
+        "ar": "الناقل"
+      },
+      "aliases": {
+        "en": [
+          "carrier",
+          "courier",
+          "3pl",
+          "logistics provider",
+          "transport company"
+        ],
+        "ar": [
+          "الناقل",
+          "شركة الشحن",
+          "3PL",
+          "مزود لوجستي",
+          "شركة نقل"
+        ]
+      }
+    },
+    {
+      "canonical_key": "tracking_number",
+      "entity": "tracking",
+      "datatype": "string",
+      "name": {
+        "en": "Tracking Number",
+        "ar": "رقم التتبع"
+      },
+      "aliases": {
+        "en": [
+          "tracking",
+          "tracking number",
+          "tracking no",
+          "tracking id",
+          "ref number"
+        ],
+        "ar": [
+          "رقم التتبع",
+          "تتبع",
+          "رقم تتبع",
+          "رقم مرجعي"
+        ]
+      }
+    },
+    {
+      "canonical_key": "route",
+      "entity": "route",
+      "datatype": "string",
+      "name": {
+        "en": "Route",
+        "ar": "المسار"
+      },
+      "aliases": {
+        "en": [
+          "route",
+          "lane",
+          "origin-destination",
+          "from-to",
+          "corridor"
+        ],
+        "ar": [
+          "المسار",
+          "خط",
+          "من-إلى",
+          "مسار الشحن"
+        ]
+      }
+    },
+    {
+      "canonical_key": "origin",
+      "entity": "route",
+      "datatype": "string",
+      "name": {
+        "en": "Origin",
+        "ar": "نقطة الانطلاق"
+      },
+      "aliases": {
+        "en": [
+          "origin",
+          "from",
+          "ship from",
+          "pickup location"
+        ],
+        "ar": [
+          "من",
+          "نقطة الانطلاق",
+          "مكان الاستلام",
+          "Ship From"
+        ]
+      }
+    },
+    {
+      "canonical_key": "destination",
+      "entity": "route",
+      "datatype": "string",
+      "name": {
+        "en": "Destination",
+        "ar": "الوجهة"
+      },
+      "aliases": {
+        "en": [
+          "destination",
+          "to",
+          "ship to",
+          "delivery location"
+        ],
+        "ar": [
+          "إلى",
+          "الوجهة",
+          "مكان التسليم",
+          "Ship To"
+        ]
+      }
+    },
+    {
+      "canonical_key": "warehouse",
+      "entity": "warehouse",
+      "datatype": "string",
+      "name": {
+        "en": "Warehouse",
+        "ar": "المخزن"
+      },
+      "aliases": {
+        "en": [
+          "warehouse",
+          "shipping point",
+          "dispatch point",
+          "site",
+          "plant"
+        ],
+        "ar": [
+          "المخزن",
+          "نقطة الشحن",
+          "نقطة الإرسال",
+          "موقع"
+        ]
+      }
+    },
+    {
+      "canonical_key": "priority",
+      "entity": "priority",
+      "datatype": "string",
+      "name": {
+        "en": "Priority",
+        "ar": "الأولوية"
+      },
+      "aliases": {
+        "en": [
+          "priority",
+          "urgency",
+          "service level"
+        ],
+        "ar": [
+          "الأولوية",
+          "عاجل",
+          "درجة أولوية",
+          "مستوى الخدمة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "dispatch_date",
+      "entity": "time",
+      "datatype": "date",
+      "name": {
+        "en": "Dispatch Date",
+        "ar": "تاريخ الإرسال"
+      },
+      "aliases": {
+        "en": [
+          "dispatch date",
+          "shipped date",
+          "ship date",
+          "departure date"
+        ],
+        "ar": [
+          "تاريخ الإرسال",
+          "تاريخ الشحن",
+          "تاريخ المغادرة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "eta_date",
+      "entity": "time",
+      "datatype": "date",
+      "name": {
+        "en": "ETA",
+        "ar": "موعد الوصول المتوقع (ETA)"
+      },
+      "aliases": {
+        "en": [
+          "eta",
+          "expected arrival",
+          "estimated arrival"
+        ],
+        "ar": [
+          "ETA",
+          "موعد الوصول المتوقع",
+          "تاريخ الوصول المتوقع"
+        ]
+      }
+    },
+    {
+      "canonical_key": "delivered_date",
+      "entity": "time",
+      "datatype": "date",
+      "name": {
+        "en": "Delivered Date",
+        "ar": "تاريخ التسليم"
+      },
+      "aliases": {
+        "en": [
+          "delivered date",
+          "delivery date",
+          "pod date",
+          "actual delivery"
+        ],
+        "ar": [
+          "تاريخ التسليم",
+          "تاريخ POD",
+          "تاريخ التسليم الفعلي"
+        ]
+      }
+    },
+    {
+      "canonical_key": "cutoff_time",
+      "entity": "time",
+      "datatype": "string",
+      "name": {
+        "en": "Cutoff Time",
+        "ar": "وقت الإقفال"
+      },
+      "aliases": {
+        "en": [
+          "cutoff time",
+          "cutoff",
+          "closing time",
+          "dispatch cutoff"
+        ],
+        "ar": [
+          "وقت الإقفال",
+          "كوت أوف",
+          "وقت الإغلاق",
+          "إقفال الإرسال"
+        ]
+      }
+    },
+    {
+      "canonical_key": "freight_cost",
+      "entity": "finance",
+      "datatype": "number",
+      "name": {
+        "en": "Freight Cost",
+        "ar": "تكلفة الشحن"
+      },
+      "aliases": {
+        "en": [
+          "freight cost",
+          "shipping cost",
+          "transport cost",
+          "delivery fee"
+        ],
+        "ar": [
+          "تكلفة الشحن",
+          "تكلفة النقل",
+          "مصاريف شحن",
+          "رسوم توصيل"
+        ]
+      }
+    },
+    {
+      "canonical_key": "fuel_surcharge",
+      "entity": "finance",
+      "datatype": "number",
+      "name": {
+        "en": "Fuel Surcharge",
+        "ar": "رسوم الوقود"
+      },
+      "aliases": {
+        "en": [
+          "fuel surcharge",
+          "fuel fee"
+        ],
+        "ar": [
+          "رسوم الوقود",
+          "رسوم بنزين"
+        ]
+      }
+    },
+    {
+      "canonical_key": "claim_id",
+      "entity": "claims",
+      "datatype": "string",
+      "name": {
+        "en": "Claim ID",
+        "ar": "رقم المطالبة"
+      },
+      "aliases": {
+        "en": [
+          "claim id",
+          "claim number",
+          "damage claim",
+          "loss claim"
+        ],
+        "ar": [
+          "رقم المطالبة",
+          "رقم Claim",
+          "مطالبة تلف",
+          "مطالبة فقد"
+        ]
+      }
+    },
+    {
+      "canonical_key": "claim_reason",
+      "entity": "claims",
+      "datatype": "string",
+      "name": {
+        "en": "Claim Reason",
+        "ar": "سبب المطالبة"
+      },
+      "aliases": {
+        "en": [
+          "claim reason",
+          "damage reason",
+          "loss reason"
+        ],
+        "ar": [
+          "سبب المطالبة",
+          "سبب التلف",
+          "سبب الفقد"
+        ]
+      }
+    },
+    {
+      "canonical_key": "pod_status",
+      "entity": "pod",
+      "datatype": "string",
+      "name": {
+        "en": "POD Status",
+        "ar": "حالة إثبات التسليم (POD)"
+      },
+      "aliases": {
+        "en": [
+          "pod status",
+          "proof of delivery status",
+          "delivery proof"
+        ],
+        "ar": [
+          "حالة POD",
+          "إثبات تسليم",
+          "حالة إثبات التسليم"
+        ]
+      }
+    },
+    {
+      "canonical_key": "exception_type",
+      "entity": "exception",
+      "datatype": "string",
+      "name": {
+        "en": "Exception Type",
+        "ar": "نوع الاستثناء"
+      },
+      "aliases": {
+        "en": [
+          "exception type",
+          "issue type",
+          "problem type",
+          "incident type"
+        ],
+        "ar": [
+          "نوع الاستثناء",
+          "نوع المشكلة",
+          "نوع الحادث",
+          "المشكلة"
+        ]
+      }
+    },
+    {
+      "canonical_key": "severity",
+      "entity": "exception",
+      "datatype": "string",
+      "name": {
+        "en": "Severity",
+        "ar": "الحدة/الخطورة"
+      },
+      "aliases": {
+        "en": [
+          "severity",
+          "criticality",
+          "risk level",
+          "priority"
+        ],
+        "ar": [
+          "الخطورة",
+          "الحدة",
+          "مستوى الخطر",
+          "أولوية"
+        ]
+      }
+    },
+    {
+      "canonical_key": "root_cause",
+      "entity": "exception",
+      "datatype": "string",
+      "name": {
+        "en": "Root Cause",
+        "ar": "السبب الجذري"
+      },
+      "aliases": {
+        "en": [
+          "root cause",
+          "cause",
+          "reason",
+          "rca"
+        ],
+        "ar": [
+          "سبب جذري",
+          "السبب",
+          "سبب",
+          "RCA"
+        ]
+      }
+    },
+    {
+      "canonical_key": "age_days",
+      "entity": "time",
+      "datatype": "number",
+      "name": {
+        "en": "Age (Days)",
+        "ar": "العمر (يوم)"
+      },
+      "aliases": {
+        "en": [
+          "age",
+          "age days",
+          "aging days"
+        ],
+        "ar": [
+          "العمر",
+          "تقادم",
+          "أيام التقادم"
+        ]
+      }
+    }
+  ],
+  "keyword_groups": {
+    "shipment": {
+      "en": [
+        "shipment",
+        "dispatch",
+        "delivery note",
+        "waybill",
+        "awb",
+        "bol"
+      ],
+      "ar": [
+        "شحنة",
+        "إرسال",
+        "إذن تسليم",
+        "بوليصة",
+        "AWB"
+      ]
+    },
+    "tracking": {
+      "en": [
+        "tracking",
+        "trace",
+        "visibility",
+        "gps",
+        "status update"
+      ],
+      "ar": [
+        "تتبع",
+        "تتبع مباشر",
+        "رؤية",
+        "GPS",
+        "تحديث حالة"
+      ]
+    },
+    "last_mile": {
+      "en": [
+        "last mile",
+        "delivery",
+        "pod",
+        "first attempt"
+      ],
+      "ar": [
+        "آخر ميل",
+        "تسليم",
+        "POD",
+        "محاولة أولى"
+      ]
+    },
+    "carrier": {
+      "en": [
+        "carrier",
+        "courier",
+        "3pl",
+        "logistics"
+      ],
+      "ar": [
+        "ناقل",
+        "شركة شحن",
+        "3PL",
+        "لوجستيات"
+      ]
+    },
+    "customs": {
+      "en": [
+        "customs",
+        "clearance",
+        "duty",
+        "saber",
+        "import"
+      ],
+      "ar": [
+        "جمارك",
+        "تخليص",
+        "رسوم",
+        "سابر",
+        "استيراد"
+      ]
+    },
+    "cost": {
+      "en": [
+        "cost",
+        "freight",
+        "rate",
+        "surcharge",
+        "invoice"
+      ],
+      "ar": [
+        "تكلفة",
+        "شحن",
+        "تعرفة",
+        "رسوم إضافية",
+        "فاتورة"
+      ]
+    },
+    "exceptions": {
+      "en": [
+        "exception",
+        "issue",
+        "delay",
+        "hold",
+        "risk",
+        "alert"
+      ],
+      "ar": [
+        "استثناء",
+        "مشكلة",
+        "تأخير",
+        "تعليق",
+        "خطر",
+        "تنبيه"
+      ]
+    }
+  }
+}

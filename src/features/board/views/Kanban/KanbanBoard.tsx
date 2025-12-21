@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
     Calendar, Flag, Tag, MoreHorizontal, Copy, Link2,
     Pencil, ArrowRight, Bell, Mail, Plus as PlusIcon, GitMerge, Move, Timer,
@@ -15,10 +15,13 @@ import {
 import { SharedDatePicker } from '../../../../components/ui/SharedDatePicker';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import { useClickOutside } from '../../../../hooks/useClickOutside';
+import { getPriorityClasses, normalizePriority, PRIORITY_LEVELS } from '../../../priorities/priorityUtils';
+import { useReminders, ReminderRecord, ReminderStatus } from '../../../reminders/reminderStore';
+import { ReminderPanel } from '../../../reminders/ReminderPanel';
 
 // --- Types ---
 
-export type Priority = 'urgent' | 'high' | 'normal' | 'low' | 'none';
+export type Priority = 'high' | 'medium' | 'low' | 'none' | 'urgent' | 'normal';
 
 export interface Subtask {
     id: string;
@@ -63,12 +66,17 @@ export const INITIAL_DATA: BoardData = {
     tasks: []
 };
 
-export const priorityConfig = {
-    urgent: { color: 'text-red-500', icon: Flag, label: 'Urgent' },
-    high: { color: 'text-orange-500', icon: Flag, label: 'High' },
-    normal: { color: 'text-blue-500', icon: Flag, label: 'Normal' },
-    low: { color: 'text-gray-500', icon: Flag, label: 'Low' },
-    none: { color: 'text-gray-400', icon: Flag, label: 'Clear' }
+const HIGH_CLASSES = getPriorityClasses('High');
+const MEDIUM_CLASSES = getPriorityClasses('Medium');
+const LOW_CLASSES = getPriorityClasses('Low');
+
+export const priorityConfig: Record<Priority, { color: string; label: string; dot: string }> = {
+    high: { color: HIGH_CLASSES.text, dot: HIGH_CLASSES.dot, label: 'High' },
+    medium: { color: MEDIUM_CLASSES.text, dot: MEDIUM_CLASSES.dot, label: 'Medium' },
+    low: { color: LOW_CLASSES.text, dot: LOW_CLASSES.dot, label: 'Low' },
+    none: { color: 'text-stone-400', dot: 'bg-stone-300', label: 'Clear' },
+    urgent: { color: HIGH_CLASSES.text, dot: HIGH_CLASSES.dot, label: 'Urgent' },
+    normal: { color: MEDIUM_CLASSES.text, dot: MEDIUM_CLASSES.dot, label: 'Medium' },
 };
 
 // --- Sub-Components (Menus, etc.) ---
@@ -87,18 +95,15 @@ export const PriorityMenu = ({ currentPriority, onSelect }: { currentPriority: P
     return (
         <div className="py-2">
             <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Task Priority</div>
-            <button onClick={() => onSelect('urgent')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-sm text-gray-700">
-                <Flag size={16} className="text-red-500 fill-current" /> Urgent
-            </button>
-            <button onClick={() => onSelect('high')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-sm text-gray-700">
-                <Flag size={16} className="text-orange-500 fill-current" /> High
-            </button>
-            <button onClick={() => onSelect('normal')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-sm text-gray-700">
-                <Flag size={16} className="text-blue-500 fill-current" /> Normal
-            </button>
-            <button onClick={() => onSelect('low')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-sm text-gray-700">
-                <Flag size={16} className="text-gray-500" /> Low
-            </button>
+            {PRIORITY_LEVELS.map(level => {
+                const value = level.toLowerCase() as Priority;
+                const colors = getPriorityClasses(level);
+                return (
+                    <button key={level} onClick={() => onSelect(value)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-sm text-gray-700">
+                        <Flag size={16} className={colors.text} fill="currentColor" /> {level}
+                    </button>
+                );
+            })}
             <div className="h-px bg-gray-100 my-1"></div>
             <button onClick={() => onSelect('clear')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-sm text-gray-700">
                 <Slash size={16} className="text-gray-400" /> Clear
@@ -164,9 +169,11 @@ interface TaskCardProps {
     onUpdateTask: (updatedTask: Task) => void;
     onDeleteTask: (taskId: string) => void;
     onDuplicateTask: (task: Task) => void;
+    reminders: ReminderRecord[];
+    onOpenReminder: (taskId: string, rect: DOMRect) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onUpdateTask, onDeleteTask, onDuplicateTask }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onUpdateTask, onDeleteTask, onDuplicateTask, reminders, onOpenReminder }) => {
     const [activeMenu, setActiveMenu] = useState<'none' | 'priority' | 'tags' | 'context' | 'date'>('none');
     const [isRenaming, setIsRenaming] = useState(false);
     const [renameTitle, setRenameTitle] = useState(task.title);
@@ -192,7 +199,19 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onUpdateTask, on
         setIsRenaming(false);
     };
 
-    const currentPriorityKey = task.priority;
+    const normalizedPriority = normalizePriority(task.priority);
+    const priorityKey = (normalizedPriority ? normalizedPriority.toLowerCase() : task.priority) as Priority || 'none';
+    const priorityMeta = priorityConfig[priorityKey] || priorityConfig.none;
+    const reminderState: ReminderStatus | null = reminders.some(r => r.status === 'triggered')
+        ? 'triggered'
+        : reminders.length > 0
+            ? 'scheduled'
+            : null;
+    const reminderTone = reminderState === 'triggered'
+        ? 'text-rose-500'
+        : reminderState === 'scheduled'
+            ? 'text-amber-500'
+            : 'text-stone-300';
 
     return (
         <div
@@ -218,7 +237,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onUpdateTask, on
                         onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
                     />
                 ) : (
-                    <span className="font-medium font-serif text-stone-900 dark:text-stone-100 text-sm leading-snug block flex-1 pr-2 break-words">{task.title}</span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {priorityKey !== 'none' && <span className={`w-2 h-2 rounded-full ${priorityMeta.dot}`} title={`${priorityMeta.label} priority`} />}
+                        <span className="font-medium font-serif text-stone-900 dark:text-stone-100 text-sm leading-snug block flex-1 pr-2 break-words">{task.title}</span>
+                    </div>
                 )}
 
                 <button
@@ -256,9 +278,23 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onUpdateTask, on
                 {/* Priority Button */}
                 <button
                     onClick={(e) => { e.stopPropagation(); setActiveMenu('priority'); }}
-                    className={`w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors ${task.priority !== 'none' ? priorityConfig[currentPriorityKey].color : 'text-gray-400'}`}
+                    className={`w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors ${priorityKey !== 'none' ? priorityMeta.color : 'text-gray-400'}`}
                 >
-                    <Flag size={14} strokeWidth={2} fill={task.priority !== 'none' && task.priority !== 'low' ? "currentColor" : "none"} />
+                    <Flag size={14} strokeWidth={2} fill={priorityKey !== 'none' && priorityKey !== 'low' ? "currentColor" : "none"} />
+                </button>
+
+                {/* Reminder Button */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); onOpenReminder(task.id, e.currentTarget.getBoundingClientRect()); }}
+                    className={`w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors ${reminderTone}`}
+                    title={reminders.length ? 'Manage reminders' : 'Add reminder'}
+                >
+                    <div className="relative flex items-center">
+                        <Bell size={14} />
+                        {reminders.length > 0 && (
+                            <span className={`absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full ${reminderState === 'triggered' ? 'bg-rose-500' : 'bg-amber-500'}`} />
+                        )}
+                    </div>
                 </button>
 
                 {/* Tags (Now Inline) */}
@@ -389,6 +425,8 @@ interface ColumnProps {
     onRenameColumn: (columnId: string, newTitle: string) => void;
     onColorChange: (columnId: string, newColor: string) => void;
     onDeleteColumn: (columnId: string) => void;
+    remindersByItem: Record<string, ReminderRecord[]>;
+    onOpenReminder: (taskId: string, rect: DOMRect) => void;
 }
 
 // Rich Task Creation Form Component
@@ -543,7 +581,7 @@ const TaskCreationForm = ({ onSave, onCancel, columnColor = 'gray' }: { onSave: 
 
 const Column: React.FC<ColumnProps> = ({
     column, tasks, onTaskMove, onAddTask, onUpdateTask,
-    onDeleteTask, onDuplicateTask, onClearColumn, onRenameColumn, onColorChange, onDeleteColumn
+    onDeleteTask, onDuplicateTask, onClearColumn, onRenameColumn, onColorChange, onDeleteColumn, remindersByItem, onOpenReminder
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const [isAddingBottom, setIsAddingBottom] = useState(false);
@@ -768,6 +806,8 @@ const Column: React.FC<ColumnProps> = ({
                         onUpdateTask={onUpdateTask}
                         onDeleteTask={onDeleteTask}
                         onDuplicateTask={onDuplicateTask}
+                        reminders={remindersByItem[task.id] || []}
+                        onOpenReminder={(taskId, rect) => onOpenReminder(taskId, rect)}
                     />
                 ))}
 
@@ -798,11 +838,14 @@ const Column: React.FC<ColumnProps> = ({
 
 interface KanbanBoardProps {
     boardId: string;
+    viewId?: string;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
     // Shared key for tasks (rows) and statuses
-    const tasksKey = `board-tasks-${boardId}`;
+    // Shared Storage Keys Logic
+    const isSharedView = !viewId || viewId === 'kanban' || viewId === 'kanban-main';
+    const tasksKey = !isSharedView ? `board-tasks-${boardId}-${viewId}` : `board-tasks-${boardId}`;
     const statusesKey = `board-statuses-${boardId}`;
 
     const [data, setData] = useState<BoardData>(() => {
@@ -883,6 +926,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId }) => {
         // Return combined data
         return { columns: loadedColumns, tasks: loadedTasks };
     });
+    const { groupedByItem: remindersByItem, addReminder, updateReminder, deleteReminder } = useReminders(boardId);
+    const [activeReminderTarget, setActiveReminderTarget] = useState<{ taskId: string; rect: DOMRect } | null>(null);
+    const activeReminderTask = useMemo(
+        () => activeReminderTarget ? data.tasks.find(t => t.id === activeReminderTarget.taskId) : null,
+        [activeReminderTarget, data.tasks]
+    );
 
     // Persistence: Save Tasks to Shared Key (mapped back to Rows)
     useEffect(() => {
@@ -1119,6 +1168,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId }) => {
                             onRenameColumn={handleRenameColumn}
                             onColorChange={handleColorChange}
                             onDeleteColumn={handleDeleteColumn}
+                            remindersByItem={remindersByItem}
+                            onOpenReminder={(taskId, rect) => setActiveReminderTarget({ taskId, rect })}
                         />
                     ))}
 
@@ -1134,6 +1185,29 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId }) => {
                     </div>
                 </div>
             </main>
+            {activeReminderTarget && (
+                <PortalPopup
+                    triggerRef={{ current: { getBoundingClientRect: () => activeReminderTarget.rect } } as any}
+                    onClose={() => setActiveReminderTarget(null)}
+                    side="bottom"
+                >
+                    <ReminderPanel
+                        itemId={activeReminderTarget.taskId}
+                        itemTitle={activeReminderTask?.title}
+                        reminders={remindersByItem[activeReminderTarget.taskId] || []}
+                        onAdd={(remindAt, kind, label) => addReminder({
+                            itemId: activeReminderTarget.taskId,
+                            boardId,
+                            itemTitle: activeReminderTask?.title,
+                            remindAt,
+                            kind,
+                            relativeLabel: label
+                        })}
+                        onDelete={deleteReminder}
+                        onUpdateStatus={(id, status) => updateReminder(id, { status })}
+                    />
+                </PortalPopup>
+            )}
         </div>
     );
 };

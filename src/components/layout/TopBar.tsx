@@ -1,13 +1,15 @@
 import React from 'react';
-import { Bell, Search, HelpCircle, Grid3X3, Download, Link, Moon, Sun } from 'lucide-react';
+import { Bell, Search, HelpCircle, Grid3X3, Download, Link, Moon, Sun, Play, Pause, RotateCcw, X } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { LogOut, User as UserIcon } from 'lucide-react';
+import { useFocus } from '../../contexts/FocusContext';
 import { useState, useRef, useEffect } from 'react';
 
 export const TopBar: React.FC = () => {
   const { theme, toggleTheme, language, toggleLanguage, t } = useAppContext();
   const { user, logout } = useAuth();
+  const { isActive, isSessionActive, timeLeft, toggleFocus, resetFocus, cancelFocus, formatTime } = useFocus();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +57,26 @@ export const TopBar: React.FC = () => {
 
       {/* End: Icons Section */}
       <div className="flex items-center space-x-1 space-x-reverse min-w-[200px] justify-end">
+
+        {/* Focus Timer */}
+        {isSessionActive && (
+          <div className="flex items-center gap-3 mr-4">
+            <span className="font-mono font-bold text-blue-600 dark:text-blue-400 tabular-nums text-sm w-12 text-center">
+              {formatTime(timeLeft)}
+            </span>
+            <div className="flex items-center gap-1">
+              <button onClick={toggleFocus} className="p-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-400 transition-colors" title={isActive ? "Pause" : "Resume"}>
+                {isActive ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+              </button>
+              <button onClick={resetFocus} className="p-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-500 dark:text-blue-400 transition-colors" title="Reset">
+                <RotateCcw size={14} />
+              </button>
+              <button onClick={cancelFocus} className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500 dark:text-red-400 transition-colors" title="Cancel Session">
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Language Toggle - Simple Text Icon */}
         <button

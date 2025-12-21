@@ -23,7 +23,8 @@ interface ListBoardProps {
 
 const ListBoard: React.FC<ListBoardProps> = ({ roomId, viewId }) => {
     // Shared Storage Keys
-    const storageKeyTasks = `board-tasks-${roomId}`;
+    const isSharedView = !viewId || viewId === 'list_board' || viewId === 'list-main' || viewId === 'list';
+    const storageKeyTasks = !isSharedView ? `board-tasks-${roomId}-${viewId}` : `board-tasks-${roomId}`;
     const storageKeyStatuses = `board-statuses-${roomId}`;
 
     // State

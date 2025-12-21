@@ -1,0 +1,3550 @@
+{
+  "meta": {
+    "name": "Requests & Orders Semantic Master",
+    "version": "1.0.0",
+    "generated_at": "2025-12-18T16:25:13.236132Z",
+    "languages": [
+      "en",
+      "ar"
+    ],
+    "modules": [
+      "requests",
+      "orders"
+    ],
+    "notes": [
+      "Combined rich semantic dictionaries for Requests (PR) and Orders dashboards.",
+      "Implement fuzzy, case-insensitive matching using aliases lists.",
+      "Dashboards are designed to be always-filled (KPIs + charts + core table)."
+    ]
+  },
+  "requests": {
+    "rich": {
+      "meta": {
+        "name": "Requests Semantic Master",
+        "version": "2.0.0",
+        "generated_at": "2025-12-18T16:25:13.236022Z",
+        "languages": [
+          "en",
+          "ar"
+        ],
+        "intent": "Rich daily operational dashboards for Purchase Requests (PR)"
+      },
+      "dashboards": [
+        {
+          "id": "R01",
+          "name": {
+            "en": "Daily Requests Control",
+            "ar": "التحكم اليومي في الطلبات"
+          },
+          "purpose": {
+            "en": "Always-on executive snapshot of requests, approvals, spend and alerts.",
+            "ar": "لقطة يومية: طلبات + موافقات + صرف + تنبيهات."
+          },
+          "kpis": [
+            "requests_created_today",
+            "active_requests",
+            "approvals_today",
+            "spend_committed_today",
+            "overdue_requests",
+            "critical_alerts",
+            "avg_cycle_time",
+            "sla_compliance_today"
+          ],
+          "charts": {
+            "bar": [
+              "requests_by_status"
+            ],
+            "others": [
+              "requests_hourly",
+              "department_activity",
+              "priority_split",
+              "spend_by_department"
+            ]
+          },
+          "table": "live_activity_log"
+        },
+        {
+          "id": "R02",
+          "name": {
+            "en": "Requests Backlog & Aging",
+            "ar": "تراكم الطلبات والتقادم"
+          },
+          "purpose": {
+            "en": "Backlog health, aging buckets, and bottlenecks.",
+            "ar": "صحة التراكم، شرائح التقادم، والاختناقات."
+          },
+          "kpis": [
+            "backlog_total",
+            "backlog_over_7d",
+            "backlog_over_14d",
+            "backlog_over_30d",
+            "avg_aging_days",
+            "bottleneck_stage",
+            "blocked_requests",
+            "reopened_requests"
+          ],
+          "charts": {
+            "bar": [
+              "aging_buckets_bar"
+            ],
+            "others": [
+              "backlog_trend",
+              "stage_queue",
+              "reopen_rate_trend",
+              "blocked_by_reason"
+            ]
+          },
+          "table": "backlog_list"
+        },
+        {
+          "id": "R03",
+          "name": {
+            "en": "SKU Demand & Critical Items",
+            "ar": "طلب الأصناف والأصناف الحرجة"
+          },
+          "purpose": {
+            "en": "Item/SKU demand with criticality and warehouse impact.",
+            "ar": "احتياج الأصناف مع الحرجة وتأثير المخزون."
+          },
+          "kpis": [
+            "requested_skus",
+            "total_requested_qty",
+            "critical_skus",
+            "top_sku_volume",
+            "shortage_skus",
+            "stock_coverage_rate",
+            "top_category_demand",
+            "rush_items"
+          ],
+          "charts": {
+            "bar": [
+              "top_skus_by_qty"
+            ],
+            "others": [
+              "demand_by_category",
+              "demand_by_warehouse",
+              "shortage_heatmap",
+              "top_items_cost"
+            ]
+          },
+          "table": "requests_by_item_sku"
+        },
+        {
+          "id": "R04",
+          "name": {
+            "en": "Vendor & RFQ Pipeline",
+            "ar": "مسار الموردين وعروض الأسعار"
+          },
+          "purpose": {
+            "en": "RFQ flow from request to quote and vendor responsiveness.",
+            "ar": "من الطلب إلى RFQ إلى عرض السعر + تفاعل المورد."
+          },
+          "kpis": [
+            "rfqs_sent",
+            "rfqs_unanswered",
+            "avg_vendor_response_time",
+            "quotes_received",
+            "best_price_savings",
+            "avg_lead_time",
+            "late_quotes",
+            "single_source_risk"
+          ],
+          "charts": {
+            "bar": [
+              "rfqs_by_status"
+            ],
+            "others": [
+              "response_time_distribution",
+              "lead_time_trend",
+              "quotes_by_vendor",
+              "savings_trend"
+            ]
+          },
+          "table": "rfq_pipeline"
+        },
+        {
+          "id": "R05",
+          "name": {
+            "en": "Approvals Flow & SLA",
+            "ar": "مسار الموافقات وSLA"
+          },
+          "purpose": {
+            "en": "Approval bottlenecks and SLA compliance by stage/approver.",
+            "ar": "اختناقات الموافقات والالتزام بـ SLA حسب المرحلة/المعتمد."
+          },
+          "kpis": [
+            "pending_approvals",
+            "avg_approval_time",
+            "sla_compliance",
+            "sla_breaches",
+            "top_approver_load",
+            "stage_with_max_delay",
+            "escalations",
+            "fastest_stage"
+          ],
+          "charts": {
+            "bar": [
+              "pending_by_stage"
+            ],
+            "others": [
+              "approval_time_by_stage",
+              "approver_workload",
+              "sla_trend",
+              "escalation_reasons"
+            ]
+          },
+          "table": "approval_queue"
+        },
+        {
+          "id": "R06",
+          "name": {
+            "en": "Spend & Budget Exposure",
+            "ar": "الصرف وتعرض الميزانية"
+          },
+          "purpose": {
+            "en": "Requested vs approved spend, budget utilization, and high cost items.",
+            "ar": "الصرف المطلوب مقابل المعتمد واستهلاك الميزانية وأعلى الأصناف تكلفة."
+          },
+          "kpis": [
+            "requested_spend",
+            "approved_spend",
+            "pending_approval_value",
+            "budget_utilization_pct",
+            "top_cost_items",
+            "maverick_spend",
+            "avg_unit_cost",
+            "spend_variance"
+          ],
+          "charts": {
+            "bar": [
+              "spend_by_status"
+            ],
+            "others": [
+              "spend_trend",
+              "spend_by_category",
+              "spend_by_vendor",
+              "unit_cost_distribution"
+            ]
+          },
+          "table": "spend_by_item"
+        },
+        {
+          "id": "R07",
+          "name": {
+            "en": "Risks & Exceptions",
+            "ar": "المخاطر والاستثناءات"
+          },
+          "purpose": {
+            "en": "Actionable risk board for delays, shortages, and policy exceptions.",
+            "ar": "لوحة مخاطر قابلة للتنفيذ: تأخير/عجز/استثناءات."
+          },
+          "kpis": [
+            "overdue_requests",
+            "critical_risks",
+            "stock_blockers",
+            "payment_or_budget_holds",
+            "policy_exceptions",
+            "repeat_offenders",
+            "high_value_overdue",
+            "top_risk_reason"
+          ],
+          "charts": {
+            "bar": [
+              "risk_by_type"
+            ],
+            "others": [
+              "risk_trend",
+              "exceptions_by_department",
+              "aging_risk_buckets",
+              "root_cause_pareto"
+            ]
+          },
+          "table": "exceptions_list"
+        }
+      ],
+      "kpis_dictionary": {
+        "requests_created_today": {
+          "en": "Today's Requests",
+          "ar": "طلبات اليوم"
+        },
+        "active_requests": {
+          "en": "Active Requests",
+          "ar": "الطلبات النشطة"
+        },
+        "approvals_today": {
+          "en": "Today's Approvals",
+          "ar": "موافقات اليوم"
+        },
+        "spend_committed_today": {
+          "en": "Spend Committed (Today)",
+          "ar": "الصرف المُلتزم (اليوم)"
+        },
+        "overdue_requests": {
+          "en": "Overdue Requests",
+          "ar": "طلبات متأخرة"
+        },
+        "critical_alerts": {
+          "en": "Critical Alerts",
+          "ar": "تنبيهات حرجة"
+        },
+        "avg_cycle_time": {
+          "en": "Avg Cycle Time",
+          "ar": "متوسط زمن الدورة"
+        },
+        "sla_compliance_today": {
+          "en": "SLA (Today)",
+          "ar": "SLA (اليوم)"
+        },
+        "backlog_total": {
+          "en": "Backlog Total",
+          "ar": "إجمالي التراكم"
+        },
+        "backlog_over_7d": {
+          "en": "Backlog > 7d",
+          "ar": "تراكم > 7 أيام"
+        },
+        "backlog_over_14d": {
+          "en": "Backlog > 14d",
+          "ar": "تراكم > 14 يوم"
+        },
+        "backlog_over_30d": {
+          "en": "Backlog > 30d",
+          "ar": "تراكم > 30 يوم"
+        },
+        "avg_aging_days": {
+          "en": "Avg Aging Days",
+          "ar": "متوسط التقادم (يوم)"
+        },
+        "bottleneck_stage": {
+          "en": "Top Bottleneck Stage",
+          "ar": "أكبر مرحلة اختناق"
+        },
+        "blocked_requests": {
+          "en": "Blocked Requests",
+          "ar": "طلبات متعطلة"
+        },
+        "reopened_requests": {
+          "en": "Reopened Requests",
+          "ar": "طلبات معاد فتحها"
+        },
+        "requested_skus": {
+          "en": "Requested SKUs",
+          "ar": "الأصناف المطلوبة"
+        },
+        "total_requested_qty": {
+          "en": "Total Requested Qty",
+          "ar": "إجمالي الكمية المطلوبة"
+        },
+        "critical_skus": {
+          "en": "Critical SKUs",
+          "ar": "أصناف حرجة"
+        },
+        "top_sku_volume": {
+          "en": "Top SKU (Volume)",
+          "ar": "أعلى صنف (كمية)"
+        },
+        "shortage_skus": {
+          "en": "SKUs with Shortage",
+          "ar": "أصناف بها عجز"
+        },
+        "stock_coverage_rate": {
+          "en": "Stock Coverage %",
+          "ar": "نسبة تغطية المخزون"
+        },
+        "top_category_demand": {
+          "en": "Top Category Demand",
+          "ar": "أعلى تصنيف طلبًا"
+        },
+        "rush_items": {
+          "en": "Rush Items",
+          "ar": "أصناف عاجلة"
+        },
+        "rfqs_sent": {
+          "en": "RFQs Sent",
+          "ar": "RFQ تم إرسالها"
+        },
+        "rfqs_unanswered": {
+          "en": "Unanswered RFQs",
+          "ar": "RFQ بدون رد"
+        },
+        "avg_vendor_response_time": {
+          "en": "Avg Vendor Response Time",
+          "ar": "متوسط زمن رد المورد"
+        },
+        "quotes_received": {
+          "en": "Quotes Received",
+          "ar": "عروض مستلمة"
+        },
+        "best_price_savings": {
+          "en": "Best Price Savings",
+          "ar": "توفير أفضل سعر"
+        },
+        "avg_lead_time": {
+          "en": "Avg Lead Time",
+          "ar": "متوسط زمن التوريد"
+        },
+        "late_quotes": {
+          "en": "Late Quotes",
+          "ar": "عروض متأخرة"
+        },
+        "single_source_risk": {
+          "en": "Single Source Risk",
+          "ar": "خطر مورد واحد"
+        },
+        "pending_approvals": {
+          "en": "Pending Approvals",
+          "ar": "موافقات معلقة"
+        },
+        "avg_approval_time": {
+          "en": "Avg Approval Time",
+          "ar": "متوسط زمن الموافقة"
+        },
+        "sla_compliance": {
+          "en": "SLA Compliance %",
+          "ar": "الالتزام بـ SLA %"
+        },
+        "sla_breaches": {
+          "en": "SLA Breaches",
+          "ar": "خرق SLA"
+        },
+        "top_approver_load": {
+          "en": "Top Approver Load",
+          "ar": "أكثر معتمد ضغطًا"
+        },
+        "stage_with_max_delay": {
+          "en": "Stage with Max Delay",
+          "ar": "مرحلة بأكبر تأخير"
+        },
+        "escalations": {
+          "en": "Escalations",
+          "ar": "تصعيدات"
+        },
+        "fastest_stage": {
+          "en": "Fastest Stage",
+          "ar": "أسرع مرحلة"
+        },
+        "requested_spend": {
+          "en": "Requested Spend",
+          "ar": "الصرف المطلوب"
+        },
+        "approved_spend": {
+          "en": "Approved Spend",
+          "ar": "الصرف المعتمد"
+        },
+        "pending_approval_value": {
+          "en": "Pending Approval Value",
+          "ar": "قيمة معلقة للموافقة"
+        },
+        "budget_utilization_pct": {
+          "en": "Budget Utilization %",
+          "ar": "استهلاك الميزانية %"
+        },
+        "top_cost_items": {
+          "en": "Top Cost Items",
+          "ar": "أعلى أصناف تكلفة"
+        },
+        "maverick_spend": {
+          "en": "Maverick Spend",
+          "ar": "صرف خارج السياسة"
+        },
+        "avg_unit_cost": {
+          "en": "Avg Unit Cost",
+          "ar": "متوسط تكلفة الوحدة"
+        },
+        "spend_variance": {
+          "en": "Spend Variance",
+          "ar": "انحراف الصرف"
+        },
+        "critical_risks": {
+          "en": "Critical Risks",
+          "ar": "مخاطر حرجة"
+        },
+        "stock_blockers": {
+          "en": "Stock Blockers",
+          "ar": "معوقات مخزون"
+        },
+        "payment_or_budget_holds": {
+          "en": "Payment/Budget Holds",
+          "ar": "تعليق دفع/ميزانية"
+        },
+        "policy_exceptions": {
+          "en": "Policy Exceptions",
+          "ar": "استثناءات سياسة"
+        },
+        "repeat_offenders": {
+          "en": "Repeat Offenders",
+          "ar": "تكرار المخالفات"
+        },
+        "high_value_overdue": {
+          "en": "High-Value Overdue",
+          "ar": "متأخرات عالية القيمة"
+        },
+        "top_risk_reason": {
+          "en": "Top Risk Reason",
+          "ar": "أكثر سبب خطر"
+        }
+      },
+      "tables": {
+        "live_activity_log": {
+          "columns": [
+            "time",
+            "event",
+            "request_id",
+            "user",
+            "department",
+            "amount",
+            "status"
+          ]
+        },
+        "backlog_list": {
+          "columns": [
+            "request_id",
+            "department",
+            "priority",
+            "status",
+            "created_date",
+            "due_date",
+            "aging_days",
+            "owner"
+          ]
+        },
+        "requests_by_item_sku": {
+          "columns": [
+            "item_code",
+            "item_name",
+            "requested_qty",
+            "warehouse",
+            "department",
+            "status",
+            "due_date",
+            "shortage_qty"
+          ]
+        },
+        "rfq_pipeline": {
+          "columns": [
+            "rfq_id",
+            "vendor_name",
+            "item_code",
+            "requested_qty",
+            "rfq_status",
+            "quote_status",
+            "response_time_hours",
+            "lead_time_days",
+            "best_price_flag"
+          ]
+        },
+        "approval_queue": {
+          "columns": [
+            "request_id",
+            "department",
+            "approval_stage",
+            "approval_status",
+            "approver",
+            "created_date",
+            "due_date",
+            "approval_time_days",
+            "sla_status"
+          ]
+        },
+        "spend_by_item": {
+          "columns": [
+            "item_code",
+            "item_name",
+            "requested_qty",
+            "unit_cost",
+            "total_cost",
+            "currency",
+            "department",
+            "approval_status",
+            "vendor_name"
+          ]
+        },
+        "exceptions_list": {
+          "columns": [
+            "request_id",
+            "department",
+            "item_code",
+            "vendor_name",
+            "risk_type",
+            "severity",
+            "root_cause",
+            "due_date",
+            "status",
+            "owner"
+          ]
+        }
+      }
+    },
+    "legacy_procurement_master": {
+      "meta": {
+        "name": "Procurement Semantic Master",
+        "version": "1.0.0",
+        "generated_at": "2025-12-18T15:52:48",
+        "scope": "procurement",
+        "languages": [
+          "en",
+          "ar"
+        ],
+        "notes": [
+          "Bilingual semantic dictionary for dashboards, KPIs, charts, and table columns.",
+          "Use aliases for user search and column-name matching across modules (Procurement, Warehouse, Finance, Vendors, Departments, Planning, Ops).",
+          "All aliases are lowercased in suggestions; implement case-insensitive matching in product."
+        ]
+      },
+      "dashboards": [
+        {
+          "id": "D01",
+          "name": {
+            "en": "Procurement Load",
+            "ar": "ضغط المشتريات"
+          },
+          "description": {
+            "en": "Daily workload view of open requests, due items, and aging across departments.",
+            "ar": "عرض يومي لضغط العمل: الطلبات المفتوحة، المستحقة، والمتأخرة حسب الأقسام."
+          },
+          "keywords": {
+            "en": [
+              "procurement load",
+              "workload",
+              "open requests",
+              "pending requests",
+              "active requests",
+              "daily requests",
+              "requests backlog",
+              "request queue",
+              "pr backlog",
+              "purchasing workload",
+              "request volume",
+              "open prs",
+              "pending prs"
+            ],
+            "ar": [
+              "ضغط المشتريات",
+              "ضغط الطلبات",
+              "حمل الشغل",
+              "طلبات مفتوحة",
+              "طلبات معلقة",
+              "طلبات قيد التنفيذ",
+              "تراكم الطلبات",
+              "طابور الطلبات",
+              "طلبات اليوم",
+              "حجم الطلبات",
+              "طلبات شراء مفتوحة",
+              "متابعة الطلبات"
+            ]
+          },
+          "core_entities": [
+            "request",
+            "department",
+            "time",
+            "priority",
+            "status"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        },
+        {
+          "id": "D02",
+          "name": {
+            "en": "SKU Demand",
+            "ar": "طلب الأصناف"
+          },
+          "description": {
+            "en": "Item/SKU demand view across departments and warehouses with critical SKUs focus.",
+            "ar": "عرض احتياج الأصناف/SKU عبر الأقسام والمخازن مع التركيز على الأصناف الحرجة."
+          },
+          "keywords": {
+            "en": [
+              "sku demand",
+              "item demand",
+              "materials demand",
+              "product demand",
+              "required items",
+              "requested skus",
+              "demand by sku",
+              "top skus",
+              "high demand items",
+              "material requirements",
+              "mrp demand",
+              "spare parts demand"
+            ],
+            "ar": [
+              "طلب الأصناف",
+              "احتياج الأصناف",
+              "طلب الخامات",
+              "احتياج الخامات",
+              "طلب المنتجات",
+              "الأصناف المطلوبة",
+              "أعلى الأصناف طلبًا",
+              "الأصناف الأكثر استهلاكًا",
+              "احتياج الإنتاج",
+              "طلب قطع الغيار",
+              "الاحتياج حسب الصنف"
+            ]
+          },
+          "core_entities": [
+            "item",
+            "warehouse",
+            "department",
+            "request",
+            "category"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        },
+        {
+          "id": "D03",
+          "name": {
+            "en": "Warehouse Coverage",
+            "ar": "تغطية المخزون"
+          },
+          "description": {
+            "en": "Stock availability vs procurement demand; shortages, reservations, and coverage rates by warehouse.",
+            "ar": "توافر المخزون مقابل الطلب؛ العجز والحجز ونِسب التغطية حسب المخزن."
+          },
+          "keywords": {
+            "en": [
+              "warehouse coverage",
+              "stock coverage",
+              "inventory availability",
+              "on-hand vs demand",
+              "fulfillment status",
+              "stock status",
+              "shortage dashboard",
+              "backorder dashboard",
+              "available quantity",
+              "stock levels"
+            ],
+            "ar": [
+              "تغطية المخزون",
+              "توافر المخزون",
+              "المخزون مقابل الطلب",
+              "حالة الصرف",
+              "حالة التغطية",
+              "مستوى المخزون",
+              "لوحة العجز",
+              "تأخير بسبب المخزون",
+              "الكمية المتاحة",
+              "رصيد المخزون"
+            ]
+          },
+          "core_entities": [
+            "warehouse",
+            "inventory",
+            "item",
+            "request",
+            "shortage"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        },
+        {
+          "id": "D04",
+          "name": {
+            "en": "Vendor Interaction",
+            "ar": "تفاعل الموردين"
+          },
+          "description": {
+            "en": "RFQs/quotations pipeline; vendor response times, unanswered RFQs, and vendor workload.",
+            "ar": "متابعة عروض الأسعار؛ زمن رد الموردين، RFQ غير مُجاب، وحمل الموردين."
+          },
+          "keywords": {
+            "en": [
+              "vendor interaction",
+              "supplier interaction",
+              "rfq dashboard",
+              "quotation dashboard",
+              "supplier responses",
+              "vendor response time",
+              "unanswered rfqs",
+              "supplier workload",
+              "rfq pipeline",
+              "quote status"
+            ],
+            "ar": [
+              "تفاعل الموردين",
+              "تفاعل المورّد",
+              "لوحة RFQ",
+              "لوحة عروض الأسعار",
+              "رد المورد",
+              "زمن رد المورد",
+              "طلبات بلا رد",
+              "حمل المورد",
+              "مسار عروض الأسعار",
+              "حالة عرض السعر"
+            ]
+          },
+          "core_entities": [
+            "vendor",
+            "rfq",
+            "quote",
+            "time",
+            "status",
+            "item"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        },
+        {
+          "id": "D05",
+          "name": {
+            "en": "Spend Snapshot",
+            "ar": "ملخص الصرف"
+          },
+          "description": {
+            "en": "Requested vs approved spend, budget utilization, and high-cost items by department/category.",
+            "ar": "الصرف المطلوب مقابل المعتمد، استهلاك الميزانية، والأصناف الأعلى تكلفة حسب القسم/التصنيف."
+          },
+          "keywords": {
+            "en": [
+              "spend snapshot",
+              "procurement spend",
+              "purchase spend",
+              "requested spend",
+              "approved spend",
+              "budget utilization",
+              "cost overview",
+              "purchase cost",
+              "spend by department",
+              "spend by category",
+              "cost trend"
+            ],
+            "ar": [
+              "ملخص الصرف",
+              "صروفات المشتريات",
+              "تكلفة المشتريات",
+              "الصرف المطلوب",
+              "الصرف المعتمد",
+              "استهلاك الميزانية",
+              "نظرة التكلفة",
+              "الصرف حسب القسم",
+              "الصرف حسب التصنيف",
+              "اتجاه الصرف",
+              "ملخص الميزانية"
+            ]
+          },
+          "core_entities": [
+            "finance",
+            "request",
+            "department",
+            "category",
+            "item",
+            "approval"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        },
+        {
+          "id": "D06",
+          "name": {
+            "en": "Approval Flow",
+            "ar": "مسار الموافقات"
+          },
+          "description": {
+            "en": "Approvals pipeline; pending approvals, bottlenecks, and SLA by approval stages.",
+            "ar": "مسار اعتماد الطلبات؛ المعلّق، الاختناقات، وSLA حسب مراحل الموافقة."
+          },
+          "keywords": {
+            "en": [
+              "approval flow",
+              "approval pipeline",
+              "pending approvals",
+              "approval status",
+              "approval stages",
+              "approval bottleneck",
+              "approval sla",
+              "approval queue",
+              "request approvals",
+              "authorization flow"
+            ],
+            "ar": [
+              "مسار الموافقات",
+              "مسار الاعتماد",
+              "موافقات معلقة",
+              "حالة الموافقة",
+              "مراحل الموافقة",
+              "اختناق الموافقات",
+              "SLA الموافقات",
+              "طابور الموافقات",
+              "اعتماد الطلبات",
+              "سير الاعتماد"
+            ]
+          },
+          "core_entities": [
+            "approval",
+            "request",
+            "user",
+            "time",
+            "status",
+            "department"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        },
+        {
+          "id": "D07",
+          "name": {
+            "en": "Procurement Performance",
+            "ar": "أداء المشتريات"
+          },
+          "description": {
+            "en": "Cycle time, SLA compliance, throughput, and open/closed ratios over time.",
+            "ar": "زمن الدورة، الالتزام بـ SLA، الإنتاجية، ونسب الفتح/الإغلاق عبر الزمن."
+          },
+          "keywords": {
+            "en": [
+              "procurement performance",
+              "cycle time",
+              "sla performance",
+              "efficiency",
+              "throughput",
+              "closure rate",
+              "open vs closed",
+              "procurement kpis",
+              "performance trend",
+              "process efficiency"
+            ],
+            "ar": [
+              "أداء المشتريات",
+              "زمن الدورة",
+              "أداء SLA",
+              "الكفاءة",
+              "الإنتاجية",
+              "معدل الإغلاق",
+              "مفتوح مقابل مغلق",
+              "مؤشرات المشتريات",
+              "اتجاه الأداء",
+              "كفاءة العملية"
+            ]
+          },
+          "core_entities": [
+            "request",
+            "time",
+            "sla",
+            "status",
+            "department"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        },
+        {
+          "id": "D08",
+          "name": {
+            "en": "Exceptions & Risks",
+            "ar": "المخاطر والاستثناءات"
+          },
+          "description": {
+            "en": "Overdues, delays, shortages impact, and risk signals across procurement flow.",
+            "ar": "المتأخرات، التأخيرات، تأثير العجز، وإشارات المخاطر عبر دورة المشتريات."
+          },
+          "keywords": {
+            "en": [
+              "exceptions",
+              "risks",
+              "delays",
+              "issues",
+              "bottlenecks",
+              "overdue requests",
+              "risk dashboard",
+              "problem requests",
+              "critical alerts",
+              "late deliveries",
+              "risk signals"
+            ],
+            "ar": [
+              "استثناءات",
+              "مخاطر",
+              "تأخيرات",
+              "مشاكل",
+              "اختناقات",
+              "طلبات متأخرة",
+              "لوحة المخاطر",
+              "طلبات مشكلة",
+              "تنبيهات حرجة",
+              "تأخير توريد",
+              "إشارات خطر"
+            ]
+          },
+          "core_entities": [
+            "risk",
+            "request",
+            "vendor",
+            "warehouse",
+            "time",
+            "status",
+            "department"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        },
+        {
+          "id": "D09",
+          "name": {
+            "en": "Daily Control",
+            "ar": "التحكم اليومي"
+          },
+          "description": {
+            "en": "Executive daily snapshot of requests, approvals, spend, and critical alerts.",
+            "ar": "ملخص تنفيذي يومي للطلبات والموافقات والصرف والتنبيهات الحرجة."
+          },
+          "keywords": {
+            "en": [
+              "daily control",
+              "control panel",
+              "daily overview",
+              "today snapshot",
+              "daily dashboard",
+              "procurement today",
+              "today requests",
+              "today approvals",
+              "daily alerts",
+              "daily summary"
+            ],
+            "ar": [
+              "التحكم اليومي",
+              "لوحة التحكم",
+              "ملخص اليوم",
+              "لقطة اليوم",
+              "داشبورد يومي",
+              "مشتريات اليوم",
+              "طلبات اليوم",
+              "موافقات اليوم",
+              "تنبيهات اليوم",
+              "ملخص يومي"
+            ]
+          },
+          "core_entities": [
+            "request",
+            "approval",
+            "finance",
+            "risk",
+            "time"
+          ],
+          "layout_minimum": {
+            "kpi_cards": 4,
+            "bar_charts": 1,
+            "other_charts": 4,
+            "tables": 1
+          }
+        }
+      ],
+      "entities": [
+        {
+          "key": "item",
+          "name": {
+            "en": "Item / SKU",
+            "ar": "الصنف / SKU"
+          },
+          "description": {
+            "en": "Products, materials, spare parts, and stock items.",
+            "ar": "المنتجات والخامات وقطع الغيار وأصناف المخزون."
+          }
+        },
+        {
+          "key": "request",
+          "name": {
+            "en": "Request (PR)",
+            "ar": "الطلب (طلب شراء)"
+          },
+          "description": {
+            "en": "Purchase requests and internal procurement demands.",
+            "ar": "طلبات الشراء واحتياجات الأقسام."
+          }
+        },
+        {
+          "key": "rfq",
+          "name": {
+            "en": "RFQ",
+            "ar": "طلب عرض سعر (RFQ)"
+          },
+          "description": {
+            "en": "Request for quotation process.",
+            "ar": "عملية طلب عروض الأسعار."
+          }
+        },
+        {
+          "key": "quote",
+          "name": {
+            "en": "Quotation",
+            "ar": "عرض سعر"
+          },
+          "description": {
+            "en": "Supplier quote details and outcomes.",
+            "ar": "تفاصيل عرض المورد ونتيجته."
+          }
+        },
+        {
+          "key": "vendor",
+          "name": {
+            "en": "Vendor / Supplier",
+            "ar": "المورد"
+          },
+          "description": {
+            "en": "Suppliers and vendor master data.",
+            "ar": "بيانات الموردين الأساسية."
+          }
+        },
+        {
+          "key": "warehouse",
+          "name": {
+            "en": "Warehouse",
+            "ar": "المخزن"
+          },
+          "description": {
+            "en": "Storage locations and inventory points.",
+            "ar": "مواقع التخزين ونقاط المخزون."
+          }
+        },
+        {
+          "key": "inventory",
+          "name": {
+            "en": "Inventory",
+            "ar": "المخزون"
+          },
+          "description": {
+            "en": "Stock quantities and availability.",
+            "ar": "كميات المخزون وتوافره."
+          }
+        },
+        {
+          "key": "department",
+          "name": {
+            "en": "Department",
+            "ar": "القسم"
+          },
+          "description": {
+            "en": "Requesting departments and business units.",
+            "ar": "الأقسام الطالبة ووحدات العمل."
+          }
+        },
+        {
+          "key": "finance",
+          "name": {
+            "en": "Finance",
+            "ar": "المالية"
+          },
+          "description": {
+            "en": "Costs, budgets, spend and approvals impact.",
+            "ar": "التكاليف والميزانيات والصرف وتأثير الموافقات."
+          }
+        },
+        {
+          "key": "approval",
+          "name": {
+            "en": "Approval",
+            "ar": "الموافقة"
+          },
+          "description": {
+            "en": "Approval workflow stages and owners.",
+            "ar": "مراحل سير الموافقات والمسؤولين."
+          }
+        },
+        {
+          "key": "time",
+          "name": {
+            "en": "Time",
+            "ar": "الزمن"
+          },
+          "description": {
+            "en": "Dates, periods, aging and trends.",
+            "ar": "التواريخ والفترات والتقادم والاتجاهات."
+          }
+        },
+        {
+          "key": "risk",
+          "name": {
+            "en": "Risk / Exception",
+            "ar": "مخاطر / استثناءات"
+          },
+          "description": {
+            "en": "Risks, delays, and exception signals.",
+            "ar": "المخاطر والتأخيرات وإشارات الاستثناء."
+          }
+        },
+        {
+          "key": "user",
+          "name": {
+            "en": "User / Owner",
+            "ar": "المستخدم / المسؤول"
+          },
+          "description": {
+            "en": "People involved (requester, approver, buyer).",
+            "ar": "الأشخاص المعنيين (طالب، معتمد، مشتري)."
+          }
+        }
+      ],
+      "columns": [
+        {
+          "canonical_key": "item_code",
+          "entity": "item",
+          "datatype": "string",
+          "name": {
+            "en": "Item Code",
+            "ar": "كود الصنف"
+          },
+          "aliases": {
+            "en": [
+              "sku",
+              "item number",
+              "item no",
+              "item #",
+              "product code",
+              "material code",
+              "part number",
+              "pn",
+              "stock code",
+              "inventory code",
+              "item id",
+              "material id",
+              "product id",
+              "spare part number",
+              "barcode",
+              "ean",
+              "upc"
+            ],
+            "ar": [
+              "كود الصنف",
+              "رقم الصنف",
+              "رقم الصنف#",
+              "كود المنتج",
+              "كود الخامة",
+              "رقم القطعة",
+              "باركود",
+              "رقم الباركود",
+              "كود المخزون",
+              "معرف الصنف",
+              "ID الصنف"
+            ]
+          },
+          "examples": [
+            "SKU-10012",
+            "MAT-24480"
+          ]
+        },
+        {
+          "canonical_key": "item_name",
+          "entity": "item",
+          "datatype": "string",
+          "name": {
+            "en": "Item Name",
+            "ar": "اسم الصنف"
+          },
+          "aliases": {
+            "en": [
+              "item description",
+              "description",
+              "product name",
+              "material name",
+              "item title",
+              "part name",
+              "sku name"
+            ],
+            "ar": [
+              "اسم الصنف",
+              "وصف الصنف",
+              "اسم المنتج",
+              "اسم الخامة",
+              "اسم القطعة"
+            ]
+          }
+        },
+        {
+          "canonical_key": "item_category",
+          "entity": "item",
+          "datatype": "string",
+          "name": {
+            "en": "Category",
+            "ar": "التصنيف"
+          },
+          "aliases": {
+            "en": [
+              "item category",
+              "category name",
+              "product group",
+              "material group",
+              "commodity",
+              "classification",
+              "item class"
+            ],
+            "ar": [
+              "تصنيف",
+              "التصنيف",
+              "مجموعة الصنف",
+              "مجموعة المنتج",
+              "مجموعة الخامة",
+              "تصنيف دولي",
+              "فئة"
+            ]
+          }
+        },
+        {
+          "canonical_key": "uom",
+          "entity": "item",
+          "datatype": "string",
+          "name": {
+            "en": "Unit of Measure",
+            "ar": "وحدة القياس"
+          },
+          "aliases": {
+            "en": [
+              "uom",
+              "unit",
+              "unit of measure",
+              "measure unit",
+              "base unit"
+            ],
+            "ar": [
+              "وحدة",
+              "وحدة القياس",
+              "وحدة قياس",
+              "الوحدة"
+            ]
+          }
+        },
+        {
+          "canonical_key": "requested_qty",
+          "entity": "request",
+          "datatype": "number",
+          "name": {
+            "en": "Requested Quantity",
+            "ar": "الكمية المطلوبة"
+          },
+          "aliases": {
+            "en": [
+              "qty",
+              "quantity",
+              "requested qty",
+              "required qty",
+              "needed qty",
+              "order qty",
+              "demand qty",
+              "request qty"
+            ],
+            "ar": [
+              "الكمية",
+              "العدد",
+              "الكمية المطلوبة",
+              "المطلوب",
+              "الاحتياج",
+              "الكمية اللازمة",
+              "كمية الطلب"
+            ]
+          }
+        },
+        {
+          "canonical_key": "available_qty",
+          "entity": "inventory",
+          "datatype": "number",
+          "name": {
+            "en": "Available Quantity",
+            "ar": "الكمية المتاحة"
+          },
+          "aliases": {
+            "en": [
+              "available qty",
+              "on hand",
+              "on-hand qty",
+              "stock qty",
+              "inventory qty",
+              "current stock",
+              "balance qty",
+              "free stock"
+            ],
+            "ar": [
+              "الكمية المتاحة",
+              "المتاح",
+              "رصيد المخزون",
+              "كمية المخزون",
+              "المخزون الحالي",
+              "الرصيد",
+              "رصيد"
+            ]
+          }
+        },
+        {
+          "canonical_key": "reserved_qty",
+          "entity": "inventory",
+          "datatype": "number",
+          "name": {
+            "en": "Reserved Quantity",
+            "ar": "الكمية المحجوزة"
+          },
+          "aliases": {
+            "en": [
+              "reserved qty",
+              "allocated qty",
+              "committed stock",
+              "reserved stock",
+              "blocked qty"
+            ],
+            "ar": [
+              "الكمية المحجوزة",
+              "محجوز",
+              "مخصص",
+              "كمية مخصصة",
+              "محجوز مخزون"
+            ]
+          }
+        },
+        {
+          "canonical_key": "shortage_qty",
+          "entity": "inventory",
+          "datatype": "number",
+          "name": {
+            "en": "Shortage Quantity",
+            "ar": "كمية العجز"
+          },
+          "aliases": {
+            "en": [
+              "shortage",
+              "shortage qty",
+              "shortfall",
+              "missing qty",
+              "deficit qty",
+              "gap qty",
+              "backorder qty"
+            ],
+            "ar": [
+              "عجز",
+              "كمية العجز",
+              "نقص",
+              "كمية ناقصة",
+              "فرق الكمية",
+              "متبقي ناقص",
+              "عجز مخزون"
+            ]
+          }
+        },
+        {
+          "canonical_key": "request_id",
+          "entity": "request",
+          "datatype": "string",
+          "name": {
+            "en": "Request ID",
+            "ar": "رقم الطلب"
+          },
+          "aliases": {
+            "en": [
+              "pr number",
+              "pr no",
+              "purchase request",
+              "purchase requisition",
+              "requisition number",
+              "request number",
+              "request no",
+              "req id"
+            ],
+            "ar": [
+              "رقم الطلب",
+              "طلب شراء",
+              "رقم طلب شراء",
+              "طلب مشتريات",
+              "رقم PR",
+              "رقم الطلبية"
+            ]
+          }
+        },
+        {
+          "canonical_key": "request_title",
+          "entity": "request",
+          "datatype": "string",
+          "name": {
+            "en": "Request Title",
+            "ar": "عنوان الطلب"
+          },
+          "aliases": {
+            "en": [
+              "request title",
+              "request subject",
+              "title",
+              "subject",
+              "request name"
+            ],
+            "ar": [
+              "عنوان الطلب",
+              "موضوع الطلب",
+              "اسم الطلب"
+            ]
+          }
+        },
+        {
+          "canonical_key": "request_status",
+          "entity": "request",
+          "datatype": "string",
+          "name": {
+            "en": "Request Status",
+            "ar": "حالة الطلب"
+          },
+          "aliases": {
+            "en": [
+              "status",
+              "state",
+              "request state",
+              "pr status",
+              "workflow status",
+              "current status"
+            ],
+            "ar": [
+              "الحالة",
+              "حالة الطلب",
+              "حالة PR",
+              "الستاتس",
+              "الوضع الحالي"
+            ]
+          }
+        },
+        {
+          "canonical_key": "priority",
+          "entity": "request",
+          "datatype": "string",
+          "name": {
+            "en": "Priority",
+            "ar": "الأولوية"
+          },
+          "aliases": {
+            "en": [
+              "priority",
+              "urgency",
+              "priority level",
+              "severity",
+              "importance"
+            ],
+            "ar": [
+              "أولوية",
+              "الأولوية",
+              "الاستعجال",
+              "مستوى الأولوية",
+              "درجة الأهمية"
+            ]
+          }
+        },
+        {
+          "canonical_key": "created_date",
+          "entity": "time",
+          "datatype": "date",
+          "name": {
+            "en": "Created Date",
+            "ar": "تاريخ الإنشاء"
+          },
+          "aliases": {
+            "en": [
+              "created date",
+              "request date",
+              "submission date",
+              "initiated date",
+              "pr date",
+              "date created"
+            ],
+            "ar": [
+              "تاريخ الإنشاء",
+              "تاريخ الطلب",
+              "تاريخ التقديم",
+              "تاريخ بدء الطلب",
+              "تاريخ PR"
+            ]
+          }
+        },
+        {
+          "canonical_key": "due_date",
+          "entity": "time",
+          "datatype": "date",
+          "name": {
+            "en": "Due Date",
+            "ar": "تاريخ الاستحقاق"
+          },
+          "aliases": {
+            "en": [
+              "due date",
+              "needed by",
+              "required date",
+              "delivery needed",
+              "required on",
+              "target date"
+            ],
+            "ar": [
+              "تاريخ الاستحقاق",
+              "مطلوب بتاريخ",
+              "تاريخ مطلوب",
+              "تاريخ الاحتياج",
+              "تاريخ التسليم المطلوب",
+              "التاريخ المستهدف"
+            ]
+          }
+        },
+        {
+          "canonical_key": "close_date",
+          "entity": "time",
+          "datatype": "date",
+          "name": {
+            "en": "Closed Date",
+            "ar": "تاريخ الإغلاق"
+          },
+          "aliases": {
+            "en": [
+              "closed date",
+              "completed date",
+              "finish date",
+              "closure date",
+              "resolved date"
+            ],
+            "ar": [
+              "تاريخ الإغلاق",
+              "تاريخ الإكمال",
+              "تاريخ الانتهاء",
+              "إغلاق"
+            ]
+          }
+        },
+        {
+          "canonical_key": "department",
+          "entity": "department",
+          "datatype": "string",
+          "name": {
+            "en": "Department",
+            "ar": "القسم"
+          },
+          "aliases": {
+            "en": [
+              "dept",
+              "requesting department",
+              "business unit",
+              "unit",
+              "division",
+              "requester department"
+            ],
+            "ar": [
+              "القسم",
+              "الجهة",
+              "الإدارة",
+              "وحدة العمل",
+              "قطاع",
+              "قسم الطالب"
+            ]
+          }
+        },
+        {
+          "canonical_key": "cost_center",
+          "entity": "department",
+          "datatype": "string",
+          "name": {
+            "en": "Cost Center",
+            "ar": "مركز التكلفة"
+          },
+          "aliases": {
+            "en": [
+              "cost center",
+              "cc",
+              "cc code",
+              "cost center code",
+              "cost centre",
+              "budget center"
+            ],
+            "ar": [
+              "مركز التكلفة",
+              "سنتر التكلفة",
+              "CC",
+              "كود مركز التكلفة",
+              "مركز الميزانية"
+            ]
+          }
+        },
+        {
+          "canonical_key": "requester",
+          "entity": "user",
+          "datatype": "string",
+          "name": {
+            "en": "Requester",
+            "ar": "مقدم الطلب"
+          },
+          "aliases": {
+            "en": [
+              "requester",
+              "initiator",
+              "request owner",
+              "created by",
+              "requested by",
+              "employee",
+              "user"
+            ],
+            "ar": [
+              "مقدم الطلب",
+              "طالب الطلب",
+              "صاحب الطلب",
+              "منشئ الطلب",
+              "الموظف",
+              "اليوزر"
+            ]
+          }
+        },
+        {
+          "canonical_key": "warehouse",
+          "entity": "warehouse",
+          "datatype": "string",
+          "name": {
+            "en": "Warehouse",
+            "ar": "المخزن"
+          },
+          "aliases": {
+            "en": [
+              "warehouse",
+              "store",
+              "location",
+              "inventory location",
+              "stock location",
+              "site",
+              "plant",
+              "storage location"
+            ],
+            "ar": [
+              "المخزن",
+              "مستودع",
+              "موقع",
+              "لوكيشن",
+              "مكان التخزين",
+              "الموقع"
+            ]
+          }
+        },
+        {
+          "canonical_key": "vendor_name",
+          "entity": "vendor",
+          "datatype": "string",
+          "name": {
+            "en": "Vendor Name",
+            "ar": "اسم المورد"
+          },
+          "aliases": {
+            "en": [
+              "vendor",
+              "vendor name",
+              "supplier",
+              "supplier name",
+              "provider",
+              "seller",
+              "vendor company"
+            ],
+            "ar": [
+              "المورد",
+              "اسم المورد",
+              "المورّد",
+              "شركة المورد",
+              "المزود",
+              "البائع"
+            ]
+          }
+        },
+        {
+          "canonical_key": "vendor_code",
+          "entity": "vendor",
+          "datatype": "string",
+          "name": {
+            "en": "Vendor Code",
+            "ar": "كود المورد"
+          },
+          "aliases": {
+            "en": [
+              "vendor code",
+              "supplier code",
+              "vendor id",
+              "supplier id"
+            ],
+            "ar": [
+              "كود المورد",
+              "كود المورّد",
+              "معرف المورد",
+              "ID المورد"
+            ]
+          }
+        },
+        {
+          "canonical_key": "rfq_id",
+          "entity": "rfq",
+          "datatype": "string",
+          "name": {
+            "en": "RFQ ID",
+            "ar": "رقم RFQ"
+          },
+          "aliases": {
+            "en": [
+              "rfq number",
+              "rfq id",
+              "rfq no",
+              "request for quotation",
+              "quotation request id"
+            ],
+            "ar": [
+              "رقم RFQ",
+              "طلب عرض سعر",
+              "رقم طلب عرض سعر",
+              "رقم عرض السعر (طلب)"
+            ]
+          }
+        },
+        {
+          "canonical_key": "rfq_status",
+          "entity": "rfq",
+          "datatype": "string",
+          "name": {
+            "en": "RFQ Status",
+            "ar": "حالة RFQ"
+          },
+          "aliases": {
+            "en": [
+              "rfq status",
+              "rfq state",
+              "quote request status",
+              "rfq stage"
+            ],
+            "ar": [
+              "حالة RFQ",
+              "حالة طلب عرض السعر",
+              "ستاتس RFQ",
+              "مرحلة RFQ"
+            ]
+          }
+        },
+        {
+          "canonical_key": "quote_status",
+          "entity": "quote",
+          "datatype": "string",
+          "name": {
+            "en": "Quotation Status",
+            "ar": "حالة عرض السعر"
+          },
+          "aliases": {
+            "en": [
+              "quotation status",
+              "quote status",
+              "offer status",
+              "proposal status",
+              "price quote status"
+            ],
+            "ar": [
+              "حالة عرض السعر",
+              "حالة التسعير",
+              "حالة العرض",
+              "ستاتس عرض السعر"
+            ]
+          }
+        },
+        {
+          "canonical_key": "response_time_hours",
+          "entity": "vendor",
+          "datatype": "number",
+          "name": {
+            "en": "Vendor Response Time (Hours)",
+            "ar": "زمن رد المورد (ساعات)"
+          },
+          "aliases": {
+            "en": [
+              "response time",
+              "vendor response time",
+              "supplier response time",
+              "reply time",
+              "turnaround time"
+            ],
+            "ar": [
+              "زمن الرد",
+              "زمن رد المورد",
+              "وقت رد المورد",
+              "مدة الرد",
+              "الزمن المستغرق للرد"
+            ]
+          }
+        },
+        {
+          "canonical_key": "lead_time_days",
+          "entity": "vendor",
+          "datatype": "number",
+          "name": {
+            "en": "Lead Time (Days)",
+            "ar": "زمن التوريد (أيام)"
+          },
+          "aliases": {
+            "en": [
+              "lead time",
+              "delivery lead time",
+              "supplier lead time",
+              "delivery time",
+              "shipping time",
+              "eta days"
+            ],
+            "ar": [
+              "زمن التوريد",
+              "مدة التوريد",
+              "وقت التوريد",
+              "مدة التسليم",
+              "وقت التسليم",
+              "أيام التوريد"
+            ]
+          }
+        },
+        {
+          "canonical_key": "unit_cost",
+          "entity": "finance",
+          "datatype": "number",
+          "name": {
+            "en": "Unit Cost",
+            "ar": "تكلفة الوحدة"
+          },
+          "aliases": {
+            "en": [
+              "unit cost",
+              "unit price",
+              "price",
+              "rate",
+              "item cost",
+              "cost per unit",
+              "unit value"
+            ],
+            "ar": [
+              "سعر الوحدة",
+              "تكلفة الوحدة",
+              "السعر",
+              "التكلفة",
+              "تكلفة الصنف",
+              "قيمة الوحدة"
+            ]
+          }
+        },
+        {
+          "canonical_key": "total_cost",
+          "entity": "finance",
+          "datatype": "number",
+          "name": {
+            "en": "Total Cost",
+            "ar": "التكلفة الإجمالية"
+          },
+          "aliases": {
+            "en": [
+              "total cost",
+              "total value",
+              "amount",
+              "line amount",
+              "extended cost",
+              "net amount",
+              "total amount"
+            ],
+            "ar": [
+              "الإجمالي",
+              "التكلفة الإجمالية",
+              "قيمة إجمالية",
+              "المبلغ",
+              "قيمة البند",
+              "القيمة"
+            ]
+          }
+        },
+        {
+          "canonical_key": "currency",
+          "entity": "finance",
+          "datatype": "string",
+          "name": {
+            "en": "Currency",
+            "ar": "العملة"
+          },
+          "aliases": {
+            "en": [
+              "currency",
+              "curr",
+              "iso currency",
+              "currency code"
+            ],
+            "ar": [
+              "العملة",
+              "رمز العملة",
+              "كود العملة"
+            ]
+          }
+        },
+        {
+          "canonical_key": "budget",
+          "entity": "finance",
+          "datatype": "number",
+          "name": {
+            "en": "Budget",
+            "ar": "الميزانية"
+          },
+          "aliases": {
+            "en": [
+              "budget",
+              "allocated budget",
+              "budget amount",
+              "budget limit",
+              "capex budget",
+              "opex budget"
+            ],
+            "ar": [
+              "الميزانية",
+              "مخصص",
+              "مبلغ الميزانية",
+              "حد الميزانية",
+              "ميزانية تشغيلية",
+              "ميزانية رأسمالية"
+            ]
+          }
+        },
+        {
+          "canonical_key": "approved_amount",
+          "entity": "finance",
+          "datatype": "number",
+          "name": {
+            "en": "Approved Amount",
+            "ar": "المبلغ المعتمد"
+          },
+          "aliases": {
+            "en": [
+              "approved amount",
+              "approved value",
+              "approved spend",
+              "authorized amount",
+              "approved total"
+            ],
+            "ar": [
+              "المبلغ المعتمد",
+              "القيمة المعتمدة",
+              "صرف معتمد",
+              "قيمة معتمدة"
+            ]
+          }
+        },
+        {
+          "canonical_key": "approval_status",
+          "entity": "approval",
+          "datatype": "string",
+          "name": {
+            "en": "Approval Status",
+            "ar": "حالة الموافقة"
+          },
+          "aliases": {
+            "en": [
+              "approval status",
+              "approval state",
+              "authorization status",
+              "approval decision"
+            ],
+            "ar": [
+              "حالة الموافقة",
+              "ستاتس الموافقة",
+              "قرار الموافقة",
+              "حالة الاعتماد"
+            ]
+          }
+        },
+        {
+          "canonical_key": "approval_stage",
+          "entity": "approval",
+          "datatype": "string",
+          "name": {
+            "en": "Approval Stage",
+            "ar": "مرحلة الموافقة"
+          },
+          "aliases": {
+            "en": [
+              "approval stage",
+              "approval level",
+              "approval step",
+              "workflow stage",
+              "stage"
+            ],
+            "ar": [
+              "مرحلة الموافقة",
+              "مستوى الموافقة",
+              "خطوة الموافقة",
+              "مرحلة سير العمل",
+              "المرحلة"
+            ]
+          }
+        },
+        {
+          "canonical_key": "approver",
+          "entity": "user",
+          "datatype": "string",
+          "name": {
+            "en": "Approver",
+            "ar": "المعتمد"
+          },
+          "aliases": {
+            "en": [
+              "approver",
+              "approved by",
+              "authorizer",
+              "manager",
+              "checker"
+            ],
+            "ar": [
+              "المعتمد",
+              "الموافق",
+              "المسؤول المعتمد",
+              "المدير",
+              "المراجع"
+            ]
+          }
+        },
+        {
+          "canonical_key": "cycle_time_days",
+          "entity": "time",
+          "datatype": "number",
+          "name": {
+            "en": "Cycle Time (Days)",
+            "ar": "زمن الدورة (أيام)"
+          },
+          "aliases": {
+            "en": [
+              "cycle time",
+              "processing time",
+              "turnaround time",
+              "lead time (process)",
+              "time to close",
+              "closure time"
+            ],
+            "ar": [
+              "زمن الدورة",
+              "مدة التنفيذ",
+              "وقت التنفيذ",
+              "المدة حتى الإغلاق",
+              "وقت الإغلاق"
+            ]
+          }
+        },
+        {
+          "canonical_key": "sla_status",
+          "entity": "time",
+          "datatype": "string",
+          "name": {
+            "en": "SLA Status",
+            "ar": "حالة SLA"
+          },
+          "aliases": {
+            "en": [
+              "sla status",
+              "sla compliance",
+              "within sla",
+              "breached sla",
+              "sla state"
+            ],
+            "ar": [
+              "حالة SLA",
+              "التزام SLA",
+              "ضمن SLA",
+              "خرق SLA",
+              "حالة الالتزام"
+            ]
+          }
+        },
+        {
+          "canonical_key": "risk_type",
+          "entity": "risk",
+          "datatype": "string",
+          "name": {
+            "en": "Risk Type",
+            "ar": "نوع الخطر"
+          },
+          "aliases": {
+            "en": [
+              "risk type",
+              "issue type",
+              "exception type",
+              "problem type",
+              "alert type"
+            ],
+            "ar": [
+              "نوع الخطر",
+              "نوع المشكلة",
+              "نوع الاستثناء",
+              "نوع التنبيه"
+            ]
+          }
+        },
+        {
+          "canonical_key": "severity",
+          "entity": "risk",
+          "datatype": "string",
+          "name": {
+            "en": "Severity",
+            "ar": "الخطورة"
+          },
+          "aliases": {
+            "en": [
+              "severity",
+              "impact level",
+              "criticality",
+              "risk level",
+              "priority (risk)"
+            ],
+            "ar": [
+              "الخطورة",
+              "درجة الخطورة",
+              "مستوى الخطر",
+              "حرج",
+              "تأثير"
+            ]
+          }
+        },
+        {
+          "canonical_key": "delay_reason",
+          "entity": "risk",
+          "datatype": "string",
+          "name": {
+            "en": "Delay Reason",
+            "ar": "سبب التأخير"
+          },
+          "aliases": {
+            "en": [
+              "delay reason",
+              "reason",
+              "root cause",
+              "cause",
+              "delay cause"
+            ],
+            "ar": [
+              "سبب التأخير",
+              "السبب",
+              "سبب",
+              "جذر المشكلة",
+              "سبب التأخير"
+            ]
+          }
+        }
+      ],
+      "kpis": [
+        {
+          "key": "kpi_total_active_requests",
+          "dashboard_ids": [
+            "D01",
+            "D09"
+          ],
+          "name": {
+            "en": "Total Active Requests",
+            "ar": "إجمالي الطلبات النشطة"
+          },
+          "aliases": {
+            "en": [
+              "active requests",
+              "open requests",
+              "open prs",
+              "pending requests total",
+              "total open requests"
+            ],
+            "ar": [
+              "إجمالي الطلبات النشطة",
+              "إجمالي الطلبات المفتوحة",
+              "طلبات معلقة إجمالي",
+              "الطلبات القائمة"
+            ]
+          },
+          "formula_hint": {
+            "en": "Count of requests where status in (Open, In Progress, Pending Approval).",
+            "ar": "عدد الطلبات التي حالتها (مفتوح/قيد التنفيذ/معلق موافقة)."
+          }
+        },
+        {
+          "key": "kpi_overdue_requests",
+          "dashboard_ids": [
+            "D01",
+            "D08",
+            "D09"
+          ],
+          "name": {
+            "en": "Overdue Requests",
+            "ar": "الطلبات المتأخرة"
+          },
+          "aliases": {
+            "en": [
+              "overdue",
+              "late requests",
+              "past due requests",
+              "delayed requests"
+            ],
+            "ar": [
+              "طلبات متأخرة",
+              "طلبات متأخره",
+              "متأخرات",
+              "طلبات بعد الاستحقاق"
+            ]
+          },
+          "formula_hint": {
+            "en": "Requests with due_date < today and not closed.",
+            "ar": "طلبات تاريخ الاستحقاق أقل من اليوم ولم تُغلق."
+          }
+        },
+        {
+          "key": "kpi_avg_cycle_time",
+          "dashboard_ids": [
+            "D01",
+            "D07"
+          ],
+          "name": {
+            "en": "Average Cycle Time",
+            "ar": "متوسط زمن الدورة"
+          },
+          "aliases": {
+            "en": [
+              "avg cycle time",
+              "average processing time",
+              "avg turnaround",
+              "mean cycle time"
+            ],
+            "ar": [
+              "متوسط زمن الدورة",
+              "متوسط مدة التنفيذ",
+              "متوسط وقت الإغلاق"
+            ]
+          },
+          "formula_hint": {
+            "en": "Average of (close_date - created_date) for closed requests.",
+            "ar": "متوسط (تاريخ الإغلاق - تاريخ الإنشاء) للطلبات المغلقة."
+          }
+        },
+        {
+          "key": "kpi_requests_due_today",
+          "dashboard_ids": [
+            "D01",
+            "D09"
+          ],
+          "name": {
+            "en": "Requests Due Today",
+            "ar": "طلبات مستحقة اليوم"
+          },
+          "aliases": {
+            "en": [
+              "due today",
+              "requests due",
+              "today due requests"
+            ],
+            "ar": [
+              "مستحق اليوم",
+              "طلبات مستحقة اليوم",
+              "طلبات تسليم اليوم"
+            ]
+          },
+          "formula_hint": {
+            "en": "Requests with due_date = today and not closed.",
+            "ar": "طلبات تاريخ الاستحقاق يساوي اليوم ولم تُغلق."
+          }
+        },
+        {
+          "key": "kpi_total_requested_skus",
+          "dashboard_ids": [
+            "D02"
+          ],
+          "name": {
+            "en": "Total Requested SKUs",
+            "ar": "إجمالي الأصناف المطلوبة"
+          },
+          "aliases": {
+            "en": [
+              "requested skus",
+              "distinct skus requested",
+              "unique items requested"
+            ],
+            "ar": [
+              "الأصناف المطلوبة",
+              "عدد الأصناف المطلوبة",
+              "أصناف مميزة مطلوبة"
+            ]
+          },
+          "formula_hint": {
+            "en": "Distinct count of item_code in active requests.",
+            "ar": "عدد مميز لـ item_code داخل الطلبات النشطة."
+          }
+        },
+        {
+          "key": "kpi_total_requested_qty",
+          "dashboard_ids": [
+            "D02"
+          ],
+          "name": {
+            "en": "Total Requested Quantity",
+            "ar": "إجمالي الكمية المطلوبة"
+          },
+          "aliases": {
+            "en": [
+              "total qty",
+              "total requested qty",
+              "sum of qty",
+              "requested quantity total"
+            ],
+            "ar": [
+              "إجمالي الكمية",
+              "إجمالي المطلوب",
+              "مجموع الكميات"
+            ]
+          },
+          "formula_hint": {
+            "en": "Sum requested_qty for active requests.",
+            "ar": "مجموع requested_qty للطلبات النشطة."
+          }
+        },
+        {
+          "key": "kpi_top_sku_by_volume",
+          "dashboard_ids": [
+            "D02"
+          ],
+          "name": {
+            "en": "Top SKU by Volume",
+            "ar": "أعلى صنف بالكمية"
+          },
+          "aliases": {
+            "en": [
+              "top sku",
+              "most requested sku",
+              "highest volume item"
+            ],
+            "ar": [
+              "أعلى صنف",
+              "أكثر صنف طلبًا",
+              "أعلى كمية"
+            ]
+          },
+          "formula_hint": {
+            "en": "Item with highest sum(requested_qty).",
+            "ar": "الصنف الأعلى في مجموع requested_qty."
+          }
+        },
+        {
+          "key": "kpi_critical_skus",
+          "dashboard_ids": [
+            "D02",
+            "D03",
+            "D08"
+          ],
+          "name": {
+            "en": "Critical SKUs Count",
+            "ar": "عدد الأصناف الحرجة"
+          },
+          "aliases": {
+            "en": [
+              "critical skus",
+              "critical items",
+              "high priority items"
+            ],
+            "ar": [
+              "أصناف حرجة",
+              "عدد الأصناف الحرجة",
+              "أصناف عالية الأولوية"
+            ]
+          },
+          "formula_hint": {
+            "en": "Count items flagged critical OR shortages impacting operations.",
+            "ar": "عدد الأصناف المعلّمة كحرجة أو عليها عجز يؤثر على التشغيل."
+          }
+        },
+        {
+          "key": "kpi_coverage_rate",
+          "dashboard_ids": [
+            "D03"
+          ],
+          "name": {
+            "en": "Coverage Rate",
+            "ar": "نسبة التغطية"
+          },
+          "aliases": {
+            "en": [
+              "coverage",
+              "stock coverage rate",
+              "fulfillment coverage",
+              "availability rate"
+            ],
+            "ar": [
+              "نسبة التغطية",
+              "تغطية المخزون",
+              "نسبة التوافر"
+            ]
+          },
+          "formula_hint": {
+            "en": "Covered requests / total requests (by stock) for period.",
+            "ar": "طلبات مغطاة من المخزون ÷ إجمالي الطلبات خلال الفترة."
+          }
+        },
+        {
+          "key": "kpi_backorder_qty",
+          "dashboard_ids": [
+            "D03",
+            "D08"
+          ],
+          "name": {
+            "en": "Backorder Quantity",
+            "ar": "كمية مؤجلة (Backorder)"
+          },
+          "aliases": {
+            "en": [
+              "backorder",
+              "backorder qty",
+              "pending qty due to stock",
+              "shortage qty total"
+            ],
+            "ar": [
+              "باك أوردر",
+              "كمية مؤجلة",
+              "كمية بسبب نقص",
+              "إجمالي العجز"
+            ]
+          },
+          "formula_hint": {
+            "en": "Sum shortage_qty or unfulfilled qty due to stock.",
+            "ar": "مجموع shortage_qty أو الكمية غير ملباة بسبب المخزون."
+          }
+        },
+        {
+          "key": "kpi_unanswered_rfqs",
+          "dashboard_ids": [
+            "D04",
+            "D08"
+          ],
+          "name": {
+            "en": "Unanswered RFQs",
+            "ar": "RFQ بدون رد"
+          },
+          "aliases": {
+            "en": [
+              "unanswered rfqs",
+              "no response rfqs",
+              "rfqs pending response"
+            ],
+            "ar": [
+              "RFQ بدون رد",
+              "طلبات عرض سعر بدون رد",
+              "عروض غير مجابة"
+            ]
+          },
+          "formula_hint": {
+            "en": "RFQs with no vendor reply within SLA window.",
+            "ar": "طلبات RFQ بدون رد ضمن زمن SLA المحدد."
+          }
+        },
+        {
+          "key": "kpi_avg_vendor_response_time",
+          "dashboard_ids": [
+            "D04"
+          ],
+          "name": {
+            "en": "Avg Vendor Response Time",
+            "ar": "متوسط زمن رد المورد"
+          },
+          "aliases": {
+            "en": [
+              "avg response time",
+              "average vendor response",
+              "mean response time"
+            ],
+            "ar": [
+              "متوسط زمن رد المورد",
+              "متوسط وقت الرد",
+              "معدل رد المورد"
+            ]
+          },
+          "formula_hint": {
+            "en": "Average response_time_hours for RFQs.",
+            "ar": "متوسط response_time_hours لطلبات RFQ."
+          }
+        },
+        {
+          "key": "kpi_total_requested_spend",
+          "dashboard_ids": [
+            "D05",
+            "D09"
+          ],
+          "name": {
+            "en": "Total Requested Spend",
+            "ar": "إجمالي الصرف المطلوب"
+          },
+          "aliases": {
+            "en": [
+              "requested spend",
+              "total requested value",
+              "requested amount total"
+            ],
+            "ar": [
+              "الصرف المطلوب",
+              "إجمالي المبلغ المطلوب",
+              "قيمة مطلوبة إجمالي"
+            ]
+          },
+          "formula_hint": {
+            "en": "Sum total_cost for active requests.",
+            "ar": "مجموع total_cost للطلبات النشطة."
+          }
+        },
+        {
+          "key": "kpi_pending_approval_value",
+          "dashboard_ids": [
+            "D05",
+            "D06",
+            "D09"
+          ],
+          "name": {
+            "en": "Pending Approval Value",
+            "ar": "قيمة معلقة للموافقة"
+          },
+          "aliases": {
+            "en": [
+              "pending approval value",
+              "unapproved amount",
+              "awaiting approval value"
+            ],
+            "ar": [
+              "قيمة معلقة",
+              "قيمة تنتظر الموافقة",
+              "مبالغ غير معتمدة"
+            ]
+          },
+          "formula_hint": {
+            "en": "Sum total_cost where approval_status = Pending.",
+            "ar": "مجموع total_cost حيث approval_status = Pending."
+          }
+        },
+        {
+          "key": "kpi_budget_utilization",
+          "dashboard_ids": [
+            "D05"
+          ],
+          "name": {
+            "en": "Budget Utilization %",
+            "ar": "نسبة استهلاك الميزانية"
+          },
+          "aliases": {
+            "en": [
+              "budget utilization",
+              "budget used percent",
+              "budget consumption"
+            ],
+            "ar": [
+              "استهلاك الميزانية",
+              "نسبة استخدام الميزانية",
+              "نسبة استهلاك"
+            ]
+          },
+          "formula_hint": {
+            "en": "(Approved spend or requested spend)/budget.",
+            "ar": "(الصرف المعتمد أو المطلوب) ÷ الميزانية."
+          }
+        },
+        {
+          "key": "kpi_pending_approvals",
+          "dashboard_ids": [
+            "D06",
+            "D09"
+          ],
+          "name": {
+            "en": "Pending Approvals",
+            "ar": "موافقات معلقة"
+          },
+          "aliases": {
+            "en": [
+              "pending approvals",
+              "approvals pending",
+              "awaiting approval"
+            ],
+            "ar": [
+              "موافقات معلقة",
+              "موافقات منتظرة",
+              "بانتظار اعتماد"
+            ]
+          },
+          "formula_hint": {
+            "en": "Count requests where approval_status = Pending.",
+            "ar": "عدد الطلبات حيث approval_status = Pending."
+          }
+        },
+        {
+          "key": "kpi_avg_approval_time",
+          "dashboard_ids": [
+            "D06"
+          ],
+          "name": {
+            "en": "Avg Approval Time",
+            "ar": "متوسط زمن الموافقة"
+          },
+          "aliases": {
+            "en": [
+              "avg approval time",
+              "approval turnaround",
+              "mean approval duration"
+            ],
+            "ar": [
+              "متوسط زمن الموافقة",
+              "متوسط مدة الاعتماد",
+              "وقت الموافقة"
+            ]
+          },
+          "formula_hint": {
+            "en": "Average time between stage entry and approval decision.",
+            "ar": "متوسط الزمن بين دخول المرحلة واتخاذ قرار الموافقة."
+          }
+        },
+        {
+          "key": "kpi_sla_compliance",
+          "dashboard_ids": [
+            "D07"
+          ],
+          "name": {
+            "en": "SLA Compliance %",
+            "ar": "نسبة الالتزام بـ SLA"
+          },
+          "aliases": {
+            "en": [
+              "sla compliance",
+              "within sla percent",
+              "sla adherence"
+            ],
+            "ar": [
+              "الالتزام بـ SLA",
+              "نسبة الالتزام",
+              "ضمن SLA"
+            ]
+          },
+          "formula_hint": {
+            "en": "Closed within SLA / total closed.",
+            "ar": "المغلق ضمن SLA ÷ إجمالي المغلق."
+          }
+        }
+      ],
+      "chart_dimensions": [
+        {
+          "key": "by_department",
+          "name": {
+            "en": "By Department",
+            "ar": "حسب القسم"
+          },
+          "aliases": {
+            "en": [
+              "department",
+              "dept",
+              "by dept",
+              "requesting department"
+            ],
+            "ar": [
+              "حسب القسم",
+              "القسم",
+              "الإدارة",
+              "حسب الإدارة"
+            ]
+          }
+        },
+        {
+          "key": "by_warehouse",
+          "name": {
+            "en": "By Warehouse",
+            "ar": "حسب المخزن"
+          },
+          "aliases": {
+            "en": [
+              "warehouse",
+              "store",
+              "location",
+              "stock location"
+            ],
+            "ar": [
+              "حسب المخزن",
+              "المخزن",
+              "المستودع",
+              "حسب المستودع"
+            ]
+          }
+        },
+        {
+          "key": "by_vendor",
+          "name": {
+            "en": "By Vendor",
+            "ar": "حسب المورد"
+          },
+          "aliases": {
+            "en": [
+              "vendor",
+              "supplier",
+              "supplier name"
+            ],
+            "ar": [
+              "حسب المورد",
+              "المورد",
+              "المورّد",
+              "حسب المورّد"
+            ]
+          }
+        },
+        {
+          "key": "by_item",
+          "name": {
+            "en": "By Item/SKU",
+            "ar": "حسب الصنف/SKU"
+          },
+          "aliases": {
+            "en": [
+              "sku",
+              "item",
+              "item code",
+              "product"
+            ],
+            "ar": [
+              "حسب الصنف",
+              "حسب SKU",
+              "الصنف",
+              "المنتج"
+            ]
+          }
+        },
+        {
+          "key": "by_status",
+          "name": {
+            "en": "By Status",
+            "ar": "حسب الحالة"
+          },
+          "aliases": {
+            "en": [
+              "status",
+              "state",
+              "workflow status"
+            ],
+            "ar": [
+              "حسب الحالة",
+              "الحالة",
+              "الستاتس"
+            ]
+          }
+        },
+        {
+          "key": "by_priority",
+          "name": {
+            "en": "By Priority",
+            "ar": "حسب الأولوية"
+          },
+          "aliases": {
+            "en": [
+              "priority",
+              "urgency"
+            ],
+            "ar": [
+              "حسب الأولوية",
+              "الأولوية",
+              "الاستعجال"
+            ]
+          }
+        },
+        {
+          "key": "by_time_day",
+          "name": {
+            "en": "By Day",
+            "ar": "حسب اليوم"
+          },
+          "aliases": {
+            "en": [
+              "daily",
+              "per day",
+              "by day"
+            ],
+            "ar": [
+              "يومي",
+              "حسب اليوم",
+              "كل يوم"
+            ]
+          }
+        },
+        {
+          "key": "by_time_week",
+          "name": {
+            "en": "By Week",
+            "ar": "حسب الأسبوع"
+          },
+          "aliases": {
+            "en": [
+              "weekly",
+              "per week",
+              "by week"
+            ],
+            "ar": [
+              "أسبوعي",
+              "حسب الأسبوع",
+              "كل أسبوع"
+            ]
+          }
+        },
+        {
+          "key": "by_time_month",
+          "name": {
+            "en": "By Month",
+            "ar": "حسب الشهر"
+          },
+          "aliases": {
+            "en": [
+              "monthly",
+              "per month",
+              "by month"
+            ],
+            "ar": [
+              "شهري",
+              "حسب الشهر",
+              "كل شهر"
+            ]
+          }
+        },
+        {
+          "key": "aging_buckets",
+          "name": {
+            "en": "Aging Buckets",
+            "ar": "شرائح التقادم"
+          },
+          "aliases": {
+            "en": [
+              "aging",
+              "age buckets",
+              "days open buckets"
+            ],
+            "ar": [
+              "تقادم",
+              "شرائح التقادم",
+              "مدد مفتوحة"
+            ]
+          }
+        },
+        {
+          "key": "cost_buckets",
+          "name": {
+            "en": "Cost Buckets",
+            "ar": "شرائح التكلفة"
+          },
+          "aliases": {
+            "en": [
+              "cost buckets",
+              "spend buckets",
+              "value buckets"
+            ],
+            "ar": [
+              "شرائح التكلفة",
+              "شرائح الصرف",
+              "شرائح القيمة"
+            ]
+          }
+        }
+      ],
+      "table_templates": [
+        {
+          "id": "T01_total_requests_by_department",
+          "name": {
+            "en": "Total Requests / Departments",
+            "ar": "إجمالي الطلبات / الأقسام"
+          },
+          "aliases": {
+            "en": [
+              "total requests by department",
+              "requests per department",
+              "department requests"
+            ],
+            "ar": [
+              "إجمالي الطلبات حسب القسم",
+              "طلبات لكل قسم",
+              "طلبات الأقسام"
+            ]
+          },
+          "columns": [
+            "department",
+            "request_id",
+            "item_code",
+            "requested_qty",
+            "request_status",
+            "due_date"
+          ]
+        },
+        {
+          "id": "T02_total_requests_by_item_sku",
+          "name": {
+            "en": "Total Requests / ItemsSKU",
+            "ar": "إجمالي الطلبات / الأصناف SKU"
+          },
+          "aliases": {
+            "en": [
+              "total requests by sku",
+              "requests by item",
+              "sku requests table",
+              "items requested"
+            ],
+            "ar": [
+              "إجمالي الطلبات حسب الصنف",
+              "طلبات حسب SKU",
+              "طلبات الأصناف",
+              "الأصناف المطلوبة"
+            ]
+          },
+          "columns": [
+            "item_code",
+            "item_name",
+            "requested_qty",
+            "warehouse",
+            "department",
+            "request_status",
+            "due_date"
+          ]
+        },
+        {
+          "id": "T03_stock_coverage_by_warehouse",
+          "name": {
+            "en": "Stock Coverage / Warehouse",
+            "ar": "تغطية المخزون / المخزن"
+          },
+          "aliases": {
+            "en": [
+              "coverage by warehouse",
+              "warehouse coverage table",
+              "stock availability by warehouse"
+            ],
+            "ar": [
+              "تغطية حسب المخزن",
+              "تغطية المخزون للمخازن",
+              "توافر المخزون حسب المخزن"
+            ]
+          },
+          "columns": [
+            "warehouse",
+            "item_code",
+            "requested_qty",
+            "available_qty",
+            "reserved_qty",
+            "shortage_qty",
+            "request_status"
+          ]
+        },
+        {
+          "id": "T04_rfq_pipeline",
+          "name": {
+            "en": "RFQ Pipeline",
+            "ar": "مسار RFQ"
+          },
+          "aliases": {
+            "en": [
+              "rfq pipeline table",
+              "rfq status table",
+              "quotation pipeline"
+            ],
+            "ar": [
+              "مسار RFQ",
+              "حالات RFQ",
+              "مسار عروض الأسعار"
+            ]
+          },
+          "columns": [
+            "rfq_id",
+            "vendor_name",
+            "item_code",
+            "requested_qty",
+            "rfq_status",
+            "quote_status",
+            "response_time_hours",
+            "lead_time_days"
+          ]
+        },
+        {
+          "id": "T05_spend_by_item",
+          "name": {
+            "en": "Spend / Items",
+            "ar": "الصرف / الأصناف"
+          },
+          "aliases": {
+            "en": [
+              "spend by item",
+              "item cost table",
+              "purchase cost by sku"
+            ],
+            "ar": [
+              "الصرف حسب الصنف",
+              "تكلفة الأصناف",
+              "سعر الصنف"
+            ]
+          },
+          "columns": [
+            "item_code",
+            "item_name",
+            "requested_qty",
+            "unit_cost",
+            "total_cost",
+            "currency",
+            "department",
+            "approval_status"
+          ]
+        },
+        {
+          "id": "T06_approval_queue",
+          "name": {
+            "en": "Approvals Queue",
+            "ar": "طابور الموافقات"
+          },
+          "aliases": {
+            "en": [
+              "approval queue",
+              "pending approvals table",
+              "approvals backlog"
+            ],
+            "ar": [
+              "طابور الموافقات",
+              "موافقات معلقة",
+              "تراكم الموافقات"
+            ]
+          },
+          "columns": [
+            "request_id",
+            "department",
+            "approval_stage",
+            "approval_status",
+            "approver",
+            "created_date",
+            "due_date",
+            "cycle_time_days"
+          ]
+        },
+        {
+          "id": "T07_exceptions_list",
+          "name": {
+            "en": "Exceptions List",
+            "ar": "قائمة الاستثناءات"
+          },
+          "aliases": {
+            "en": [
+              "exceptions table",
+              "risk list",
+              "problem requests list"
+            ],
+            "ar": [
+              "قائمة الاستثناءات",
+              "قائمة المخاطر",
+              "طلبات مشكلة"
+            ]
+          },
+          "columns": [
+            "request_id",
+            "department",
+            "item_code",
+            "vendor_name",
+            "risk_type",
+            "severity",
+            "delay_reason",
+            "due_date",
+            "request_status"
+          ]
+        }
+      ]
+    }
+  },
+  "orders": {
+    "meta": {
+      "name": "Orders Semantic Master",
+      "version": "2.0.0",
+      "generated_at": "2025-12-18T16:22:15.984746Z",
+      "languages": [
+        "en",
+        "ar"
+      ],
+      "intent": "Rich daily operational dashboards (always-filled views)"
+    },
+    "dashboards": [
+      {
+        "id": "O01",
+        "name": {
+          "en": "Daily Orders Control",
+          "ar": "التحكم اليومي في الأوامر"
+        },
+        "purpose": {
+          "en": "Always-on executive snapshot",
+          "ar": "لقطة تنفيذية يومية مستمرة"
+        },
+        "kpis": [
+          "open_orders",
+          "orders_created_today",
+          "orders_due_today",
+          "overdue_orders",
+          "orders_blocked",
+          "avg_order_cycle_time",
+          "otif_today",
+          "critical_alerts"
+        ],
+        "charts": {
+          "bar": [
+            "orders_by_status"
+          ],
+          "others": [
+            "orders_hourly",
+            "orders_by_department",
+            "orders_by_priority",
+            "orders_by_value_bucket"
+          ]
+        },
+        "table": "orders_live_activity"
+      },
+      {
+        "id": "O02",
+        "name": {
+          "en": "Order Fulfillment",
+          "ar": "تنفيذ الأوامر"
+        },
+        "purpose": {
+          "en": "Execution & delivery reality",
+          "ar": "واقع التنفيذ والتسليم"
+        },
+        "kpis": [
+          "fulfillment_rate",
+          "otif_rate",
+          "backorder_qty",
+          "delivery_delay_rate",
+          "avg_delivery_delay",
+          "orders_waiting_stock",
+          "orders_waiting_shipment",
+          "returns_today"
+        ],
+        "charts": {
+          "bar": [
+            "delivery_status"
+          ],
+          "others": [
+            "otif_trend",
+            "delay_reasons",
+            "warehouse_fulfillment",
+            "aging_open_orders"
+          ]
+        },
+        "table": "fulfillment_progress"
+      },
+      {
+        "id": "O03",
+        "name": {
+          "en": "Orders Value & Finance",
+          "ar": "قيمة الأوامر والمالية"
+        },
+        "purpose": {
+          "en": "Money & exposure view",
+          "ar": "عرض مالي ومخاطر الصرف"
+        },
+        "kpis": [
+          "total_order_value",
+          "invoiced_value",
+          "uninvoiced_value",
+          "pending_payment_value",
+          "avg_order_value",
+          "gross_margin_pct",
+          "discount_impact",
+          "tax_exposure"
+        ],
+        "charts": {
+          "bar": [
+            "order_value_by_status"
+          ],
+          "others": [
+            "value_trend",
+            "value_by_customer",
+            "margin_distribution",
+            "invoice_status_split"
+          ]
+        },
+        "table": "orders_financials"
+      },
+      {
+        "id": "O04",
+        "name": {
+          "en": "Customer & Vendor Performance",
+          "ar": "أداء العملاء والموردين"
+        },
+        "purpose": {
+          "en": "Service & reliability",
+          "ar": "مستوى الخدمة والاعتمادية"
+        },
+        "kpis": [
+          "top_customers_value",
+          "top_vendors_volume",
+          "on_time_delivery_pct",
+          "return_rate",
+          "complaints_today",
+          "vendor_delay_rate",
+          "customer_blocked_orders",
+          "avg_response_time"
+        ],
+        "charts": {
+          "bar": [
+            "orders_by_customer"
+          ],
+          "others": [
+            "vendor_otif",
+            "returns_by_reason",
+            "complaints_trend",
+            "vendor_delay_reasons"
+          ]
+        },
+        "table": "customer_vendor_orders"
+      },
+      {
+        "id": "O05",
+        "name": {
+          "en": "Order Risks & Exceptions",
+          "ar": "مخاطر واستثناءات الأوامر"
+        },
+        "purpose": {
+          "en": "Problems you must act on",
+          "ar": "مشاكل تتطلب تدخل فوري"
+        },
+        "kpis": [
+          "blocked_orders",
+          "payment_holds",
+          "stock_blocked_orders",
+          "late_orders",
+          "high_value_risk_orders",
+          "sla_breaches",
+          "repeated_exceptions",
+          "critical_risks"
+        ],
+        "charts": {
+          "bar": [
+            "risk_orders_by_type"
+          ],
+          "others": [
+            "risk_trend",
+            "exceptions_by_department",
+            "aging_blocked_orders",
+            "root_causes"
+          ]
+        },
+        "table": "orders_exceptions"
+      }
+    ],
+    "kpis_dictionary": {
+      "open_orders": {
+        "en": "Open Orders",
+        "ar": "الأوامر المفتوحة"
+      },
+      "orders_created_today": {
+        "en": "Orders Created Today",
+        "ar": "أوامر اليوم"
+      },
+      "orders_due_today": {
+        "en": "Orders Due Today",
+        "ar": "أوامر مستحقة اليوم"
+      },
+      "overdue_orders": {
+        "en": "Overdue Orders",
+        "ar": "أوامر متأخرة"
+      },
+      "orders_blocked": {
+        "en": "Blocked Orders",
+        "ar": "أوامر متعطلة"
+      },
+      "avg_order_cycle_time": {
+        "en": "Avg Order Cycle Time",
+        "ar": "متوسط زمن دورة الأمر"
+      },
+      "otif_today": {
+        "en": "OTIF Today",
+        "ar": "OTIF اليوم"
+      },
+      "critical_alerts": {
+        "en": "Critical Alerts",
+        "ar": "تنبيهات حرجة"
+      },
+      "fulfillment_rate": {
+        "en": "Fulfillment Rate",
+        "ar": "نسبة التنفيذ"
+      },
+      "otif_rate": {
+        "en": "OTIF %",
+        "ar": "نسبة OTIF"
+      },
+      "backorder_qty": {
+        "en": "Backorder Quantity",
+        "ar": "كمية مؤجلة"
+      },
+      "delivery_delay_rate": {
+        "en": "Delivery Delay Rate",
+        "ar": "نسبة تأخير التسليم"
+      },
+      "avg_delivery_delay": {
+        "en": "Avg Delivery Delay",
+        "ar": "متوسط تأخير التسليم"
+      },
+      "orders_waiting_stock": {
+        "en": "Orders Waiting Stock",
+        "ar": "أوامر تنتظر مخزون"
+      },
+      "orders_waiting_shipment": {
+        "en": "Orders Waiting Shipment",
+        "ar": "أوامر تنتظر شحن"
+      },
+      "returns_today": {
+        "en": "Returns Today",
+        "ar": "مرتجعات اليوم"
+      },
+      "total_order_value": {
+        "en": "Total Order Value",
+        "ar": "إجمالي قيمة الأوامر"
+      },
+      "invoiced_value": {
+        "en": "Invoiced Value",
+        "ar": "قيمة مفوترة"
+      },
+      "uninvoiced_value": {
+        "en": "Uninvoiced Value",
+        "ar": "قيمة غير مفوترة"
+      },
+      "pending_payment_value": {
+        "en": "Pending Payment Value",
+        "ar": "قيمة معلقة للدفع"
+      },
+      "avg_order_value": {
+        "en": "Avg Order Value",
+        "ar": "متوسط قيمة الأمر"
+      },
+      "gross_margin_pct": {
+        "en": "Gross Margin %",
+        "ar": "نسبة الهامش"
+      },
+      "discount_impact": {
+        "en": "Discount Impact",
+        "ar": "تأثير الخصومات"
+      },
+      "tax_exposure": {
+        "en": "Tax Exposure",
+        "ar": "تعرض ضريبي"
+      },
+      "top_customers_value": {
+        "en": "Top Customers",
+        "ar": "أفضل العملاء"
+      },
+      "top_vendors_volume": {
+        "en": "Top Vendors",
+        "ar": "أفضل الموردين"
+      },
+      "on_time_delivery_pct": {
+        "en": "On-Time Delivery %",
+        "ar": "التسليم في الوقت"
+      },
+      "return_rate": {
+        "en": "Return Rate",
+        "ar": "نسبة المرتجعات"
+      },
+      "complaints_today": {
+        "en": "Complaints Today",
+        "ar": "شكاوى اليوم"
+      },
+      "vendor_delay_rate": {
+        "en": "Vendor Delay Rate",
+        "ar": "نسبة تأخير المورد"
+      },
+      "customer_blocked_orders": {
+        "en": "Customer Blocked Orders",
+        "ar": "أوامر متعطلة للعملاء"
+      },
+      "avg_response_time": {
+        "en": "Avg Response Time",
+        "ar": "متوسط زمن الاستجابة"
+      },
+      "payment_holds": {
+        "en": "Payment Holds",
+        "ar": "تعليق دفع"
+      },
+      "stock_blocked_orders": {
+        "en": "Stock Blocked Orders",
+        "ar": "تعطيل بسبب المخزون"
+      },
+      "high_value_risk_orders": {
+        "en": "High Value Risk Orders",
+        "ar": "أوامر عالية الخطورة"
+      },
+      "sla_breaches": {
+        "en": "SLA Breaches",
+        "ar": "خرق SLA"
+      },
+      "repeated_exceptions": {
+        "en": "Repeated Exceptions",
+        "ar": "استثناءات متكررة"
+      },
+      "critical_risks": {
+        "en": "Critical Risks",
+        "ar": "مخاطر حرجة"
+      }
+    },
+    "tables": {
+      "orders_live_activity": {
+        "columns": [
+          "time",
+          "order_id",
+          "event",
+          "user",
+          "order_value",
+          "order_status"
+        ]
+      },
+      "fulfillment_progress": {
+        "columns": [
+          "order_id",
+          "warehouse",
+          "ordered_qty",
+          "shipped_qty",
+          "delivered_qty",
+          "backorder_qty",
+          "promised_date",
+          "eta_date",
+          "otif_flag"
+        ]
+      },
+      "orders_financials": {
+        "columns": [
+          "order_id",
+          "customer",
+          "order_value",
+          "discount",
+          "tax",
+          "invoice_status",
+          "payment_status",
+          "margin"
+        ]
+      },
+      "customer_vendor_orders": {
+        "columns": [
+          "order_id",
+          "customer",
+          "vendor",
+          "order_value",
+          "delivery_status",
+          "otif_flag",
+          "return_status"
+        ]
+      },
+      "orders_exceptions": {
+        "columns": [
+          "order_id",
+          "risk_type",
+          "severity",
+          "root_cause",
+          "hold_reason",
+          "age_days",
+          "owner"
+        ]
+      }
+    }
+  }
+}

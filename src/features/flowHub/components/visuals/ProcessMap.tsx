@@ -173,7 +173,7 @@ export const ProcessMap: React.FC<{ processType?: ProcessType }> = ({ processTyp
             </div >
 
             {/* Right Insights Panel (Block 2) */}
-            < div className={`h-full bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm z-10 shadow-xl transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800 overflow-hidden ${isPanelOpen ? 'w-80 opacity-100' : 'w-0 opacity-0'}`} >
+            < div className={`h-full bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm z-10 shadow-xl transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800 overflow-hidden pb-16 ${isPanelOpen ? 'w-80 opacity-100' : 'w-0 opacity-0'}`} >
                 <div className="w-80 h-full">
                     <InsightsPanel nodes={nodes} />
                 </div>

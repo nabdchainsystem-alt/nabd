@@ -6,17 +6,16 @@ import { CaptureModal } from './components/CaptureModal';
 import { NewBoardModal } from './components/NewBoardModal';
 import { Thread, Message, ViewMode, Board, Task, Note } from './types';
 import { BoardTemplate } from '../board/data/templates';
-import { createChatSession, sendMessageStream, Chat } from './services/geminiService';
+
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useUI } from '../../contexts/UIContext';
+import { chatWithGemini } from '../../services/geminiService';
 
-const KanbanBoard = React.lazy(() => import('../board/views/Kanban/KanbanBoard'));
-const RoomTable = React.lazy(() => import('../board/views/Table/RoomTable')); // Default export?
-const DataTable = React.lazy(() => import('../board/views/Table/DataTable'));
-const ListBoard = React.lazy(() => import('../board/views/ListBoard/ListBoard'));
-// We suspect Lists.tsx might be messy (named DiscussionPage?). Assuming it has a default export or we use it as is.
-// Ideally check exports. For now assuming default.
-const Lists = React.lazy(() => import('../board/views/List/Lists'));
+import KanbanBoard from '../board/views/Kanban/KanbanBoard';
+import RoomTable from '../board/views/Table/RoomTable';
+import DataTable from '../board/views/Table/DataTable';
+import ListBoard from '../board/views/ListBoard/ListBoard';
+import Lists from '../board/views/List/Lists';
 
 
 
@@ -93,28 +92,18 @@ export default function DiscussionPage() {
     const [activeBoardId, setActiveBoardId] = useState<string | null>(null);
     const [mainViewMode, setMainViewMode] = useState<'chat' | 'board'>('chat');
 
-    const [chatSession, setChatSession] = useState<Chat | null>(null);
-    const [isStreaming, setIsStreaming] = useState(false);
+
+
+
+
+
+
 
     // Responsive Mobile View State
     const [mobileViewMode, setMobileViewMode] = useState<ViewMode>(ViewMode.MobileList);
-
-    // Initialize Chat Session when thread changes
-    useEffect(() => {
-        if (activeThreadId) {
-            const session = createChatSession();
-            setChatSession(session);
-            // In a real app, fetch notes related to this thread here
-        }
-    }, [activeThreadId]);
-
-
-
-
-
 
     const handleSendMessage = async (text: string) => {
-        if (!activeThreadId || !chatSession) return;
+        if (!activeThreadId) return;
 
         const newMessage: Message = {
             id: Date.now().toString(),
@@ -123,7 +112,7 @@ export default function DiscussionPage() {
             timestamp: new Date()
         };
 
-        // Optimistic UI update
+        // 1. Add User Message
         setThreads(prev => prev.map(t => {
             if (t.id === activeThreadId) {
                 return {
@@ -136,12 +125,10 @@ export default function DiscussionPage() {
             return t;
         }));
 
-        setIsStreaming(true);
-
-        // Placeholder for AI response
-        const aiMessageId = (Date.now() + 1).toString();
-        const initialAiMessage: Message = {
-            id: aiMessageId,
+        // 2. Prepare AI Placeholder
+        const aiMsgId = (Date.now() + 1).toString();
+        const aiPlaceholder: Message = {
+            id: aiMsgId,
             role: 'model',
             content: '',
             timestamp: new Date(),
@@ -150,46 +137,61 @@ export default function DiscussionPage() {
 
         setThreads(prev => prev.map(t => {
             if (t.id === activeThreadId) {
-                return { ...t, messages: [...t.messages, initialAiMessage] };
+                return { ...t, messages: [...t.messages, aiPlaceholder] };
             }
             return t;
         }));
 
+        // 3. Stream AI Response
         try {
-            const activeThread = threads.find(t => t.id === activeThreadId);
-            const stream = await sendMessageStream(chatSession, text, activeThread?.messages || []);
+            const currentThread = threads.find(t => t.id === activeThreadId);
+            const history = currentThread?.messages.map(m => ({
+                role: m.role || 'user',
+                parts: m.content
+            })) || [];
 
-            let fullContent = '';
+            let fullContent = "";
 
-            for await (const chunk of stream) {
-                const chunkText = chunk.text; // Fixed: accessing as property based on lint feedback
-                if (chunkText) {
-                    fullContent += chunkText;
-                    setThreads(prev => prev.map(t => {
-                        if (t.id === activeThreadId) {
-                            const msgs = [...t.messages];
-                            const lastMsg = msgs[msgs.length - 1];
-                            if (lastMsg.id === aiMessageId) {
-                                lastMsg.content = fullContent;
-                            }
-                            return { ...t, messages: msgs };
-                        }
-                        return t;
-                    }));
-                }
+            for await (const chunk of chatWithGemini(text, history)) {
+                fullContent += chunk;
+
+                setThreads(prev => prev.map(t => {
+                    if (t.id === activeThreadId) {
+                        return {
+                            ...t,
+                            messages: t.messages.map(m =>
+                                m.id === aiMsgId ? { ...m, content: fullContent } : m
+                            )
+                        };
+                    }
+                    return t;
+                }));
             }
-        } catch (error) {
-            console.error("Failed to send message", error);
-        } finally {
-            setIsStreaming(false);
+
+            // End Streaming
             setThreads(prev => prev.map(t => {
                 if (t.id === activeThreadId) {
-                    const msgs = [...t.messages];
-                    const lastMsg = msgs[msgs.length - 1];
-                    if (lastMsg.id === aiMessageId) {
-                        lastMsg.isStreaming = false;
-                    }
-                    return { ...t, messages: msgs };
+                    return {
+                        ...t,
+                        messages: t.messages.map(m =>
+                            m.id === aiMsgId ? { ...m, isStreaming: false } : m
+                        )
+                    };
+                }
+                return t;
+            }));
+
+        } catch (error) {
+            console.error("Gemini Error:", error);
+            const errorText = "I'm having trouble connecting right now. Please check your API key.";
+            setThreads(prev => prev.map(t => {
+                if (t.id === activeThreadId) {
+                    return {
+                        ...t,
+                        messages: t.messages.map(m =>
+                            m.id === aiMsgId ? { ...m, content: errorText, isStreaming: false } : m
+                        )
+                    };
                 }
                 return t;
             }));
@@ -358,7 +360,7 @@ export default function DiscussionPage() {
                             <ChatArea
                                 thread={activeThread}
                                 onSendMessage={handleSendMessage}
-                                isStreaming={isStreaming}
+                                isStreaming={false}
                                 onBack={() => setMobileViewMode(ViewMode.MobileList)}
                                 users={MOCK_USERS}
                                 onToggleRightSidebar={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
@@ -376,14 +378,14 @@ export default function DiscussionPage() {
                                             return <KanbanBoard boardId={activeBoardId} />;
                                         case 'list':
                                             // Passing props that match Lists.tsx expectations
-                                            return <Lists roomId={activeBoardId} viewId="list" />;
+                                            return <Lists roomId={activeBoardId || 'demo-room'} viewId="list" />;
                                         case 'list_board': // Standalone ListBoard app
-                                            return <ListBoard />;
+                                            return <ListBoard roomId={activeBoardId || 'demo-room'} viewId="list_board" />;
                                         case 'data_table':
-                                            return <DataTable roomId={activeBoardId} viewId="data_table" />;
+                                            return <DataTable roomId={activeBoardId || 'demo-room'} viewId="data_table" />;
                                         case 'table':
                                         default:
-                                            return <RoomTable roomId={activeBoardId} viewId={viewType} />;
+                                            return <RoomTable roomId={activeBoardId || 'demo-room'} viewId={viewType} />;
                                     }
                                 })()}
                             </React.Suspense>

@@ -3,27 +3,46 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 interface FocusContextType {
     isActive: boolean;
+    isSessionActive: boolean;
     timeLeft: number;
     startFocus: (durationMinutes: number) => void;
-    stopFocus: () => void;
+    stopFocus: () => void; // Legacy, aliases to pause
+    toggleFocus: () => void;
+    resetFocus: () => void;
+    cancelFocus: () => void;
     formatTime: (seconds: number) => string;
 }
 
 const FocusContext = createContext<FocusContextType | undefined>(undefined);
 
 export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [isActive, setIsActive] = useState(false);
+    const [isActive, setIsActive] = useState(false); // Timer is ticking
+    const [isSessionActive, setIsSessionActive] = useState(false); // Timer UI is visible
     const [timeLeft, setTimeLeft] = useState(25 * 60);
 
     const startFocus = (durationMinutes: number) => {
         setTimeLeft(durationMinutes * 60);
         setIsActive(true);
+        setIsSessionActive(true);
     };
 
     const stopFocus = () => {
         setIsActive(false);
-        // Optionally reset timer or keep it paused
-        // setTimeLeft(25 * 60); 
+    };
+
+    const toggleFocus = () => {
+        setIsActive(prev => !prev);
+    };
+
+    const resetFocus = () => {
+        setIsActive(false);
+        setTimeLeft(25 * 60);
+    };
+
+    const cancelFocus = () => {
+        setIsActive(false);
+        setIsSessionActive(false);
+        setTimeLeft(25 * 60);
     };
 
     const formatTime = (seconds: number) => {
@@ -40,7 +59,8 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 setTimeLeft((prev) => {
                     if (prev <= 1) {
                         setIsActive(false);
-                        // Could trigger a notification here
+                        // Keep session active so user sees 00:00? Or close?
+                        // Let's keep it active but finished.
                         return 0;
                     }
                     return prev - 1;
@@ -52,7 +72,7 @@ export const FocusProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, [isActive, timeLeft]);
 
     return (
-        <FocusContext.Provider value={{ isActive, timeLeft, startFocus, stopFocus, formatTime }}>
+        <FocusContext.Provider value={{ isActive, isSessionActive, timeLeft, startFocus, stopFocus, toggleFocus, resetFocus, cancelFocus, formatTime }}>
             {children}
         </FocusContext.Provider>
     );

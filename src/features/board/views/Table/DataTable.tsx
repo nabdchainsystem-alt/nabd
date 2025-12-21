@@ -7,9 +7,9 @@ interface DataTableProps {
     roomId: string;
 }
 
-const DataTable: React.FC<DataTableProps> = ({ roomId }) => {
-    // Unique View ID for DataTable
-    const viewId = 'datatable-main';
+const DataTable: React.FC<DataTableProps & { viewId?: string }> = ({ roomId, viewId: propViewId }) => {
+    // Unique View ID for DataTable: Use prop if available, otherwise default to legacy 'datatable-main'
+    const viewId = propViewId || 'datatable-main';
 
     const defaultColumns = [
         { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false, pinned: true },

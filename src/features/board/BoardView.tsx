@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     ChevronDown,
     MessageCircle,
@@ -10,6 +10,10 @@ import {
     FileText,
     MessageSquare,
     CheckSquare,
+    LayoutDashboard,
+    Settings2,
+    Target,
+    UserCheck,
     Plus as PlusIcon,
     GanttChart,
     PieChart,
@@ -26,7 +30,9 @@ import {
     Share2,
     Unlock,
     Trash2,
-    ArrowUpDown
+    ArrowUpDown,
+    RotateCw,
+    Shapes
 } from 'lucide-react';
 import { Board, BoardViewType } from '../../types';
 import ListBoard from './views/ListBoard/ListBoard';
@@ -40,18 +46,32 @@ import { DocView } from './views/Doc/DocView';
 import CalendarView from './views/Calendar/CalendarView';
 import { PortalPopup } from '../../components/ui/PortalPopup';
 import { Sparkles } from 'lucide-react';
-import { NevaAssistant } from './components/NevaAssistant';
+
 import { DashboardConfig } from './components/dashboard/DashboardHeader';
 import DataTable from './views/Table/DataTable';
+
 import { PivotTable } from './views/PivotTable/PivotTable';
 import { GanttView } from './views/GanttChart/GanttView';
+import { GTDDashboard } from '../../features/gtd/GTDDashboard';
+import { OverviewView } from './views/Overview/OverviewView';
+import { ProcurementOverview } from './views/Procurement/ProcurementOverview';
+import CornellNotesPage from '../tools/cornell/CornellNotesPage';
+import WhiteboardView from '../tools/WhiteboardView';
+import DashboardsView from '../tools/DashboardsView';
+import AutomationRulesView from '../tools/AutomationRulesView';
+import GoalsOKRsView from '../tools/GoalsOKRsView';
+import WorkloadView from '../tools/WorkloadView';
+import RecurringLogicView from '../tools/RecurringLogicView';
 
 interface BoardViewProps {
     board: Board;
     onUpdateBoard?: (boardId: string, updates: Partial<Board>) => void;
+    onUpdateTasks?: (tasks: any[]) => void;
+    renderCustomView?: (viewId: string) => React.ReactNode;
+    dashboardSections?: any[];
 }
 
-export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard }) => {
+export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUpdateTasks, renderCustomView, dashboardSections }) => {
     const storageKey = `board-active-view-${board.id}`;
 
     const [activeView, setActiveView] = useState<BoardViewType>(() => {
@@ -141,6 +161,24 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard }) =>
         setEditDescription(board.description || '');
     }, [board.id, board.name, board.description]);
 
+    // PRE-CALCULATE MAPPED COLUMNS (Hook must be top-level)
+    const mappedColumns = useMemo(() => {
+        const cols = board.columns?.map(col => ({
+            id: col.id,
+            label: col.title,
+            type: col.type,
+            width: col.width || (col.id === 'name' ? 320 : 150),
+            minWidth: 100,
+            resizable: true
+        })) || [];
+
+        // Ensure select column is at the start
+        if (cols.length > 0 && !cols.find(c => c.id === 'select')) {
+            cols.unshift({ id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false });
+        }
+        return cols;
+    }, [board.columns]);
+
     // Close context menu on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -215,8 +253,8 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard }) =>
     };
 
     const VIEW_OPTIONS = [
+        { label: 'Overview', icon: Layout, id: 'overview', description: 'Board overview' },
         { label: 'Table', icon: Table, id: 'table', description: 'Manage project workflows' },
-        { label: 'Data Table', icon: Table, id: 'datatable', description: 'Standard table view' },
         { label: 'Kanban', icon: Kanban, id: 'kanban', description: 'Visualize your work' },
         { label: 'List', icon: List, id: 'list', description: 'Simple list view' },
         { label: 'List Board', icon: CheckSquare, id: 'listboard', description: 'Advanced list board' },
@@ -225,24 +263,42 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard }) =>
         { label: 'Doc', icon: FileText, id: 'doc', description: 'Collaborate on docs' },
         { label: 'Gantt', icon: GanttChart, id: 'gantt', description: 'Visual timeline' },
         { label: 'Chart', icon: PieChart, id: 'chart', description: 'Analyze data' },
-        { label: 'File gallery', icon: ImageIcon, id: 'file_gallery', description: 'View all files' },
-        { label: 'Form', icon: FileEdit, id: 'form', description: 'Collect data' },
-        { label: 'Pivot Table', icon: Table, id: 'pivot_table', description: 'Analyze Data' },
+
+        { label: 'Dashboards', icon: LayoutDashboard, id: 'dashboards', description: 'High-level visibility' },
+        { label: 'Whiteboard', icon: Shapes, id: 'whiteboard', description: 'Lightweight planning canvas' },
+        { label: 'Workload View', icon: UserCheck, id: 'workload', description: 'Balance assignments' },
+        { label: 'GTD System', icon: CheckSquare, id: 'gtd', description: 'Getting Things Done' },
+        { label: 'Cornell Notes', icon: FileText, id: 'cornell', description: 'Effective note-taking' },
+        { label: 'Automation Rules', icon: Settings2, id: 'automation_rules', description: 'Simple trigger → action' },
+        { label: 'Goals & OKRs', icon: Target, id: 'goals_okrs', description: 'Align work to outcomes' },
+        { label: 'Recurring Logic', icon: RotateCw, id: 'recurring', description: 'Repeat work patterns' },
     ];
 
     const renderView = () => {
         switch (activeView) {
+            case 'overview':
+                return board.id === 'procurement-main' ? (
+                    <div className="w-full h-full overflow-hidden">
+                        <ProcurementOverview />
+                    </div>
+                ) : (
+                    <OverviewView boardId={board.id} />
+                );
             case 'kanban':
                 return <KanbanBoard key={board.id} boardId={board.id} />;
             case 'table':
-                return <RoomTable
-                    key={board.id}
-                    roomId={board.id}
-                    viewId="table-main"
-                    dashboardConfig={dashboardConfig}
-                    onDashboardUpdate={setDashboardConfig}
-                />;
+                return (
+                    <RoomTable
+                        key={board.id}
+                        roomId={board.id}
+                        viewId="table-main"
+                        tasks={board.tasks}
+                        columns={mappedColumns.length > 0 ? mappedColumns : undefined}
+                        onUpdateTasks={onUpdateTasks}
+                    />
+                );
             case 'datatable':
+                // Keeping it for legacy but maybe redirect or hide?
                 return <DataTable key={board.id} roomId={board.id} />;
             case 'discussion':
                 return <DiscussionPage key={board.id} />;
@@ -260,15 +316,38 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard }) =>
                 return <PivotTable key={board.id} roomId={board.id} />;
             case 'gantt':
                 return <GanttView key={board.id} roomId={board.id} boardName={board.name} />;
+            case 'dashboards':
+                return <DashboardsView boardId={board.id} boardName={board.name} fallbackTasks={board.tasks} />;
+            case 'whiteboard':
+                return <WhiteboardView boardId={board.id} />;
+            case 'workload':
+                return <WorkloadView boardId={board.id} fallbackTasks={board.tasks} />;
+            case 'gtd':
+                return <GTDDashboard onBoardCreated={() => { }} />;
+            case 'cornell':
+                return <CornellNotesPage roomId={board.id} />;
+            case 'automation_rules':
+                return <AutomationRulesView boardId={board.id} />;
+            case 'goals_okrs':
+                return <GoalsOKRsView boardId={board.id} fallbackTasks={board.tasks} />;
+            case 'recurring':
+                return <RecurringLogicView boardId={board.id} fallbackTasks={board.tasks} />;
             default:
                 return <KanbanBoard key={board.id} boardId={board.id} />;
         }
     };
 
     // Ensure default views are available if availableViews is empty
-    const availableViews = board.availableViews && board.availableViews.length > 0
-        ? board.availableViews
-        : ['table', 'kanban'] as BoardViewType[];
+    let availableViews = board.availableViews && board.availableViews.length > 0
+        ? [...board.availableViews]
+        : ['overview', 'table', 'kanban'] as BoardViewType[];
+
+    // Enforce Overview is always present and first for department boards (or generally if we want it everywhere)
+    // For now, let's just ensure if it exists, it's first. 
+    // If the board has 'overview' in availableViews, move it to index 0.
+    if (availableViews.includes('overview')) {
+        availableViews = ['overview', ...availableViews.filter(v => v !== 'overview')];
+    }
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-transparent">
@@ -331,31 +410,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard }) =>
 
                     {/* Right: Actions */}
                     <div className="flex items-center gap-1 md:gap-3">
-                        <div className="relative">
-                            <button
-                                ref={aiButtonRef}
-                                onClick={() => setShowAIMenu(!showAIMenu)}
-                                className={`p-2 rounded transition-colors ${showAIMenu ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-gray-100 text-gray-500'}`}
-                                title="AI Assistant"
-                            >
-                                <Sparkles size={18} className={showAIMenu ? 'fill-indigo-600' : ''} />
-                            </button>
-                            {showAIMenu && (
-                                <PortalPopup
-                                    triggerRef={aiButtonRef}
-                                    onClose={() => setShowAIMenu(false)}
-                                    side="bottom"
-                                    align="end"
-                                >
-                                    <NevaAssistant
-                                        onClose={() => setShowAIMenu(false)}
-                                        onGenerate={(config) => setDashboardConfig(config)}
-                                        columns={[]}
-                                        rows={[]}
-                                    />
-                                </PortalPopup>
-                            )}
-                        </div>
+
                         <button className="hover:bg-gray-100 p-2 rounded text-gray-500"><MessageCircle size={18} /></button>
                         <button className="hover:bg-gray-100 p-2 rounded text-gray-500"><UserCircle size={26} /></button>
                         <button className="hover:bg-gray-100 p-2 rounded text-gray-500"><MoreHorizontal size={18} /></button>
@@ -385,13 +440,13 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard }) =>
                                     onClick={() => setActiveView(viewId as BoardViewType)}
                                     onContextMenu={(e) => handleContextMenu(e, viewId as BoardViewType)}
                                     className={`flex items-center gap-2 py-1.5 border-b-2 text-[13px] font-medium transition-colors whitespace-nowrap ${activeView === viewId
-                                        ? 'border-blue-500 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                        ? 'border-slate-900 text-slate-900 dark:text-slate-100'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                         }`}
                                 >
                                     <Icon size={16} />
                                     <span>{option.label}</span>
-                                    {activeView === viewId && (
+                                    {activeView === viewId && viewId !== 'overview' && (
                                         <div className="ml-1 p-0.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-400 hover:text-blue-600 transition-colors" onClick={(e) => { e.stopPropagation(); /* Context menu logic */ handleContextMenu(e, viewId as BoardViewType); }}>
                                             <MoreHorizontal size={14} />
                                         </div>
@@ -420,53 +475,82 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard }) =>
                                 align="end"
                             >
                                 <div className="bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl w-[800px] flex overflow-hidden animate-in fade-in zoom-in-95 duration-100 h-[500px]">
-                                    {/* Main Features - Full Width & No Scrollbar */}
-                                    <div className="w-full p-6 bg-white dark:bg-[#1a1d24] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-100 pb-2">Main Features</h3>
+                                    {/* Scrollable Content Container */}
+                                    <div className="w-full h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                        <div className="p-6 space-y-8">
+                                            {/* Basic Tools Section */}
+                                            <div>
+                                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Basic Tools</h3>
+                                                <div className="grid grid-cols-3 gap-x-8 gap-y-6">
+                                                    {VIEW_OPTIONS.filter(opt =>
+                                                        ['overview', 'table', 'kanban', 'list', 'calendar', 'doc', 'listboard', 'gantt', 'dashboards', 'whiteboard', 'workload'].includes(opt.id)
+                                                    ).map((option) => (
+                                                        <button
+                                                            key={option.id}
+                                                            onClick={() => {
+                                                                setShowAddViewMenu(false);
+                                                                const viewId = option.id as BoardViewType;
 
-                                        <div className="grid grid-cols-3 gap-x-8 gap-y-6">
-                                            {VIEW_OPTIONS.map((option) => (
-                                                <button
-                                                    key={option.id}
-                                                    onClick={() => {
-                                                        setShowAddViewMenu(false);
-                                                        const viewId = option.id as BoardViewType;
+                                                                if (onUpdateBoard && board.availableViews && !board.availableViews.includes(viewId)) {
+                                                                    onUpdateBoard(board.id, {
+                                                                        availableViews: [...board.availableViews, viewId]
+                                                                    });
+                                                                } else if (onUpdateBoard && !board.availableViews) {
+                                                                    onUpdateBoard(board.id, { availableViews: [viewId] });
+                                                                }
 
-                                                        if (onUpdateBoard && board.availableViews && !board.availableViews.includes(viewId)) {
-                                                            onUpdateBoard(board.id, {
-                                                                availableViews: [...board.availableViews, viewId]
-                                                            });
-                                                        } else if (onUpdateBoard && !board.availableViews) {
-                                                            onUpdateBoard(board.id, { availableViews: [viewId] });
-                                                        }
-
-                                                        setActiveView(viewId);
-                                                    }}
-                                                    className="flex gap-3 items-start text-left group hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2 -ml-2 rounded-lg transition-colors"
-                                                >
-                                                    <div className="shrink-0 mt-0.5 text-indigo-500 group-hover:text-indigo-600 transition-colors">
-                                                        <option.icon size={20} className="stroke-[1.5]" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 transition-colors">{option.label}</div>
-                                                        <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
-                                                    </div>
-                                                </button>
-                                            ))}
-
-                                            {/* Visual Placeholders from User's Image */}
-                                            <div className="flex gap-3 items-start opacity-40 grayscale pointer-events-none p-2 -ml-2">
-                                                <div className="shrink-0 mt-0.5 text-indigo-500"><UserCircle size={20} /></div>
-                                                <div>
-                                                    <div className="text-sm font-semibold text-gray-900">Kids Club</div>
-                                                    <div className="text-xs text-gray-500 mt-0.5">Provide detailed info</div>
+                                                                setActiveView(viewId);
+                                                            }}
+                                                            className="flex gap-3 items-start text-left group hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2 -ml-2 rounded-lg transition-colors"
+                                                        >
+                                                            <div className="shrink-0 mt-0.5 text-indigo-500 group-hover:text-indigo-600 transition-colors">
+                                                                <option.icon size={20} className="stroke-[1.5]" />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 transition-colors">{option.label}</div>
+                                                                <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                                                            </div>
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-3 items-start opacity-40 grayscale pointer-events-none p-2 -ml-2">
-                                                <div className="shrink-0 mt-0.5 text-indigo-500"><Layout size={20} /></div>
-                                                <div>
-                                                    <div className="text-sm font-semibold text-gray-900">Mobile Ordering</div>
-                                                    <div className="text-xs text-gray-500 mt-0.5">Easy ordering for guests</div>
+
+                                            {/* Advanced Tools Section */}
+                                            <div>
+                                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Advanced Tools</h3>
+                                                <div className="grid grid-cols-3 gap-x-8 gap-y-6">
+                                                    {VIEW_OPTIONS.filter(opt =>
+                                                        ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring'].includes(opt.id)
+                                                    ).map((option) => (
+                                                        <button
+                                                            key={option.id}
+                                                            onClick={() => {
+                                                                setShowAddViewMenu(false);
+                                                                const viewId = option.id as BoardViewType;
+
+                                                                if (onUpdateBoard && board.availableViews && !board.availableViews.includes(viewId)) {
+                                                                    onUpdateBoard(board.id, {
+                                                                        availableViews: [...board.availableViews, viewId]
+                                                                    });
+                                                                } else if (onUpdateBoard && !board.availableViews) {
+                                                                    onUpdateBoard(board.id, { availableViews: [viewId] });
+                                                                }
+
+                                                                setActiveView(viewId);
+                                                            }}
+                                                            className="flex gap-3 items-start text-left group hover:bg-gray-50 dark:hover:bg-gray-800/50 p-2 -ml-2 rounded-lg transition-colors"
+                                                        >
+                                                            <div className="shrink-0 mt-0.5 text-indigo-500 group-hover:text-indigo-600 transition-colors">
+                                                                <option.icon size={20} className="stroke-[1.5]" />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 transition-colors">{option.label}</div>
+                                                                <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+
+                                                    {/* Visual Placeholders from User's Image - Moved to Advanced or kept separate? Keeping them here as per design niceness, maybe in a "Coming Soon" or just at bottom */}
                                                 </div>
                                             </div>
                                         </div>

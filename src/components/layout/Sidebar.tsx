@@ -7,7 +7,8 @@ import {
     Heart, Smile, Globe, Cpu, Database, Cloud, Code, Terminal,
     Command, Hash, Image, Music, Video, PenTool, Box, Package, Layers,
     ChevronLeft, LayoutDashboard, FileSpreadsheet, GitMerge, Puzzle,
-    Download, Wand2, Table, LayoutTemplate, BriefcaseBusiness, List, KanbanSquare, MessageSquare, CheckSquare, Sparkles, Activity
+    Download, Wand2, Table, LayoutTemplate, BriefcaseBusiness, List, KanbanSquare, MessageSquare, CheckSquare, Sparkles, Activity,
+    Factory, Truck, ShoppingCart, ShieldCheck, Banknote, Megaphone, Monitor, Users2, CreditCard, Building2, Wrench, Boxes
 } from 'lucide-react';
 import { Board, Workspace, ViewState } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
@@ -22,15 +23,15 @@ const ICON_MAP: Record<string, any> = {
 };
 
 interface SidebarProps {
-    onNavigate: (view: ViewState, boardId?: string) => void;
-    activeView: ViewState;
+    onNavigate: (view: ViewState | string, boardId?: string) => void;
+    activeView: ViewState | string;
     activeBoardId: string | null;
     width: number;
     onResize: (newWidth: number) => void;
     workspaces: Workspace[];
     activeWorkspaceId: string;
     onWorkspaceChange: (id: string) => void;
-    onAddWorkspace: (name: string, icon: string) => void;
+    onAddWorkspace: (name: string, icon: string, color?: string) => void;
     onDeleteWorkspace: (id: string) => void;
     boards: Board[];
     onDeleteBoard: (id: string) => void;
@@ -57,6 +58,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const [isBoardHovered, setIsBoardHovered] = useState(false);
     const [isDashboardHovered, setIsDashboardHovered] = useState(false);
     const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
+    const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null);
+
+    // Departments State
+    const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(() => {
+        const saved = localStorage.getItem('expandedDepartments');
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+    });
+
+    useEffect(() => {
+        localStorage.setItem('expandedDepartments', JSON.stringify(Array.from(expandedDepartments)));
+    }, [expandedDepartments]);
+
+    const toggleDepartment = (deptId: string) => {
+        const newExpanded = new Set(expandedDepartments);
+        if (newExpanded.has(deptId)) {
+            newExpanded.delete(deptId);
+        } else {
+            newExpanded.add(deptId);
+        }
+        setExpandedDepartments(newExpanded);
+    };
 
     const addMenuRef = useRef<HTMLDivElement>(null);
     const addButtonRef = useRef<HTMLButtonElement>(null);
@@ -64,6 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // New Workspace State
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
     const [newWorkspaceIcon, setNewWorkspaceIcon] = useState('Briefcase');
+    const [isWorkspaceIconPickerOpen, setIsWorkspaceIconPickerOpen] = useState(false);
 
     // New Board State
     const [isNewBoardModalOpen, setIsNewBoardModalOpen] = useState(false);
@@ -74,7 +97,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const [selectedTemplate, setSelectedTemplate] = useState<BoardTemplate | undefined>(undefined);
     const [selectedLayout, setSelectedLayout] = useState<'table' | 'data_table' | 'kanban' | 'list' | 'list_board'>('table');
     const [parentBoardIdForCreation, setParentBoardIdForCreation] = useState<string | undefined>(undefined);
-    const [expandedBoards, setExpandedBoards] = useState<Set<string>>(new Set());
+    const [expandedBoards, setExpandedBoards] = useState<Set<string>>(() => {
+        const saved = localStorage.getItem('expandedBoards');
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+    });
+
+    useEffect(() => {
+        localStorage.setItem('expandedBoards', JSON.stringify(Array.from(expandedBoards)));
+    }, [expandedBoards]);
 
     const toggleExpand = (boardId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -151,7 +181,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const handleCreateWorkspace = (e: React.FormEvent) => {
         e.preventDefault();
         if (newWorkspaceName.trim()) {
-            onAddWorkspace(newWorkspaceName, newWorkspaceIcon);
+            // Find the index of the selected icon to determine the color
+            const iconIndex = Object.keys(ICON_MAP).indexOf(newWorkspaceIcon);
+            const gradients = [
+                'from-blue-500 to-cyan-500',
+                'from-purple-500 to-pink-500',
+                'from-orange-500 to-red-500',
+                'from-green-500 to-emerald-500',
+                'from-indigo-500 to-violet-500',
+                'from-pink-500 to-rose-500',
+                'from-teal-500 to-green-500',
+                'from-amber-500 to-orange-500'
+            ];
+            const color = gradients[Math.max(0, iconIndex) % gradients.length];
+
+            onAddWorkspace(newWorkspaceName, newWorkspaceIcon, color);
             setIsAddWorkspaceModalOpen(false);
             setNewWorkspaceName('');
             setNewWorkspaceIcon('Briefcase');
@@ -289,6 +333,141 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* 2. Scrollable Content */}
             <div className={`flex-1 overflow-y-auto py-2 custom-scrollbar ${isCollapsed ? 'px-2' : 'px-4'}`}>
 
+                {/* Departments Section */}
+                <div className="mb-6">
+                    {!isCollapsed && (
+                        <div className="flex items-center justify-between mb-2 px-1">
+                            <span className="text-xs font-semibold text-gray-500 dark:text-monday-dark-text-secondary truncate">DEPARTMENTS</span>
+                        </div>
+                    )}
+
+                    {/* Supply Chain */}
+                    <div className="mb-1">
+                        <div
+                            className={`flex items-center justify-between px-2 py-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text ${isCollapsed ? 'justify-center' : ''}`}
+                            onClick={() => !isCollapsed && toggleDepartment('supply_chain')}
+                            title="Supply Chain"
+                        >
+                            <div className="flex items-center gap-2 truncate">
+                                <Boxes size={18} className="text-gray-500" />
+                                {!isCollapsed && <span className="text-sm font-medium">Supply Chain</span>}
+                            </div>
+                            {!isCollapsed && (
+                                <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''}`} />
+                            )}
+                        </div>
+                        {expandedDepartments.has('supply_chain') && !isCollapsed && (
+                            <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                <button onClick={() => onNavigate('procurement')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'procurement' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <ShoppingCart size={14} /> <span>Procurement</span>
+                                </button>
+                                <button onClick={() => onNavigate('warehouse')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'warehouse' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Home size={14} /> <span>Warehouse</span>
+                                </button>
+                                <button onClick={() => onNavigate('shipping')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'shipping' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Truck size={14} /> <span>Shipping</span>
+                                </button>
+                                <button onClick={() => onNavigate('fleet')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'fleet' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Truck size={14} /> <span>Fleet</span>
+                                </button>
+                                <button onClick={() => onNavigate('vendors')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'vendors' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Users2 size={14} /> <span>Vendors</span>
+                                </button>
+                                <button onClick={() => onNavigate('planning')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'planning' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <LayoutDashboard size={14} /> <span>Planning</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Operations */}
+                    <div className="mb-1">
+                        <div
+                            className={`flex items-center justify-between px-2 py-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text ${isCollapsed ? 'justify-center' : ''}`}
+                            onClick={() => !isCollapsed && toggleDepartment('operations')}
+                            title="Operations"
+                        >
+                            <div className="flex items-center gap-2 truncate">
+                                <Factory size={18} className="text-gray-500" />
+                                {!isCollapsed && <span className="text-sm font-medium">Operations</span>}
+                            </div>
+                            {!isCollapsed && (
+                                <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('operations') ? 'rotate-180' : ''}`} />
+                            )}
+                        </div>
+                        {expandedDepartments.has('operations') && !isCollapsed && (
+                            <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                <button onClick={() => onNavigate('maintenance')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'maintenance' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Wrench size={14} /> <span>Maintenance</span>
+                                </button>
+                                <button onClick={() => onNavigate('production')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'production' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Factory size={14} /> <span>Production</span>
+                                </button>
+                                <button onClick={() => onNavigate('quality')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'quality' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <ShieldCheck size={14} /> <span>Quality</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Business */}
+                    <div className="mb-1">
+                        <div
+                            className={`flex items-center justify-between px-2 py-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text ${isCollapsed ? 'justify-center' : ''}`}
+                            onClick={() => !isCollapsed && toggleDepartment('business')}
+                            title="Business"
+                        >
+                            <div className="flex items-center gap-2 truncate">
+                                <Building2 size={18} className="text-gray-500" />
+                                {!isCollapsed && <span className="text-sm font-medium">Business</span>}
+                            </div>
+                            {!isCollapsed && (
+                                <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('business') ? 'rotate-180' : ''}`} />
+                            )}
+                        </div>
+                        {expandedDepartments.has('business') && !isCollapsed && (
+                            <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                <button onClick={() => onNavigate('sales')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Megaphone size={14} /> <span>Sales</span>
+                                </button>
+                                <button onClick={() => onNavigate('finance')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'finance' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Banknote size={14} /> <span>Finance</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Business Support */}
+                    <div className="mb-1">
+                        <div
+                            className={`flex items-center justify-between px-2 py-1.5 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text ${isCollapsed ? 'justify-center' : ''}`}
+                            onClick={() => !isCollapsed && toggleDepartment('business_support')}
+                            title="Business Support"
+                        >
+                            <div className="flex items-center gap-2 truncate">
+                                <Users size={18} className="text-gray-500" />
+                                {!isCollapsed && <span className="text-sm font-medium">Support</span>}
+                            </div>
+                            {!isCollapsed && (
+                                <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('business_support') ? 'rotate-180' : ''}`} />
+                            )}
+                        </div>
+                        {expandedDepartments.has('business_support') && !isCollapsed && (
+                            <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                <button onClick={() => onNavigate('it_support')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'it_support' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Monitor size={14} /> <span>IT</span>
+                                </button>
+                                <button onClick={() => onNavigate('hr')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'hr' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Users2 size={14} /> <span>HR</span>
+                                </button>
+                                <button onClick={() => onNavigate('marketing')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'marketing' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                    <Megaphone size={14} /> <span>Marketing</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* Favorites Section */}
                 {!isCollapsed && favoriteBoards.length > 0 && (
                     <div className="mb-6 mt-6">
@@ -318,7 +497,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-semibold text-gray-500 dark:text-monday-dark-text-secondary truncate">{t('workspaces')}</span>
                             <div className="flex space-x-1 rtl:space-x-reverse flex-shrink-0">
-                                <MoreHorizontal size={14} className="text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300" />
                                 <Search size={14} className="text-gray-400 dark:text-gray-500 cursor-pointer hover:text-gray-600 dark:hover:text-gray-300" />
                             </div>
                         </div>
@@ -532,6 +710,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 )}
 
+                {/* Workspace Context Menu */}
+                {workspaceContextMenu && (
+                    <div
+                        className="fixed bg-white dark:bg-monday-dark-surface rounded-lg shadow-2xl border border-gray-100 dark:border-monday-dark-border w-56 py-2 z-[60] text-gray-700 dark:text-monday-dark-text animate-in fade-in zoom-in-95 duration-100"
+                        style={{ top: Math.min(workspaceContextMenu.y, window.innerHeight - 150), left: dir === 'rtl' ? (workspaceContextMenu.x - 224) : (workspaceContextMenu.x + 10) }}
+                    >
+                        <div
+                            className="px-3 py-1.5 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-monday-dark-hover cursor-pointer text-sm"
+                            onClick={() => {
+                                // Edit functionality could go here
+                                setWorkspaceContextMenu(null);
+                            }}
+                        >
+                            <Edit size={14} className="text-gray-500" /> Rename
+                        </div>
+                        <div className="h-px bg-gray-100 dark:bg-monday-dark-border my-1"></div>
+                        <div
+                            className="px-3 py-1.5 flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 cursor-pointer text-sm"
+                            onClick={() => {
+                                if (workspaces.length <= 1) {
+                                    alert(t('Cannot delete the only workspace. Create another one first.'));
+                                    return;
+                                }
+                                setWorkspaceToDelete(workspaceContextMenu.workspaceId);
+                                setWorkspaceContextMenu(null);
+                            }}
+                        >
+                            <Trash2 size={14} /> {t('delete')}
+                        </div>
+                    </div>
+                )}
+
                 {/* FIXED ADD NEW MENU - MOVED OUTSIDE SCROLL CONTAINER */}
                 {isAddMenuOpen && (
                     <div
@@ -547,6 +757,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <span className="text-sm font-semibold text-gray-800 dark:text-monday-dark-text">{t('add_new')}</span>
                         </div>
                         <div className="py-2">
+                            <div
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsAddWorkspaceModalOpen(true);
+                                    setIsAddMenuOpen(false);
+                                }}
+                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm group"
+                            >
+                                <Briefcase size={16} className="text-gray-500 dark:text-gray-400" />
+                                <span>{t('workspace')}</span>
+                            </div>
+                            <div className="h-px bg-gray-100 dark:bg-monday-dark-border my-1"></div>
                             <div className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm group">
                                 <BriefcaseBusiness size={16} className="text-gray-500 dark:text-gray-400" />
                                 <span>{t('project')}</span>
@@ -571,34 +793,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                                 {/* BOARD SUBMENU */}
                                 {isBoardHovered && (
-                                    <div className="absolute top-0 left-full rtl:right-full rtl:left-auto ms-1 w-56 bg-white dark:bg-monday-dark-surface shadow-xl rounded-lg border border-gray-200 dark:border-monday-dark-border py-2 z-[110]">
-                                        <div
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCreationStep('details');
-                                                setSelectedTemplate(undefined);
-                                                setParentBoardIdForCreation(undefined);
-                                                setIsNewBoardModalOpen(true);
-                                                setIsAddMenuOpen(false);
-                                            }}
-                                            className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm"
-                                        >
-                                            <Table size={16} className="text-monday-blue" />
-                                            <span>{t('new_board')}</span>
-                                        </div>
-                                        <div
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCreationStep('template');
-                                                setSelectedTemplate(undefined);
-                                                setParentBoardIdForCreation(undefined);
-                                                setIsNewBoardModalOpen(true);
-                                                setIsAddMenuOpen(false);
-                                            }}
-                                            className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm"
-                                        >
-                                            <LayoutTemplate size={16} className="text-gray-500 dark:text-gray-400" />
-                                            <span>{t('board_template')}</span>
+                                    <div className="absolute top-0 left-full rtl:right-full rtl:left-auto w-56 pl-1 rtl:pr-1 z-[110]">
+                                        <div className="bg-white dark:bg-monday-dark-surface shadow-xl rounded-lg border border-gray-200 dark:border-monday-dark-border py-2 w-full">
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCreationStep('details');
+                                                    setSelectedTemplate(undefined);
+                                                    setParentBoardIdForCreation(undefined);
+                                                    setIsNewBoardModalOpen(true);
+                                                    setIsAddMenuOpen(false);
+                                                }}
+                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm"
+                                            >
+                                                <Table size={16} className="text-monday-blue" />
+                                                <span>{t('new_board')}</span>
+                                            </div>
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCreationStep('template');
+                                                    setSelectedTemplate(undefined);
+                                                    setParentBoardIdForCreation(undefined);
+                                                    setIsNewBoardModalOpen(true);
+                                                    setIsAddMenuOpen(false);
+                                                }}
+                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm"
+                                            >
+                                                <LayoutTemplate size={16} className="text-gray-500 dark:text-gray-400" />
+                                                <span>{t('board_template')}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -624,33 +848,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                                 {/* DASHBOARD SUBMENU */}
                                 {isDashboardHovered && (
-                                    <div className="absolute top-0 left-full rtl:right-full rtl:left-auto ms-1 w-56 bg-white dark:bg-monday-dark-surface shadow-xl rounded-lg border border-gray-200 dark:border-monday-dark-border py-2 z-[110]">
-                                        <div
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCreationStep('details');
-                                                setSelectedTemplate(undefined);
-                                                setParentBoardIdForCreation(undefined);
-                                                setIsNewBoardModalOpen(true);
-                                                setIsAddMenuOpen(false);
-                                            }}
-                                            className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm"
-                                        >
-                                            <LayoutDashboard size={16} className="text-monday-blue" />
-                                            <span>{t('dashboard')}</span>
-                                        </div>
-                                        <div
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCreationStep('template');
-                                                setSelectedTemplate(undefined);
-                                                setIsNewBoardModalOpen(true);
-                                                setIsAddMenuOpen(false);
-                                            }}
-                                            className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm"
-                                        >
-                                            <LayoutTemplate size={16} className="text-gray-500 dark:text-gray-400" />
-                                            <span>{t('templates')}</span>
+                                    <div className="absolute top-0 left-full rtl:right-full rtl:left-auto w-56 pl-1 rtl:pr-1 z-[110]">
+                                        <div className="bg-white dark:bg-monday-dark-surface shadow-xl rounded-lg border border-gray-200 dark:border-monday-dark-border py-2 w-full">
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCreationStep('details');
+                                                    setSelectedTemplate(undefined);
+                                                    setParentBoardIdForCreation(undefined);
+                                                    setIsNewBoardModalOpen(true);
+                                                    setIsAddMenuOpen(false);
+                                                }}
+                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm"
+                                            >
+                                                <LayoutDashboard size={16} className="text-monday-blue" />
+                                                <span>{t('dashboard')}</span>
+                                            </div>
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCreationStep('template');
+                                                    setSelectedTemplate(undefined);
+                                                    setIsNewBoardModalOpen(true);
+                                                    setIsAddMenuOpen(false);
+                                                }}
+                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-sm"
+                                            >
+                                                <LayoutTemplate size={16} className="text-gray-500 dark:text-gray-400" />
+                                                <span>{t('templates')}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -698,35 +924,101 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* Create Workspace Modal */}
                 {isAddWorkspaceModalOpen && (
                     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[70] backdrop-blur-sm">
-                        <div className="bg-white dark:bg-monday-dark-surface rounded-lg shadow-2xl w-96 overflow-hidden">
-                            <div className="p-4 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center">
-                                <h3 className="font-semibold text-gray-800 dark:text-monday-dark-text">{t('add_workspace')}</h3>
-                                <button onClick={() => setIsAddWorkspaceModalOpen(false)}><ChevronDown className="rotate-180 text-gray-500" size={20} /></button>
+                        <div className="bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl w-[450px] border border-gray-100 dark:border-monday-dark-border">
+                            <div className="p-5 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center bg-gray-50/50 dark:bg-monday-dark-bg/50 rounded-t-xl">
+                                <h3 className="font-semibold text-lg text-gray-800 dark:text-monday-dark-text">{t('add_workspace')}</h3>
+                                <button onClick={() => setIsAddWorkspaceModalOpen(false)} className="hover:bg-gray-200 dark:hover:bg-monday-dark-hover p-1 rounded-md transition-colors">
+                                    <ChevronDown className="rotate-180 text-gray-500" size={20} />
+                                </button>
                             </div>
-                            <form onSubmit={handleCreateWorkspace} className="p-4 space-y-4">
+                            <form onSubmit={handleCreateWorkspace} className="p-6 space-y-5">
                                 <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-monday-dark-text-secondary mb-1">Workspace Name</label>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-monday-dark-text-secondary uppercase tracking-wider mb-2">Workspace Name</label>
                                     <input
                                         type="text"
                                         autoFocus
                                         value={newWorkspaceName}
                                         onChange={(e) => setNewWorkspaceName(e.target.value)}
-                                        className="w-full border border-gray-300 dark:border-monday-dark-border bg-white dark:bg-monday-dark-bg text-gray-800 dark:text-monday-dark-text rounded p-2 text-sm focus:border-monday-blue focus:ring-1 focus:ring-monday-blue outline-none"
-                                        placeholder="e.g. Marketing"
+                                        className="w-full border border-gray-300 dark:border-monday-dark-border bg-white dark:bg-monday-dark-bg text-gray-800 dark:text-monday-dark-text rounded-lg p-3 text-sm focus:border-monday-blue focus:ring-2 focus:ring-monday-blue/20 outline-none transition-all shadow-sm"
+                                        placeholder="e.g. Marketing Team"
                                     />
                                 </div>
-                                <div className="flex justify-end gap-2 pt-2">
+
+                                {/* High Graphics Icon Picker */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 dark:text-monday-dark-text-secondary uppercase tracking-wider mb-2">Workspace Icon</label>
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsWorkspaceIconPickerOpen(!isWorkspaceIconPickerOpen)}
+                                            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-bg hover:border-monday-blue dark:hover:border-monday-blue transition-all group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-200`}>
+                                                    {React.createElement(ICON_MAP[newWorkspaceIcon] || Briefcase, { size: 20 })}
+                                                </div>
+                                                <span className="font-medium text-gray-700 dark:text-gray-200">{newWorkspaceIcon}</span>
+                                            </div>
+                                            <ChevronDown size={18} className={`text-gray-400 transition-transform duration-200 ${isWorkspaceIconPickerOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        {isWorkspaceIconPickerOpen && (
+                                            <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-monday-dark-surface border border-gray-100 dark:border-monday-dark-border shadow-2xl rounded-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                                <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar p-1">
+                                                    {Object.keys(ICON_MAP).map((iconName, index) => {
+                                                        // Generate a unique gradient for each icon based on index
+                                                        const gradients = [
+                                                            'from-blue-500 to-cyan-500',
+                                                            'from-purple-500 to-pink-500',
+                                                            'from-orange-500 to-red-500',
+                                                            'from-green-500 to-emerald-500',
+                                                            'from-indigo-500 to-violet-500',
+                                                            'from-pink-500 to-rose-500',
+                                                            'from-teal-500 to-green-500',
+                                                            'from-amber-500 to-orange-500'
+                                                        ];
+                                                        const gradient = gradients[index % gradients.length];
+                                                        const isSelected = newWorkspaceIcon === iconName;
+
+                                                        return (
+                                                            <button
+                                                                key={iconName}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setNewWorkspaceIcon(iconName);
+                                                                    setIsWorkspaceIconPickerOpen(false);
+                                                                }}
+                                                                className={`
+                                                                    aspect-square rounded-lg flex items-center justify-center transition-all duration-200
+                                                                    bg-gradient-to-br ${gradient} text-white
+                                                                    ${isSelected
+                                                                        ? 'shadow-lg scale-110 ring-2 ring-offset-2 ring-blue-500'
+                                                                        : 'opacity-70 hover:opacity-100 hover:scale-110 shadow-sm'}
+                                                                `}
+                                                                title={iconName}
+                                                            >
+                                                                {React.createElement(ICON_MAP[iconName], { size: 20 })}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-monday-dark-border">
                                     <button
                                         type="button"
                                         onClick={() => setIsAddWorkspaceModalOpen(false)}
-                                        className="px-4 py-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-monday-dark-hover rounded text-sm"
+                                        className="px-5 py-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded-lg text-sm font-medium transition-colors"
                                     >
                                         {t('cancel')}
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={!newWorkspaceName.trim()}
-                                        className="px-4 py-2 bg-monday-blue text-white text-sm rounded hover:bg-monday-blue-hover disabled:opacity-50"
+                                        className="px-6 py-2.5 bg-gradient-to-r from-monday-blue to-blue-600 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:shadow-none transition-all"
                                     >
                                         {t('add_workspace')}
                                     </button>
@@ -740,45 +1032,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* Create Board Modal */}
                 {isNewBoardModalOpen && (
                     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[70] backdrop-blur-sm">
-                        <div className={`bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl transition-all duration-300 ${creationStep === 'template' ? 'w-[90vw] max-w-5xl h-[80vh]' : 'w-96'}`}>
+                        <div className={`bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl transition-all duration-300 flex flex-col ${creationStep === 'template' ? 'w-[90vw] max-w-5xl h-[80vh]' : 'w-96 max-h-[90vh]'}`}>
                             {/* Header */}
-                            <div className="p-4 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center bg-white/50 dark:bg-monday-dark-surface/50 backdrop-blur-sm sticky top-0 z-10">
+                            <div className="p-5 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center bg-white dark:bg-monday-dark-surface rounded-t-xl flex-shrink-0">
                                 <div className="flex items-center gap-2">
                                     {creationStep === 'details' && (
                                         <button
                                             onClick={() => setCreationStep('template')}
-                                            className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
+                                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded-lg transition-colors group"
                                         >
-                                            <ChevronLeft size={20} className="text-stone-500" />
+                                            <ChevronLeft size={20} className="text-gray-400 group-hover:text-gray-600 dark:text-gray-500" />
                                         </button>
                                     )}
-                                    {creationStep === 'template' ? (
-                                        <h3 className="font-serif font-semibold text-lg text-stone-800 dark:text-stone-100">
-                                            {t('new_board')}
-                                        </h3>
-                                    ) : (
-                                        <div className="flex-1 mr-4">
-                                            <input
-                                                type="text"
-                                                autoFocus
-                                                value={newBoardName}
-                                                onChange={(e) => setNewBoardName(e.target.value)}
-                                                className="font-serif font-semibold text-lg text-stone-800 dark:text-stone-100 bg-transparent border-none focus:outline-none focus:ring-0 p-0 w-full placeholder:text-stone-300 dark:placeholder:text-stone-600"
-                                                placeholder="Board Name"
-                                            />
-                                        </div>
-                                    )}
+                                    <h3 className="font-semibold text-xl text-gray-800 dark:text-gray-100">
+                                        {creationStep === 'template' ? t('new_board') : t('create_board')}
+                                    </h3>
                                 </div>
                                 <button
                                     onClick={() => setIsNewBoardModalOpen(false)}
-                                    className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors text-stone-400 hover:text-stone-600"
+                                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded-lg transition-colors text-gray-400 hover:text-gray-600"
                                 >
                                     <ChevronDown className="rotate-180" size={20} />
                                 </button>
                             </div>
 
                             {/* Content */}
-                            <div className="flex-1 overflow-hidden h-full">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
                                 {creationStep === 'template' ? (
                                     <div className="flex flex-col h-full bg-stone-50 dark:bg-stone-900/50">
                                         {/* Start from scratch option + Picker */}
@@ -806,50 +1085,61 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         </div>
                                     </div>
                                 ) : (
-                                    <form onSubmit={handleCreateBoard} className="p-4 space-y-4">
-
+                                    <form onSubmit={handleCreateBoard} className="p-6 space-y-6">
+                                        {/* Board Name Input */}
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Board Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                autoFocus
+                                                value={newBoardName}
+                                                onChange={(e) => setNewBoardName(e.target.value)}
+                                                className="w-full px-4 py-3 bg-gray-50 dark:bg-monday-dark-hover border border-gray-200 dark:border-monday-dark-border rounded-xl focus:ring-2 focus:ring-monday-blue/20 focus:border-monday-blue transition-all outline-none font-medium text-gray-900 dark:text-white placeholder:text-gray-400"
+                                                placeholder="e.g. Q4 Marketing Plan"
+                                            />
+                                        </div>
 
                                         {/* Layout Selection */}
                                         <div className="space-y-3">
-                                            <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider">Choose Layout</label>
-                                            <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Choose Layout</label>
+                                            <div className="grid grid-cols-2 gap-3">
                                                 {[
-                                                    { id: 'table', label: 'Table', icon: Table, description: 'Classic spreadsheet-like view' },
-                                                    { id: 'datatable', label: 'Data Table', icon: Database, description: 'High performance data grid' },
-                                                    { id: 'kanban', label: 'Kanban', icon: KanbanSquare, description: 'Visual workflow board' },
+                                                    { id: 'table', label: 'Table', icon: Table, description: 'Spreadsheet view' },
+                                                    { id: 'kanban', label: 'Kanban', icon: KanbanSquare, description: 'Visual workflow' },
                                                     { id: 'list', label: 'List', icon: List, description: 'Simple task list' },
-                                                    { id: 'listboard', label: 'List Board', icon: Globe, description: 'List with board capabilities' }
+                                                    { id: 'datatable', label: 'Data Table', icon: Database, description: 'High performance' },
+                                                    { id: 'listboard', label: 'List Board', icon: Globe, description: 'Hybrid view' }
                                                 ].map((tool) => (
                                                     <button
                                                         key={tool.id}
                                                         type="button"
                                                         onClick={() => setSelectedLayout(tool.id as any)}
                                                         className={`
-                                                        w-full flex items-center gap-4 p-3 rounded-xl border-2 text-left transition-all group
+                                                        relative flex flex-col gap-2 p-3 rounded-xl border-2 text-left transition-all duration-200 group
                                                         ${selectedLayout === tool.id
-                                                                ? 'border-monday-blue bg-blue-50/50 dark:bg-blue-900/20'
-                                                                : 'border-transparent hover:bg-stone-50 dark:hover:bg-stone-800/50 hover:border-stone-200 dark:hover:border-stone-700'}
+                                                                ? 'border-monday-blue bg-blue-50/50 dark:bg-blue-900/20 shadow-sm'
+                                                                : 'border-transparent bg-gray-50 dark:bg-monday-dark-hover hover:scale-[1.02]'}
                                                     `}
                                                     >
                                                         <div className={`
-                                                        p-2.5 rounded-lg transition-colors
-                                                        ${selectedLayout === tool.id ? 'bg-monday-blue text-white' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 group-hover:bg-white dark:group-hover:bg-stone-700'}
+                                                        w-8 h-8 rounded-lg flex items-center justify-center transition-colors
+                                                        ${selectedLayout === tool.id ? 'bg-monday-blue text-white' : 'bg-white dark:bg-monday-dark-surface text-gray-500'}
                                                     `}>
-                                                            <tool.icon size={20} />
+                                                            <tool.icon size={16} />
                                                         </div>
-                                                        <div className="flex-1">
-                                                            <h4 className={`font-bold text-sm ${selectedLayout === tool.id ? 'text-monday-blue' : 'text-stone-700 dark:text-stone-200'}`}>
+                                                        <div>
+                                                            <h4 className={`font-bold text-sm ${selectedLayout === tool.id ? 'text-monday-blue' : 'text-gray-700 dark:text-gray-200'}`}>
                                                                 {tool.label}
                                                             </h4>
-                                                            <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+                                                            <p className="text-[10px] text-gray-500 font-medium truncate">
                                                                 {tool.description}
                                                             </p>
                                                         </div>
                                                         {selectedLayout === tool.id && (
-                                                            <div className="text-monday-blue">
-                                                                <div className="w-5 h-5 rounded-full bg-monday-blue text-white flex items-center justify-center">
-                                                                    <CheckSquare size={12} className="fill-current" />
-                                                                </div>
+                                                            <div className="absolute top-2 right-2 text-monday-blue">
+                                                                <CheckSquare size={14} className="fill-current" />
                                                             </div>
                                                         )}
                                                     </button>
@@ -858,63 +1148,92 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         </div>
 
                                         {/* Icon Picker */}
-                                        <div className="pt-2">
-                                            <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Board Icon</label>
+                                        <div className="space-y-3">
+                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Board Icon</label>
+
                                             <div className="relative">
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsIconPickerOpen(!isIconPickerOpen)}
-                                                    className="w-full flex items-center justify-between p-3 rounded-xl border bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-700 transition-all text-sm"
+                                                    className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-surface hover:border-gray-300 transition-all group"
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center justify-center text-stone-500 dark:text-stone-400">
-                                                            {React.createElement(ICON_MAP[newBoardIcon] || Table, { size: 18 })}
+                                                        {(() => {
+                                                            // Calculate gradient for current icon
+                                                            const iconIndex = Object.keys(ICON_MAP).indexOf(newBoardIcon);
+                                                            const gradients = [
+                                                                'from-blue-500 to-cyan-500', 'from-purple-500 to-pink-500', 'from-orange-500 to-red-500',
+                                                                'from-green-500 to-emerald-500', 'from-indigo-500 to-violet-500', 'from-pink-500 to-rose-500',
+                                                                'from-teal-500 to-green-500', 'from-amber-500 to-orange-500'
+                                                            ];
+                                                            const gradient = gradients[Math.max(0, iconIndex) % gradients.length];
+                                                            return (
+                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white bg-gradient-to-br ${gradient} shadow-md`}>
+                                                                    {React.createElement(ICON_MAP[newBoardIcon] || Table, { size: 20 })}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                        <div className="text-left">
+                                                            <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">{newBoardIcon}</div>
+                                                            <div className="text-xs text-gray-400">Click to change icon</div>
                                                         </div>
-                                                        <span className="font-semibold text-stone-700 dark:text-stone-300">{newBoardIcon}</span>
                                                     </div>
-                                                    <ChevronDown size={16} className={`text-stone-400 transition-transform ${isIconPickerOpen ? 'rotate-180' : ''}`} />
+                                                    <ChevronDown size={18} className={`text-gray-400 transition-transform duration-200 ${isIconPickerOpen ? 'rotate-180' : ''}`} />
                                                 </button>
 
                                                 {isIconPickerOpen && (
-                                                    <div className="absolute bottom-full left-0 w-full bg-white dark:bg-stone-800 border border-stone-100 dark:border-stone-700 shadow-xl rounded-xl mb-2 p-3 max-h-64 overflow-y-auto grid grid-cols-6 gap-2 z-20 custom-scrollbar">
-                                                        {Object.keys(ICON_MAP).map(iconName => (
-                                                            <button
-                                                                key={iconName}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setNewBoardIcon(iconName);
-                                                                    setIsIconPickerOpen(false);
-                                                                }}
-                                                                className={`
-                                                                aspect-square rounded-lg flex items-center justify-center transition-all
-                                                                ${newBoardIcon === iconName
-                                                                        ? 'bg-monday-blue text-white shadow-md scale-110'
-                                                                        : 'text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700 hover:text-stone-800 dark:hover:text-stone-200'}
-                                                            `}
-                                                                title={iconName}
-                                                            >
-                                                                {React.createElement(ICON_MAP[iconName], { size: 18 })}
-                                                            </button>
-                                                        ))}
+                                                    <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-monday-dark-surface border border-gray-100 dark:border-monday-dark-border shadow-2xl rounded-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                                        <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto custom-scrollbar p-1">
+                                                            {Object.keys(ICON_MAP).map((iconName, index) => {
+                                                                const gradients = [
+                                                                    'from-blue-500 to-cyan-500', 'from-purple-500 to-pink-500', 'from-orange-500 to-red-500',
+                                                                    'from-green-500 to-emerald-500', 'from-indigo-500 to-violet-500', 'from-pink-500 to-rose-500',
+                                                                    'from-teal-500 to-green-500', 'from-amber-500 to-orange-500'
+                                                                ];
+                                                                const gradient = gradients[index % gradients.length];
+                                                                const isSelected = newBoardIcon === iconName;
+
+                                                                return (
+                                                                    <button
+                                                                        key={iconName}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setNewBoardIcon(iconName);
+                                                                            setIsIconPickerOpen(false);
+                                                                        }}
+                                                                        className={`
+                                                                            aspect-square rounded-lg flex items-center justify-center transition-all duration-200
+                                                                            bg-gradient-to-br ${gradient} text-white
+                                                                            ${isSelected
+                                                                                ? 'shadow-lg scale-110 ring-2 ring-offset-2 ring-blue-500'
+                                                                                : 'opacity-70 hover:opacity-100 hover:scale-110 shadow-sm'}
+                                                                        `}
+                                                                        title={iconName}
+                                                                    >
+                                                                        {React.createElement(ICON_MAP[iconName], { size: 20 })}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
 
-                                        <div className="flex justify-end gap-2 pt-2">
+                                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-monday-dark-border mt-6">
                                             <button
                                                 type="button"
                                                 onClick={() => setIsNewBoardModalOpen(false)}
-                                                className="px-4 py-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-monday-dark-hover rounded text-sm"
+                                                className="px-5 py-2.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-monday-dark-hover rounded-lg text-sm font-medium transition-colors"
                                             >
                                                 {t('cancel')}
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={!newBoardName.trim()}
-                                                className="px-4 py-2 bg-monday-blue text-white text-sm rounded hover:bg-monday-blue-hover disabled:opacity-50"
+                                                className="px-6 py-2.5 bg-gradient-to-r from-monday-blue to-blue-600 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:shadow-none transition-all"
                                             >
-                                                Create Board
+                                                {t('create_board')}
                                             </button>
                                         </div>
                                     </form>
@@ -935,6 +1254,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }}
                     title={t('Delete Board')}
                     message={t('Are you sure you want to delete this board? This action cannot be undone.')}
+                />
+                {/* Workspace Delete Confirmation Modal */}
+                <ConfirmModal
+                    isOpen={!!workspaceToDelete}
+                    onClose={() => setWorkspaceToDelete(null)}
+                    onConfirm={() => {
+                        if (workspaceToDelete) {
+                            onDeleteWorkspace(workspaceToDelete);
+                            setWorkspaceToDelete(null);
+                        }
+                    }}
+                    title={t('Delete Workspace')}
+                    message={t('Are you sure you want to delete this workspace? All boards within it will be deleted. This action cannot be undone.')}
                 />
             </div>
         </div>

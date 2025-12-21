@@ -4,8 +4,10 @@ import {
     Calendar, CheckCircle2, ChevronDown, ChevronRight,
     Clock, AlertCircle, Circle, ArrowUpRight,
     Layout, Briefcase, Plus, TrendingUp,
-    Filter, MoreHorizontal, CalendarDays
+    Filter, MoreHorizontal, CalendarDays, Flag, Bell
 } from 'lucide-react';
+import { getPriorityClasses, normalizePriority } from '../priorities/priorityUtils';
+import { useReminders } from '../reminders/reminderStore';
 
 interface MyWorkPageProps {
     boards: Board[];
@@ -37,8 +39,10 @@ const StatCard = ({ label, count, icon: Icon, color, trend }: any) => (
     </div>
 );
 
-const TaskCard = ({ task, onNavigate }: { task: GroupedTask, onNavigate: (id: string) => void }) => {
+const TaskCard: React.FC<{ task: GroupedTask, onNavigate: (id: string) => void, reminderCount: number }> = ({ task, onNavigate, reminderCount }) => {
     const [isCompleted, setIsCompleted] = useState(task.status === 'Done');
+    const priorityLabel = normalizePriority(task.priority || null);
+    const priorityClasses = getPriorityClasses(task.priority || null);
 
     return (
         <div className="group relative bg-white dark:bg-monday-dark-surface border border-gray-200 dark:border-monday-dark-border rounded-lg p-3 sm:p-4 hover:shadow-md hover:border-monday-blue/50 dark:hover:border-monday-blue/50 transition-all duration-200 flex items-center gap-4">
@@ -70,9 +74,22 @@ const TaskCard = ({ task, onNavigate }: { task: GroupedTask, onNavigate: (id: st
             </div>
 
             {/* 3. Due Date Label */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded bg-gray-50 dark:bg-monday-dark-bg border border-gray-100 dark:border-monday-dark-border text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                <Calendar size={12} className="text-gray-400" />
-                {task.date || 'No Date'}
+            <div className="hidden sm:flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-gray-50 dark:bg-monday-dark-bg border border-gray-100 dark:border-monday-dark-border text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    <Calendar size={12} className="text-gray-400" />
+                    {task.date || 'No Date'}
+                </span>
+                {priorityLabel && (
+                    <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] ${priorityClasses.badge}`}>
+                        <Flag size={12} /> {priorityLabel}
+                    </span>
+                )}
+                {reminderCount > 0 && (
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-100">
+                        <Bell size={12} />
+                        {reminderCount}
+                    </span>
+                )}
             </div>
 
             {/* 4. Action Hover Trigger (Visual cue) */}
@@ -111,6 +128,7 @@ const EmptyDashboard = () => (
 
 export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoard }) => {
     const [filter, setFilter] = useState<'all' | 'incomplete'>('all');
+    const { groupedByItem: remindersByItem } = useReminders();
 
     // --- Logic ---
     const groupedTasks = useMemo(() => {
@@ -235,8 +253,8 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                                     <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Priority Focus</h2>
                                 </div>
                                 <div className="grid gap-3">
-                                    {groups.overdue.map(task => <TaskCard key={task.id} task={task} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
-                                    {groups.today.map(task => <TaskCard key={task.id} task={task} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
+                                    {groups.overdue.map(task => <TaskCard key={task.id} task={task} reminderCount={remindersByItem[task.id]?.length || 0} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
+                                    {groups.today.map(task => <TaskCard key={task.id} task={task} reminderCount={remindersByItem[task.id]?.length || 0} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
                                 </div>
                             </div>
                         )}
@@ -249,7 +267,7 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                                     <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">This Week</h2>
                                 </div>
                                 <div className="grid gap-3 opacity-90">
-                                    {groups.this_week.map(task => <TaskCard key={task.id} task={task} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
+                                    {groups.this_week.map(task => <TaskCard key={task.id} task={task} reminderCount={remindersByItem[task.id]?.length || 0} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
                                 </div>
                             </div>
                         )}
@@ -262,8 +280,8 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                                     <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Backlog & Later</h2>
                                 </div>
                                 <div className="grid gap-3 opacity-75 grayscale-[0.2] hover:grayscale-0 transition-all">
-                                    {groups.later.map(task => <TaskCard key={task.id} task={task} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
-                                    {groups.no_date.map(task => <TaskCard key={task.id} task={task} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
+                                    {groups.later.map(task => <TaskCard key={task.id} task={task} reminderCount={remindersByItem[task.id]?.length || 0} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
+                                    {groups.no_date.map(task => <TaskCard key={task.id} task={task} reminderCount={remindersByItem[task.id]?.length || 0} onNavigate={(id) => onNavigateToBoard('board', id)} />)}
                                 </div>
                             </div>
                         )}

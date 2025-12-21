@@ -1,0 +1,171 @@
+{
+  "meta": {
+    "name": "Vendors Semantic Master",
+    "version": "2.0.0",
+    "generated_at": "2025-12-19T07:12:22.305666Z",
+    "languages": [
+      "en",
+      "ar"
+    ],
+    "intent": "Always-filled Vendor & Supplier dashboards"
+  },
+  "dashboards": [
+    {
+      "id": "V01",
+      "name_en": "Vendor Daily Control",
+      "name_ar": "التحكم اليومي للموردين"
+    },
+    {
+      "id": "V02",
+      "name_en": "Vendor Performance & OTIF",
+      "name_ar": "أداء الموردين و OTIF"
+    },
+    {
+      "id": "V03",
+      "name_en": "RFQ & Quotation Pipeline",
+      "name_ar": "مسار RFQ وعروض الأسعار"
+    },
+    {
+      "id": "V04",
+      "name_en": "Vendor Spend & Financial Exposure",
+      "name_ar": "صرف الموردين والتعرض المالي"
+    },
+    {
+      "id": "V05",
+      "name_en": "Contracts & Compliance",
+      "name_ar": "العقود والالتزام"
+    },
+    {
+      "id": "V06",
+      "name_en": "Vendor Risks & Exceptions",
+      "name_ar": "مخاطر واستثناءات الموردين"
+    }
+  ],
+  "columns": [
+    {
+      "key": "vendor",
+      "en": "Vendor",
+      "ar": "المورد",
+      "aliases_en": [
+        "vendor",
+        "supplier",
+        "supplier name"
+      ],
+      "aliases_ar": [
+        "مورد",
+        "المورّد",
+        "اسم المورد"
+      ]
+    },
+    {
+      "key": "vendor_id",
+      "en": "Vendor ID",
+      "ar": "رقم المورد",
+      "aliases_en": [
+        "supplier id",
+        "account number"
+      ],
+      "aliases_ar": [
+        "رقم المورد",
+        "كود المورد"
+      ]
+    },
+    {
+      "key": "rfq_id",
+      "en": "RFQ ID",
+      "ar": "رقم RFQ",
+      "aliases_en": [
+        "request for quotation",
+        "rfq number"
+      ],
+      "aliases_ar": [
+        "طلب عرض سعر",
+        "رقم RFQ"
+      ]
+    },
+    {
+      "key": "po_id",
+      "en": "PO ID",
+      "ar": "رقم أمر الشراء",
+      "aliases_en": [
+        "purchase order",
+        "po number"
+      ],
+      "aliases_ar": [
+        "أمر شراء",
+        "رقم أمر الشراء"
+      ]
+    },
+    {
+      "key": "lead_time",
+      "en": "Lead Time",
+      "ar": "زمن التوريد",
+      "aliases_en": [
+        "delivery lead time",
+        "lt"
+      ],
+      "aliases_ar": [
+        "مدة التوريد",
+        "ليد تايم"
+      ]
+    },
+    {
+      "key": "otif",
+      "en": "OTIF %",
+      "ar": "OTIF %",
+      "aliases_en": [
+        "on time in full"
+      ],
+      "aliases_ar": [
+        "في الوقت وبالكامل"
+      ]
+    },
+    {
+      "key": "defect_rate",
+      "en": "Defect Rate",
+      "ar": "نسبة العيوب",
+      "aliases_en": [
+        "quality issues"
+      ],
+      "aliases_ar": [
+        "مشاكل جودة"
+      ]
+    },
+    {
+      "key": "total_spend",
+      "en": "Total Spend",
+      "ar": "إجمالي الصرف",
+      "aliases_en": [
+        "vendor spend",
+        "supplier spend"
+      ],
+      "aliases_ar": [
+        "صرف المورد",
+        "إجمالي الصرف"
+      ]
+    },
+    {
+      "key": "contract_id",
+      "en": "Contract ID",
+      "ar": "رقم العقد",
+      "aliases_en": [
+        "agreement"
+      ],
+      "aliases_ar": [
+        "عقد",
+        "اتفاقية"
+      ]
+    },
+    {
+      "key": "risk_score",
+      "en": "Risk Score",
+      "ar": "مؤشر المخاطر",
+      "aliases_en": [
+        "vendor risk"
+      ],
+      "aliases_ar": [
+        "مخاطر المورد"
+      ]
+    }
+  ]
+}

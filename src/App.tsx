@@ -20,7 +20,7 @@ import { UIProvider } from './contexts/UIContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import TeamsPage from './features/teams/TeamsPage';
 import { FocusProvider } from './contexts/FocusContext';
-import { FocusWidget } from './components/features/focus/FocusWidget';
+// import { FocusWidget } from './components/features/focus/FocusWidget';
 
 // Mock Initial Data
 const INITIAL_WORKSPACES: Workspace[] = [
@@ -39,10 +39,10 @@ const INITIAL_BOARDS: Board[] = [
       { id: 'c3', title: 'Due Date', type: 'date' }
     ],
     tasks: [
-      { id: 't1', name: 'Design Ad Creatives', person: 'Alice', status: 'Working on it', date: '2023-10-15' },
-      { id: 't2', name: 'Approve Budget', person: 'Bob', status: 'Done', date: '2023-10-01' },
-      { id: 't3', name: 'Launch Social Ads', person: 'Charlie', status: 'Stuck', date: '2023-10-20' },
-      { id: 't4', name: 'Review Analytics', person: 'Alice', status: '', date: '2023-11-01' }
+      { id: 't1', name: 'Design Ad Creatives', person: 'Alice', status: 'Working on it', date: '2023-10-15', priority: 'High' },
+      { id: 't2', name: 'Approve Budget', person: 'Bob', status: 'Done', date: '2023-10-01', priority: 'Medium' },
+      { id: 't3', name: 'Launch Social Ads', person: 'Charlie', status: 'Stuck', date: '2023-10-20', priority: 'Low' },
+      { id: 't4', name: 'Review Analytics', person: 'Alice', status: '', date: '2023-11-01', priority: null }
     ]
   },
   {
@@ -248,12 +248,12 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleAddWorkspace = (name: string, icon: string) => {
+  const handleAddWorkspace = (name: string, icon: string, color?: string) => {
     const newWorkspace: Workspace = {
       id: Date.now().toString(),
       name,
       icon,
-      color: 'from-blue-400 to-indigo-500' // Default color
+      color: color || 'from-blue-400 to-indigo-500' // Default color if none provided
     };
     setWorkspaces([...workspaces, newWorkspace]);
     setActiveWorkspaceId(newWorkspace.id);
@@ -286,6 +286,32 @@ const AppContent: React.FC = () => {
     setBoards(boards.map(b => b.id === boardId ? { ...b, ...updates } : b));
   };
 
+  // --- Department Pages (Lazy Loaded) ---
+  const ProcurementPage = React.lazy(() => import('./features/supply_chain/procurement/ProcurementPage'));
+  const WarehousePage = React.lazy(() => import('./features/supply_chain/warehouse/WarehousePage'));
+  const ShippingPage = React.lazy(() => import('./features/supply_chain/shipping/ShippingPage'));
+  const FleetPage = React.lazy(() => import('./features/supply_chain/fleet/FleetPage'));
+  const VendorsPage = React.lazy(() => import('./features/supply_chain/vendors/VendorsPage'));
+  const PlanningPage = React.lazy(() => import('./features/supply_chain/planning/PlanningPage'));
+
+  const MaintenancePage = React.lazy(() => import('./features/operations/maintenance/MaintenancePage'));
+  const ProductionPage = React.lazy(() => import('./features/operations/production/ProductionPage'));
+  const QualityPage = React.lazy(() => import('./features/operations/quality/QualityPage'));
+
+  const SalesPage = React.lazy(() => import('./features/business/sales/SalesPage'));
+  const FinancePage = React.lazy(() => import('./features/business/finance/FinancePage'));
+
+  const ITPage = React.lazy(() => import('./features/business_support/it/ITPage'));
+  const HRPage = React.lazy(() => import('./features/business_support/hr/HRPage'));
+  const MarketingPage = React.lazy(() => import('./features/business_support/marketing/MarketingPage'));
+  const CornellNotesPage = React.lazy(() => import('./features/tools/cornell/CornellNotesPage'));
+
+  const FullScreenLoader = () => (
+    <div className="h-full w-full flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-full w-full bg-[#FCFCFD] dark:bg-monday-dark-bg font-sans text-[#323338] dark:text-monday-dark-text transition-colors duration-200">
       <TopBar />
@@ -311,32 +337,66 @@ const AppContent: React.FC = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col relative overflow-hidden bg-[#FCFCFD] dark:bg-monday-dark-bg z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.08)] ml-0.5">
-          {activeView === 'dashboard' ? (
-            <Dashboard onBoardCreated={handleBoardCreated} />
-          ) : activeView === 'board' && activeBoard ? (
-            <BoardView key={activeBoard.id} board={activeBoard} onUpdateBoard={handleUpdateBoard} />
-          ) : activeView === 'inbox' ? (
-            <InboxView />
-          ) : activeView === 'discussion' ? (
-            <DiscussionPage />
-          ) : activeView === 'my_work' ? (
-            <MyWorkPage boards={boards} onNavigateToBoard={handleNavigate} />
-          ) : activeView === 'teams' ? (
-            <TeamsPage />
-          ) : activeView === 'vault' ? (
-            <VaultView />
-          ) : activeView === 'flow_hub' ? (
-            <FlowHubPage />
-          ) : activeView === 'process_map' ? (
-            <ProcessMapPage />
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-400 font-light text-xl">
-              {activeView === 'board' && !activeBoard && "No board selected"}
-            </div>
-          )}
+          <React.Suspense fallback={<FullScreenLoader />}>
+            {activeView === 'dashboard' ? (
+              <Dashboard onBoardCreated={handleBoardCreated} />
+            ) : activeView === 'board' && activeBoard ? (
+              <BoardView key={activeBoard.id} board={activeBoard} onUpdateBoard={handleUpdateBoard} />
+            ) : activeView === 'inbox' ? (
+              <InboxView />
+            ) : activeView === 'discussion' ? (
+              <DiscussionPage />
+            ) : activeView === 'my_work' ? (
+              <MyWorkPage boards={boards} onNavigateToBoard={handleNavigate} />
+            ) : activeView === 'teams' ? (
+              <TeamsPage />
+            ) : activeView === 'vault' ? (
+              <VaultView />
+            ) : activeView === 'flow_hub' ? (
+              <FlowHubPage />
+            ) : activeView === 'process_map' ? (
+              <ProcessMapPage />
+            ) : activeView === 'procurement' ? (
+              <ProcurementPage />
+            ) : activeView === 'warehouse' ? (
+              <WarehousePage />
+            ) : activeView === 'shipping' ? (
+              <ShippingPage />
+            ) : activeView === 'fleet' ? (
+              <FleetPage />
+            ) : activeView === 'vendors' ? (
+              <VendorsPage />
+            ) : activeView === 'planning' ? (
+              <PlanningPage />
+            ) : activeView === 'maintenance' ? (
+              <MaintenancePage />
+            ) : activeView === 'production' ? (
+              <ProductionPage />
+            ) : activeView === 'quality' ? (
+              <QualityPage />
+            ) : activeView === 'sales' ? (
+              <SalesPage />
+            ) : activeView === 'finance' ? (
+              <FinancePage />
+            ) : activeView === 'it_support' ? (
+              <ITPage />
+            ) : activeView === 'hr' ? (
+              <HRPage />
+            ) : activeView === 'marketing' ? (
+              <MarketingPage />
+            ) : activeView === 'marketing' ? (
+              <MarketingPage />
+            ) : activeView === 'cornell_notes' ? (
+              <CornellNotesPage />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400 font-light text-xl">
+                {activeView === 'board' && !activeBoard && "No board selected"}
+              </div>
+            )}
+          </React.Suspense>
         </main>
       </div>
-      <FocusWidget />
+      {/* <FocusWidget /> */}
     </div>
   );
 };

@@ -1,0 +1,23 @@
+{
+  "procurementRequests": [
+    {
+      "id": "REQ-2025000001",
+      "date": "2025-12-21",
+      "department": "",
+      "warehouse": "",
+      "relatedTo": "",
+      "status": "Pending",
+      "priority": "Low",
+      "isUrgent": false
+    }
+  ],
+  "boards": [],
+  "cards": [],
+  "rooms": [],
+  "rows": [],
+  "columns": [],
+  "emails": [],
+  "gtdCaptures": [],
+  "cornellNotes": [],
+  "storage": []
+}

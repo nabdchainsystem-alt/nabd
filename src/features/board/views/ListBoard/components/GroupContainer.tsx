@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown, Plus, MoreHorizontal, Sparkles } from 'lucide-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { GroupData, TaskItem, Status, StatusOption, ColumnWidths } from '../types';
-import { generateTasksForGroup } from '../services/geminiService';
+
 import { SortableTaskRow } from './SortableTaskRow';
 
 interface GroupContainerProps {
@@ -29,7 +29,7 @@ export const GroupContainer: React.FC<GroupContainerProps> = ({
   // Render SortableTaskRow with statusOptions
 
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+
 
   const handleUpdateItem = (updatedItem: TaskItem) => {
     const newItems = group.items.map(item => item.id === updatedItem.id ? updatedItem : item);
@@ -53,22 +53,7 @@ export const GroupContainer: React.FC<GroupContainerProps> = ({
     onGroupUpdate({ ...group, items: [...group.items, newItem] });
   };
 
-  const handleGenerateTasks = async () => {
-    setIsGenerating(true);
-    const newTasks = await generateTasksForGroup(group.title);
 
-    const readyTasks: TaskItem[] = newTasks.map(t => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: t.name || 'Untitled',
-      person: null,
-      status: (t.status as Status) || 'In Progress', // Status.WORKING_ON_IT -> 'In Progress'
-      date: new Date().toISOString().split('T')[0],
-      selected: false
-    }));
-
-    onGroupUpdate({ ...group, items: [...group.items, ...readyTasks] });
-    setIsGenerating(false);
-  };
 
   // ... (omitted resize logic) ...
 
@@ -126,14 +111,7 @@ export const GroupContainer: React.FC<GroupContainerProps> = ({
           {group.title}
         </h2>
         <div className="ml-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={handleGenerateTasks}
-            disabled={isGenerating}
-            className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded hover:bg-indigo-100 transition-colors"
-          >
-            <Sparkles className={`w-3 h-3 ${isGenerating ? 'animate-spin' : ''}`} />
-            {isGenerating ? 'Thinking...' : 'AI Fill'}
-          </button>
+
           <span className="text-gray-300 text-xs">{group.items.length} items</span>
         </div>
       </div>

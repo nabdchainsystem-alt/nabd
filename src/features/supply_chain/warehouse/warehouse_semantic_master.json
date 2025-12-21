@@ -1,0 +1,304 @@
+{
+  "meta": {
+    "name": "Warehouse Semantic Master",
+    "version": "2.0.0",
+    "generated_at": "2025-12-19T07:04:16.220372Z",
+    "languages": [
+      "en",
+      "ar"
+    ],
+    "intent": "Always-filled Warehouse & Inventory dashboards"
+  },
+  "dashboards": [
+    {
+      "id": "W01",
+      "name_en": "Warehouse Daily Control",
+      "name_ar": "التحكم اليومي للمخازن",
+      "kpis": [
+        "on_hand_qty",
+        "inbound_orders_today",
+        "outbound_orders_today",
+        "critical_stock_items"
+      ]
+    },
+    {
+      "id": "W02",
+      "name_en": "Stock Health & Coverage",
+      "name_ar": "صحة المخزون والتغطية",
+      "kpis": [
+        "healthy_stock_pct",
+        "slow_moving_skus",
+        "obsolete_skus",
+        "inventory_coverage_weeks"
+      ]
+    },
+    {
+      "id": "W03",
+      "name_en": "Inbound Performance",
+      "name_ar": "أداء الاستلام",
+      "kpis": [
+        "dock_to_stock_time",
+        "trucks_received_today",
+        "quality_reject_rate",
+        "perfect_po_rate"
+      ]
+    },
+    {
+      "id": "W04",
+      "name_en": "Outbound Performance",
+      "name_ar": "أداء الصرف والشحن",
+      "kpis": [
+        "orders_shipped_today",
+        "on_time_ship_rate",
+        "picking_accuracy",
+        "backorders_count"
+      ]
+    },
+    {
+      "id": "W05",
+      "name_en": "Inventory Movements",
+      "name_ar": "حركات المخزون والتتبع",
+      "kpis": [
+        "internal_transfers_count",
+        "inventory_adjustments_value",
+        "warehouse_occupancy_pct",
+        "cycle_counts_completed"
+      ]
+    },
+    {
+      "id": "W06",
+      "name_en": "Cost & Space Utilization",
+      "name_ar": "التكلفة واستغلال المساحة",
+      "kpis": [
+        "space_utilization_pct",
+        "inventory_holding_cost",
+        "cost_per_pallet",
+        "throughput_efficiency"
+      ]
+    }
+  ],
+  "kpis_dictionary": {
+    "on_hand_qty": {
+      "en": "Total Inventory",
+      "ar": "إجمالي المخزون"
+    },
+    "inbound_orders_today": {
+      "en": "Inbound Today",
+      "ar": "الوارد اليوم"
+    },
+    "outbound_orders_today": {
+      "en": "Outbound Pending",
+      "ar": "الصادر المعلق"
+    },
+    "critical_stock_items": {
+      "en": "Critical Items",
+      "ar": "أصناف حرجة"
+    },
+    "healthy_stock_pct": {
+      "en": "Healthy Stock %",
+      "ar": "نسبة المخزون السليم"
+    },
+    "slow_moving_skus": {
+      "en": "Slow Moving SKUs",
+      "ar": "أصناف بطيئة الحركة"
+    },
+    "obsolete_skus": {
+      "en": "Obsolete SKUs",
+      "ar": "أصناف راكدة"
+    },
+    "inventory_coverage_weeks": {
+      "en": "Coverage (Weeks)",
+      "ar": "تغطية (أسابيع)"
+    },
+    "dock_to_stock_time": {
+      "en": "Dock to Stock",
+      "ar": "من الرصيف للمخزن"
+    },
+    "trucks_received_today": {
+      "en": "Trucks Received",
+      "ar": "شاحنات مستلمة"
+    },
+    "quality_reject_rate": {
+      "en": "Reject Rate",
+      "ar": "نسبة الرفض"
+    },
+    "perfect_po_rate": {
+      "en": "Perfect PO %",
+      "ar": "نسبة الطلبات المثالية"
+    },
+    "orders_shipped_today": {
+      "en": "Orders Shipped",
+      "ar": "طلبات مشحونة"
+    },
+    "on_time_ship_rate": {
+      "en": "On-Time Ship %",
+      "ar": "شحن في الوقت"
+    },
+    "picking_accuracy": {
+      "en": "Picking Accuracy",
+      "ar": "دقة التحضير"
+    },
+    "backorders_count": {
+      "en": "Backorders",
+      "ar": "طلبات مؤجلة"
+    },
+    "internal_transfers_count": {
+      "en": "Internal Transfers",
+      "ar": "تحويلات داخلية"
+    },
+    "inventory_adjustments_value": {
+      "en": "Adjustments Value",
+      "ar": "قيمة التسويات"
+    },
+    "warehouse_occupancy_pct": {
+      "en": "Occupancy %",
+      "ar": "نسبة الإشغال"
+    },
+    "cycle_counts_completed": {
+      "en": "Cycle Counts",
+      "ar": "جرد دوري"
+    },
+    "space_utilization_pct": {
+      "en": "Space Utilization",
+      "ar": "استغلال المساحة"
+    },
+    "inventory_holding_cost": {
+      "en": "Holding Cost",
+      "ar": "تكلفة التخزين"
+    },
+    "cost_per_pallet": {
+      "en": "Cost per Pallet",
+      "ar": "تكلفة الباليت"
+    },
+    "throughput_efficiency": {
+      "en": "Throughput",
+      "ar": "الإنتاجية"
+    }
+  },
+  "columns": [
+    {
+      "key": "item_code",
+      "en": "Item Code",
+      "ar": "كود الصنف",
+      "aliases_en": [
+        "sku",
+        "item number",
+        "material code"
+      ],
+      "aliases_ar": [
+        "كود الصنف",
+        "SKU",
+        "رقم الصنف"
+      ]
+    },
+    {
+      "key": "warehouse",
+      "en": "Warehouse",
+      "ar": "المخزن",
+      "aliases_en": [
+        "store",
+        "location",
+        "site"
+      ],
+      "aliases_ar": [
+        "مخزن",
+        "مستودع",
+        "لوكيشن"
+      ]
+    },
+    {
+      "key": "on_hand_qty",
+      "en": "On Hand Qty",
+      "ar": "رصيد المخزون",
+      "aliases_en": [
+        "stock qty",
+        "inventory qty"
+      ],
+      "aliases_ar": [
+        "رصيد",
+        "كمية المخزون"
+      ]
+    },
+    {
+      "key": "available_qty",
+      "en": "Available Qty",
+      "ar": "الكمية المتاحة",
+      "aliases_en": [
+        "free stock",
+        "available stock"
+      ],
+      "aliases_ar": [
+        "متاح",
+        "رصيد متاح"
+      ]
+    },
+    {
+      "key": "safety_stock",
+      "en": "Safety Stock",
+      "ar": "مخزون الأمان",
+      "aliases_en": [
+        "buffer stock"
+      ],
+      "aliases_ar": [
+        "مخزون أمان",
+        "احتياطي"
+      ]
+    },
+    {
+      "key": "reorder_point",
+      "en": "Reorder Point",
+      "ar": "نقطة إعادة الطلب",
+      "aliases_en": [
+        "rop",
+        "reorder level"
+      ],
+      "aliases_ar": [
+        "ROP",
+        "إعادة الطلب"
+      ]
+    },
+    {
+      "key": "movement_type",
+      "en": "Movement Type",
+      "ar": "نوع الحركة",
+      "aliases_en": [
+        "inbound",
+        "outbound",
+        "transfer",
+        "adjustment"
+      ],
+      "aliases_ar": [
+        "وارد",
+        "صادر",
+        "تحويل",
+        "تعديل"
+      ]
+    },
+    {
+      "key": "receipt_id",
+      "en": "Receipt ID",
+      "ar": "رقم الاستلام",
+      "aliases_en": [
+        "grn",
+        "goods receipt"
+      ],
+      "aliases_ar": [
+        "GRN",
+        "إذن استلام"
+      ]
+    },
+    {
+      "key": "shipment_id",
+      "en": "Shipment ID",
+      "ar": "رقم الشحنة",
+      "aliases_en": [
+        "dispatch id",
+        "awb"
+      ],
+      "aliases_ar": [
+        "شحنة",
+        "بوليصة"
+      ]
+    }
+  ]
+}

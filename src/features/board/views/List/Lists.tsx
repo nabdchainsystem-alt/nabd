@@ -18,14 +18,7 @@ const EnhancedDatePicker = ({ startDate, dueDate, onUpdate, onClose }: any) => {
 
 // ... existing code ...
 
-// const ai = createAIClient();
-const ai = null; // AI disabled due to missing package
 
-const generateSubtasks = async (taskTitle: string): Promise<string[]> => {
-    // Mock implementation to avoid errors
-    console.warn("AI features disabled in restored List view.");
-    return [];
-};
 import { createPortal } from 'react-dom';
 import {
     Search, Columns3, Plus, ChevronDown, MoreHorizontal, Pencil,
@@ -39,7 +32,7 @@ import {
 import { SharedDatePicker } from '../../../../components/ui/SharedDatePicker'; // Import source directly
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import { ColumnMenu } from '../../components/ColumnMenu';
-// import { GoogleGenAI, Type } from "@google/genai";
+import { generateSubtasks } from '../../../../services/geminiService';
 import { PlusIcon } from '../ListBoard/ListBoardIcons';
 import { ColumnContextMenu } from '../../components/ColumnContextMenu';
 import { StatusCell } from '../ListBoard/components/cells/StatusCell';
@@ -125,53 +118,7 @@ interface ListsProps {
 // 2. SERVICES
 // ----------------------------------------------------------------------
 
-/*
-const getApiKey = () => {
-    return import.meta.env.VITE_GEMINI_API_KEY || '';
-};
- 
-// Initialize only if key exists, otherwise handle gracefully
-const createAIClient = () => {
-    const key = getApiKey();
-    return key ? new GoogleGenAI({ apiKey: key }) : null;
-};
- 
-const ai = createAIClient();
- 
-const generateSubtasks = async (taskTitle: string): Promise<string[]> => {
-    if (!ai) {
-        console.warn("Gemini API Key not set. AI features disabled.");
-        return [];
-    }
- 
-    try {
-        const model = 'gemini-2.0-flash-exp';
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: `Generate 3 to 5 actionable subtasks for a project management task titled: "${taskTitle}". Keep them concise.`,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        subtasks: {
-                            type: Type.ARRAY,
-                            items: { type: Type.STRING }
-                        }
-                    }
-                }
-            }
-        });
- 
-        const json = JSON.parse(response.text || '{"subtasks": []}');
- 
-        return json.subtasks || [];
-    } catch (error) {
-        console.error("Failed to generate subtasks:", error);
-        return [];
-    }
-};
-*/
+
 
 
 // ----------------------------------------------------------------------
@@ -411,16 +358,7 @@ const TaskInput: React.FC<{ parentId?: string; onSave: (title: string, subtasks?
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onCancel]);
 
-    const handleAISuggest = async () => {
-        if (!title.trim()) return;
-        setIsGenerating(true);
-        const subtasks = await generateSubtasks(title);
-        setIsGenerating(false);
-        if (subtasks.length > 0) {
-            onSave(title, subtasks);
-            setTitle('');
-        }
-    };
+
 
     return (
         <div ref={containerRef} className={`flex items-center gap-3 p-2 bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>
@@ -432,9 +370,7 @@ const TaskInput: React.FC<{ parentId?: string; onSave: (title: string, subtasks?
                 <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-200 rounded text-xs font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">
                     <div className="w-2 h-2 rounded-full bg-gray-400"></div> Task
                 </div>
-                <Button variant="icon" size="sm" onClick={handleAISuggest} disabled={isGenerating || !title.trim()} className={isGenerating ? "animate-pulse text-indigo-500" : ""} title="Generate Subtasks with AI">
-                    {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                </Button>
+
                 <div className="w-px h-5 bg-gray-200 mx-1 hidden sm:block"></div>
                 <div className="hidden sm:flex items-center gap-1">
                     <Button variant="icon" size="sm"><Users className="w-4 h-4" /></Button>
@@ -451,8 +387,8 @@ const TaskInput: React.FC<{ parentId?: string; onSave: (title: string, subtasks?
     );
 };
 
-const TaskRow: React.FC<{ task: Task; level: number; statusColor?: string; onToggleExpand: (id: string) => void; onAddSubtask: (id: string) => void; onDelete: (id: string) => void; onSelect: (id: string) => void; onTaskClick: (task: Task) => void; onUpdate: (id: string, updates: Partial<Task>) => void; onDragStart: (e: React.DragEvent, task: Task) => void; onDragOver: (e: React.DragEvent, targetId: string) => void; onDrop: (e: React.DragEvent, targetId: string) => void; dragOverPosition: 'top' | 'bottom' | null; }> = ({
-    task, level, statusColor = '#d1d5db', onToggleExpand, onAddSubtask, onDelete, onSelect, onTaskClick, onUpdate, onDragStart, onDragOver, onDrop, dragOverPosition
+const TaskRow: React.FC<{ task: Task; level: number; statusColor?: string; onToggleExpand: (id: string) => void; onAddSubtask: (id: string) => void; onGenerateSubtasks: (id: string) => void; onDelete: (id: string) => void; onSelect: (id: string) => void; onTaskClick: (task: Task) => void; onUpdate: (id: string, updates: Partial<Task>) => void; onDragStart: (e: React.DragEvent, task: Task) => void; onDragOver: (e: React.DragEvent, targetId: string) => void; onDrop: (e: React.DragEvent, targetId: string) => void; dragOverPosition: 'top' | 'bottom' | null; }> = ({
+    task, level, statusColor = '#d1d5db', onToggleExpand, onAddSubtask, onGenerateSubtasks, onDelete, onSelect, onTaskClick, onUpdate, onDragStart, onDragOver, onDrop, dragOverPosition
 }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -518,6 +454,7 @@ const TaskRow: React.FC<{ task: Task; level: number; statusColor?: string; onTog
                     <span onClick={() => onTaskClick(task)} className={`truncate font-normal cursor-pointer ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{task.title}</span>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
                         <button onClick={() => onAddSubtask(task.id)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 bg-white border border-gray-200 rounded px-1.5 py-0.5 whitespace-nowrap"><Plus className="w-3 h-3" /> Subtask</button>
+                        <button onClick={() => onGenerateSubtasks(task.id)} className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 bg-white border border-purple-200 rounded px-1.5 py-0.5 whitespace-nowrap"><Wand2 className="w-3 h-3" /> AI Subtasks</button>
                     </div>
                 </div>
             </div>
@@ -824,11 +761,12 @@ const INITIAL_TASKS: Task[] = [];
 // 2. SERVICES
 // ----------------------------------------------------------------------
 
-export default React.memo(function TaskFlow({ roomId, viewId }: { roomId: string; viewId?: string }) {
+export default React.memo(function Lists({ roomId, viewId }: { roomId: string; viewId?: string }) {
     // Shared Storage Keys
-    const storageKeyTasks = `board-tasks-${roomId}`;
+    const isSharedView = !viewId || viewId === 'list-main' || viewId === 'list';
+    const storageKeyTasks = !isSharedView ? `board-tasks-${roomId}-${viewId}` : `board-tasks-${roomId}`;
     const storageKeyStatuses = `board-statuses-${roomId}`;
-    const getStorageKey = (base: string) => viewId ? `${base}-${roomId}-${viewId}` : `${base}-${roomId}`;
+    const getStorageKey = (base: string) => !isSharedView ? `${base}-${roomId}-${viewId}` : `${base}-${roomId}`;
 
     // ----------------------------------------------------------------------
     // STATE: TASKS
@@ -862,6 +800,30 @@ export default React.memo(function TaskFlow({ roomId, viewId }: { roomId: string
         }
     });
 
+    // EFFECT: One-time repair of task statuses (fix 'done' -> 'Done')
+    useEffect(() => {
+        let hasChanges = false;
+        const repairedTasks = tasks.map(t => {
+            const originalStatus = t.status;
+            let newStatus = originalStatus;
+
+            if (newStatus === 'done') newStatus = 'Done';
+            else if (newStatus === 'to-do' || newStatus === 'todo') newStatus = 'To Do';
+            else if (newStatus === 'in-progress' || newStatus === 'inprogress') newStatus = 'In Progress';
+
+            if (newStatus !== originalStatus) {
+                hasChanges = true;
+                return { ...t, status: newStatus };
+            }
+            return t;
+        });
+
+        if (hasChanges) {
+            setTasks(repairedTasks);
+            saveTasksToStorage(repairedTasks);
+        }
+    }, []); // Run once on mount
+
     const saveTasksToStorage = (newTasks: Task[]) => {
         const genericTasks = newTasks.map(t => ({
             id: t.id,
@@ -894,21 +856,42 @@ export default React.memo(function TaskFlow({ roomId, viewId }: { roomId: string
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed)) {
+                    // REPAIR/FIX: Enforce Capitalized IDs for system statuses
+                    // 'done' -> 'Done' to match RoomTable expectations
+                    const fixSystemId = (id: string, title?: string) => {
+                        if (!id) return title || '';
+                        const lowerId = id.toLowerCase();
+                        const lowerTitle = (title || '').toLowerCase();
+
+                        // Check for Done/Complete
+                        if (lowerId === 'done' || lowerId === 'complete' || lowerTitle === 'done') return 'Done';
+                        // Check for To Do
+                        if (lowerId === 'to-do' || lowerId === 'todo' || lowerTitle === 'to do') return 'To Do';
+                        // Check for In Progress
+                        if (lowerId === 'in-progress' || lowerId === 'inprogress' || lowerTitle === 'in progress') return 'In Progress';
+
+                        return id;
+                    };
+
                     if (typeof parsed[0] === 'string') {
                         return parsed.map((s: string) => {
                             const lower = s.toLowerCase();
                             let color = '#94a3b8';
                             if (lower.includes('done') || lower.includes('complete')) color = '#22c55e';
                             else if (lower.includes('progress') || lower.includes('working')) color = '#3b82f6';
-                            return { id: s.replace(/\s+/g, '-').toLowerCase(), title: s, color: color, isCollapsed: false };
+                            // FIX: Do NOT lowercase the ID. Use Title Case logic.
+                            return { id: fixSystemId(s), title: s, color: color, isCollapsed: false };
                         });
                     } else {
-                        return parsed.map((s: any) => ({
-                            id: s.id || s.label || s.title,
-                            title: s.label || s.title,
-                            color: s.color || '#94a3b8',
-                            isCollapsed: s.isCollapsed || false
-                        }));
+                        return parsed.map((s: any) => {
+                            const rawId = s.id || s.label || s.title;
+                            return {
+                                id: fixSystemId(rawId, s.title || s.label),
+                                title: s.label || s.title || rawId,
+                                color: s.color || '#94a3b8',
+                                isCollapsed: s.isCollapsed || false
+                            };
+                        });
                     }
                 }
             }
@@ -1127,12 +1110,45 @@ export default React.memo(function TaskFlow({ roomId, viewId }: { roomId: string
         setDraggedTaskId(null); setDragOverTask(null);
     };
 
+    const handleGenerateSubtasks = async (taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        // Optimistic UI or loading state could be added here
+        try {
+            const generatedTitles = await generateSubtasks(task.title);
+            if (generatedTitles && generatedTitles.length > 0) {
+                const newSubtasks: Task[] = generatedTitles.map(title => ({
+                    id: crypto.randomUUID(),
+                    title: title,
+                    status: 'To Do',
+                    assignees: [],
+                    priority: Priority.NORMAL,
+                    tags: [],
+                    subtasks: [],
+                    isExpanded: false,
+                    selected: false,
+                    parentId: taskId
+                }));
+
+                // Update task with new subtasks and expand it
+                updateTask(taskId, {
+                    subtasks: [...(task.subtasks || []), ...newSubtasks],
+                    isExpanded: true
+                });
+            }
+        } catch (error) {
+            console.error("Failed to generate subtasks", error);
+        }
+    };
+
     const renderTaskTree = (taskList: Task[], level: number = 0, groupColor: string) => {
         return taskList.map(task => (
             <React.Fragment key={task.id}>
                 <TaskRow
                     task={task} level={level} statusColor={groupColor}
                     onToggleExpand={toggleExpand} onAddSubtask={(id) => setAddingSubtaskTo(id)}
+                    onGenerateSubtasks={handleGenerateSubtasks}
                     onDelete={deleteTask} onSelect={toggleSelection} onTaskClick={(t) => setOpenedTask(t)}
                     onUpdate={updateTask}
                     onDragStart={handleDragStart} onDragOver={handleTaskDragOver} onDrop={handleTaskDrop}

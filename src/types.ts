@@ -6,21 +6,24 @@ export enum StatusColor {
   EMPTY = '#c4c4c4'
 }
 
+export type PriorityLevel = 'High' | 'Medium' | 'Low';
+
 export interface Task {
   id: string;
   name: string;
   person: string;
   status: string;
   date: string;
+  priority?: PriorityLevel | null;
 }
 
 export interface BoardColumn {
   id: string;
   title: string;
-  type: 'text' | 'person' | 'status' | 'date';
+  type: 'text' | 'person' | 'status' | 'date' | 'number' | 'priority';
 }
 
-export type BoardViewType = 'kanban' | 'table' | 'list' | 'doc' | 'listboard' | 'discussion' | 'calendar' | 'taskboard' | 'gantt' | 'chart' | 'file_gallery' | 'form' | 'pivot_table';
+export type BoardViewType = 'kanban' | 'table' | 'list' | 'doc' | 'listboard' | 'discussion' | 'calendar' | 'taskboard' | 'gantt' | 'chart' | 'file_gallery' | 'form' | 'pivot_table' | 'overview' | 'sc_warehouse' | 'sc_shipping' | 'sc_fleet' | 'sc_vendors' | 'sc_planning' | 'gtd' | 'cornell' | 'dashboards' | 'whiteboard' | 'automation_rules' | 'goals_okrs' | 'workload' | 'recurring';
 
 export interface Board {
   id: string;

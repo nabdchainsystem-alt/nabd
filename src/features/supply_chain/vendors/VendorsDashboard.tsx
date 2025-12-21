@@ -1,0 +1,41 @@
+import React from 'react';
+import { Users, Star, Clock, DollarSign } from 'lucide-react';
+import { StatCard } from '../../board/components/dashboard/StatCard';
+import { DashboardChart } from '../../board/components/dashboard/DashboardChart';
+
+interface VendorsDashboardProps {
+    viewId?: string;
+    title?: string;
+}
+
+export const VendorsDashboard: React.FC<VendorsDashboardProps> = ({ viewId, title }) => {
+    const kpis = [
+        { title: 'Active Vendors', value: '128', trend: 'Total', trendDirection: 'neutral' as const, icon: <Users size={20} />, color: 'blue' },
+        { title: 'Top Rated', value: '45', trend: 'Score > 90%', trendDirection: 'up' as const, icon: <Star size={20} />, color: 'yellow' },
+        { title: 'Avg Lead Time', value: '14 Days', trend: '-2 Days', trendDirection: 'up' as const, icon: <Clock size={20} />, color: 'green' },
+        { title: 'Monthly Spend', value: '$1.2M', trend: '+5%', trendDirection: 'down' as const, icon: <DollarSign size={20} />, color: 'purple' },
+    ];
+
+    const chartOptions = {
+        title: { text: '' },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: ['Fabric', 'Electronics', 'Packaging', 'Software'] },
+        yAxis: { type: 'value' },
+        series: [{ data: [40, 30, 20, 10], type: 'bar', itemStyle: { color: '#8b5cf6' } }]
+    };
+
+    return (
+        <div className="flex flex-col h-full bg-gray-50 dark:bg-[#09090b] p-6 overflow-y-auto">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">{title || 'Vendor Management'}</h1>
+            <p className="text-gray-500 text-sm mb-6">Supplier performance, relationships, and spend analysis.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {kpis.map((kpi, idx) => <StatCard key={idx} {...kpi} />)}
+            </div>
+
+            <div className="h-96 bg-white dark:bg-[#1a1d24] p-4 rounded-xl border border-gray-200 dark:border-gray-800">
+                <DashboardChart title="Spend by Category" options={chartOptions} height="100%" />
+            </div>
+        </div>
+    );
+};
