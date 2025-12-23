@@ -2,20 +2,21 @@ import React, { useState } from 'react';
 import { BoardView } from '../../board/BoardView';
 import { Board } from '../../../types';
 import procurementMaster from './Procurement Dashboard/requests_orders_semantic_master.json';
+import { lazyWithRetry } from '../../../utils/lazyWithRetry';
 
 // Lazy load dashboards
-const DailyRequestsControl = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/DailyRequestsControl').then(m => ({ default: m.DailyRequestsControl })));
-const RequestsBacklogAging = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/RequestsBacklogAging').then(m => ({ default: m.RequestsBacklogAging })));
-const SkuDemandDashboard = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/SkuDemandDashboard').then(m => ({ default: m.SkuDemandDashboard })));
-const VendorRfqPipeline = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/VendorRfqPipeline').then(m => ({ default: m.VendorRfqPipeline })));
-const ApprovalsFlowDashboard = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/ApprovalsFlowDashboard').then(m => ({ default: m.ApprovalsFlowDashboard })));
-const SpendBudgetExposure = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/SpendBudgetExposure').then(m => ({ default: m.SpendBudgetExposure })));
-const RisksExceptionsDashboard = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/RisksExceptionsDashboard').then(m => ({ default: m.RisksExceptionsDashboard })));
-const DailyOrdersControl = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/DailyOrdersControl').then(m => ({ default: m.DailyOrdersControl })));
-const OrderFulfillmentDashboard = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/OrderFulfillmentDashboard').then(m => ({ default: m.OrderFulfillmentDashboard })));
-const OrdersFinanceDashboard = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/OrdersFinanceDashboard').then(m => ({ default: m.OrdersFinanceDashboard })));
-const CustomerVendorPerformance = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/CustomerVendorPerformance').then(m => ({ default: m.CustomerVendorPerformance })));
-const OrderRisksDashboard = React.lazy(() => import('../../board/views/SupplyChain/RequestsOrders/OrderRisksDashboard').then(m => ({ default: m.OrderRisksDashboard })));
+const DailyRequestsControl = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/DailyRequestsControl').then(m => ({ default: m.DailyRequestsControl })));
+const RequestsBacklogAging = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/RequestsBacklogAging').then(m => ({ default: m.RequestsBacklogAging })));
+const SkuDemandDashboard = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/SkuDemandDashboard').then(m => ({ default: m.SkuDemandDashboard })));
+const VendorRfqPipeline = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/VendorRfqPipeline').then(m => ({ default: m.VendorRfqPipeline })));
+const ApprovalsFlowDashboard = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/ApprovalsFlowDashboard').then(m => ({ default: m.ApprovalsFlowDashboard })));
+const SpendBudgetExposure = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/SpendBudgetExposure').then(m => ({ default: m.SpendBudgetExposure })));
+const RisksExceptionsDashboard = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/RisksExceptionsDashboard').then(m => ({ default: m.RisksExceptionsDashboard })));
+const DailyOrdersControl = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/DailyOrdersControl').then(m => ({ default: m.DailyOrdersControl })));
+const OrderFulfillmentDashboard = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/OrderFulfillmentDashboard').then(m => ({ default: m.OrderFulfillmentDashboard })));
+const OrdersFinanceDashboard = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/OrdersFinanceDashboard').then(m => ({ default: m.OrdersFinanceDashboard })));
+const CustomerVendorPerformance = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/CustomerVendorPerformance').then(m => ({ default: m.CustomerVendorPerformance })));
+const OrderRisksDashboard = lazyWithRetry(() => import('../../board/views/SupplyChain/RequestsOrders/OrderRisksDashboard').then(m => ({ default: m.OrderRisksDashboard })));
 
 const INITIAL_PROCUREMENT_BOARD: Board = {
     id: 'procurement-main',

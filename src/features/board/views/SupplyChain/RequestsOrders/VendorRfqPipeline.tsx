@@ -11,7 +11,7 @@ export const VendorRfqPipeline: React.FC = () => {
         { title: "Unanswered RFQs", value: "8", trend: "Follow-up needed", trendDirection: "down", icon: <AlertCircle size={20} />, color: "orange" },
         { title: "Avg Response Time", value: "2.1 Days", trend: "Improving", trendDirection: "up", icon: <Clock size={20} />, color: "green" },
         { title: "Quotes Received", value: "115", trend: "High response rate", trendDirection: "up", icon: <MessageSquare size={20} />, color: "indigo" },
-        { title: "Best Price Savings", value: "$12.5k", trend: "vs Budget", trendDirection: "up", icon: <DollarSign size={20} />, color: "emerald" },
+        { title: "Best Price Savings", value: "SAR 12.5k", trend: "vs Budget", trendDirection: "up", icon: <DollarSign size={20} />, color: "emerald" },
         { title: "Avg Lead Time", value: "14 Days", trend: "Stable", trendDirection: "neutral", icon: <Clock size={20} />, color: "blue" },
         { title: "Late Quotes", value: "15%", trend: "Of total", trendDirection: "down", icon: <Clock size={20} />, color: "red" },
         { title: "Single Source Risk", value: "5 Items", trend: "High Risk", trendDirection: "down", icon: <ShieldAlert size={20} />, color: "red" },

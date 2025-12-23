@@ -21,7 +21,7 @@ export const FleetDashboard: React.FC<FleetDashboardProps> = ({ viewId, title })
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: ['Truck', 'Van', 'Bike', 'Car'] },
         yAxis: { type: 'value' },
-        series: [{ data: [100, 200, 150, 80], type: 'bar', itemStyle: { color: '#6366f1' } }]
+        series: [{ data: [100, 200, 150, 80], type: 'bar', itemStyle: { color: '#3b82f6' } }]
     };
 
     return (

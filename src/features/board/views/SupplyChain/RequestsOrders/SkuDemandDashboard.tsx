@@ -22,7 +22,7 @@ export const SkuDemandDashboard: React.FC = () => {
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: ['Gloves', 'Helmets', 'Boots', 'Vests', 'Paper', 'Ink'] },
         yAxis: { type: 'value' },
-        series: [{ name: 'Qty', data: [2500, 1200, 950, 800, 600, 450], type: 'bar', itemStyle: { color: '#6366f1' } }]
+        series: [{ name: 'Qty', data: [2500, 1200, 950, 800, 600, 450], type: 'bar', itemStyle: { color: '#3b82f6' } }]
     };
 
     const demandByCategory = {

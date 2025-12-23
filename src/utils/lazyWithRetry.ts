@@ -1,0 +1,43 @@
+import React from 'react';
+
+const isChunkLoadError = (error: unknown) => {
+    if (!error || typeof error !== 'object') return false;
+    const message = (error as any).message;
+    return typeof message === 'string' && (
+        message.includes('Importing a module script failed') ||
+        message.includes('Failed to fetch dynamically imported module') ||
+        message.includes('Loading chunk') ||
+        message.includes('ChunkLoadError')
+    );
+};
+
+/**
+ * Wraps React.lazy imports with a small retry that reloads the page once
+ * when a chunk fails to load (stale cache / bad network).
+ */
+export function lazyWithRetry<T extends React.ComponentType<any>>(importer: () => Promise<{ default: T }>) {
+    const RETRY_FLAG = '__lazy_retry__';
+
+    return React.lazy(async () => {
+        try {
+            const mod = await importer();
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.removeItem(RETRY_FLAG);
+            }
+            return mod;
+        } catch (error) {
+            if (typeof window !== 'undefined' && isChunkLoadError(error)) {
+                const alreadyRetried = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(RETRY_FLAG);
+                if (!alreadyRetried) {
+                    if (typeof sessionStorage !== 'undefined') {
+                        sessionStorage.setItem(RETRY_FLAG, '1');
+                    }
+                    // Reload to fetch fresh HTML/chunks when the previous ones 404/failed
+                    window.location.reload();
+                    return new Promise(() => { /* keep suspense fallback until reload */ });
+                }
+            }
+            throw error;
+        }
+    });
+}

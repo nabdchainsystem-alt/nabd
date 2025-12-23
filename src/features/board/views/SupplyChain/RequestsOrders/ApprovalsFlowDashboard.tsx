@@ -22,7 +22,7 @@ export const ApprovalsFlowDashboard: React.FC = () => {
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: ['Line Manager', 'Dept Head', 'Finance', 'Director', 'VP'] },
         yAxis: { type: 'value' },
-        series: [{ name: 'Pending', data: [5, 8, 15, 3, 1], type: 'bar', color: '#f59e0b' }]
+        series: [{ name: 'Pending', data: [5, 8, 15, 3, 1], type: 'bar', color: '#3b82f6' }]
     };
 
     const approvalTimeByStage = {

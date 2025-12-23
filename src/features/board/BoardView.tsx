@@ -62,6 +62,7 @@ import AutomationRulesView from '../tools/AutomationRulesView';
 import GoalsOKRsView from '../tools/GoalsOKRsView';
 import WorkloadView from '../tools/WorkloadView';
 import RecurringLogicView from '../tools/RecurringLogicView';
+import SmartSheetView from '../tools/SpreadsheetView';
 
 interface BoardViewProps {
     board: Board;
@@ -218,6 +219,17 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
         return board.availableViews.includes(view);
     };
 
+    const isWarehouseBoard = board.id.startsWith('warehouse');
+
+    // Keep capacity map scoped to the warehouse experience only
+    useEffect(() => {
+        if (!isWarehouseBoard && activeView === 'warehouse_capacity_map') {
+            const fallbackFromDefault = board.defaultView && board.defaultView !== 'warehouse_capacity_map' ? board.defaultView : undefined;
+            const fallbackFromAvailable = board.availableViews?.find((view) => view !== 'warehouse_capacity_map');
+            setActiveView((fallbackFromDefault || fallbackFromAvailable || 'kanban') as BoardViewType);
+        }
+    }, [isWarehouseBoard, activeView, board.defaultView, board.availableViews]);
+
     const handleContextMenu = (e: React.MouseEvent, viewId: BoardViewType) => {
         e.preventDefault();
         setContextMenu({
@@ -331,10 +343,11 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
         { label: 'Doc', icon: FileText, id: 'doc', description: 'Collaborate on docs' },
         { label: 'Gantt', icon: GanttChart, id: 'gantt', description: 'Visual timeline' },
         { label: 'Chart', icon: PieChart, id: 'chart', description: 'Analyze data' },
-
+        ...(isWarehouseBoard ? [{ label: 'Capacity Map', icon: Layout, id: 'warehouse_capacity_map', description: 'Visual warehouse capacity map' }] : []),
         { label: 'Dashboards', icon: LayoutDashboard, id: 'dashboards', description: 'High-level visibility' },
         { label: 'Whiteboard', icon: Shapes, id: 'whiteboard', description: 'Lightweight planning canvas' },
         { label: 'Workload View', icon: UserCheck, id: 'workload', description: 'Balance assignments' },
+        { label: 'Smart Sheet', icon: Table, id: 'spreadsheet', description: 'Spreadsheet workspace' },
         { label: 'GTD System', icon: CheckSquare, id: 'gtd', description: 'Getting Things Done' },
         { label: 'Cornell Notes', icon: FileText, id: 'cornell', description: 'Effective note-taking' },
         { label: 'Automation Rules', icon: Settings2, id: 'automation_rules', description: 'Simple trigger → action' },
@@ -347,7 +360,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
             case 'overview':
                 return board.id === 'procurement-main' ? (
                     <div className="w-full h-full overflow-hidden">
-                        <ProcurementOverview tasks={board.tasks} onUpdateTasks={onUpdateTasks} />
+                        <ProcurementOverview />
                     </div>
                 ) : (
                     <OverviewView boardId={board.id} />
@@ -389,6 +402,8 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
                 return <WhiteboardView boardId={board.id} />;
             case 'workload':
                 return <WorkloadView boardId={board.id} fallbackTasks={board.tasks} />;
+            case 'spreadsheet':
+                return <SmartSheetView boardId={board.id} />;
             case 'gtd':
                 return <GTDDashboard key={board.id} boardId={board.id} onBoardCreated={() => { }} />;
             case 'cornell':
@@ -399,6 +414,8 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
                 return <GoalsOKRsView boardId={board.id} fallbackTasks={board.tasks} />;
             case 'recurring':
                 return <RecurringLogicView boardId={board.id} fallbackTasks={board.tasks} />;
+            case 'warehouse_capacity_map':
+                return renderCustomView ? renderCustomView('warehouse_capacity_map') : null;
             default:
                 return <KanbanBoard key={board.id} boardId={board.id} />;
         }
@@ -408,6 +425,13 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
     let availableViews = board.availableViews && board.availableViews.length > 0
         ? [...board.availableViews]
         : ['overview', 'table', 'kanban'] as BoardViewType[];
+
+    if (!isWarehouseBoard) {
+        availableViews = availableViews.filter(view => view !== 'warehouse_capacity_map');
+        if (availableViews.length === 0) {
+            availableViews = ['overview', 'table', 'kanban'] as BoardViewType[];
+        }
+    }
 
     // Sort: Overview first, then Pinned views, then others
     const pinned = board.pinnedViews || [];
@@ -582,7 +606,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
                                                         <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
                                                     </div>
                                                     <div className="grid grid-cols-3 gap-2">
-                                                        {VIEW_OPTIONS.filter(opt => !['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring'].includes(opt.id)).map((option) => (
+                                                        {VIEW_OPTIONS.filter(opt => !['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet'].includes(opt.id)).map((option) => (
                                                             <button
                                                                 key={option.id}
                                                                 onClick={() => {
@@ -616,7 +640,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
                                                         <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
                                                     </div>
                                                     <div className="grid grid-cols-3 gap-2">
-                                                        {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring'].includes(opt.id)).map((option) => (
+                                                        {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'warehouse_capacity_map'].includes(opt.id)).map((option) => (
                                                             <button
                                                                 key={option.id}
                                                                 onClick={() => {

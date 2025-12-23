@@ -22,7 +22,7 @@ export const RisksExceptionsDashboard: React.FC = () => {
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: ['Delay', 'Stockout', 'Price Hike', 'Quality', 'Policy'] },
         yAxis: { type: 'value' },
-        series: [{ data: [15, 8, 5, 2, 11], type: 'bar', color: '#ef4444' }]
+        series: [{ data: [15, 8, 5, 2, 11], type: 'bar', color: '#3b82f6' }]
     };
 
     const riskTrend = {

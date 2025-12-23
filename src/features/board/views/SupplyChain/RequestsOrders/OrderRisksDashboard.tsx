@@ -24,7 +24,7 @@ export const OrderRisksDashboard: React.FC = () => {
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: ['Credit Hold', 'Stockout', 'Verification', 'Data Error', 'Compliance'] },
         yAxis: { type: 'value' },
-        series: [{ name: 'Blocked Count', data: [15, 8, 5, 3, 2], type: 'bar', itemStyle: { color: '#ef4444' } }]
+        series: [{ name: 'Blocked Count', data: [15, 8, 5, 3, 2], type: 'bar', itemStyle: { color: '#3b82f6' } }]
     };
 
     const riskTrend = {

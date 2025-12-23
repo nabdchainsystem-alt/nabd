@@ -21,7 +21,7 @@ export const VendorsDashboard: React.FC<VendorsDashboardProps> = ({ viewId, titl
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: ['Fabric', 'Electronics', 'Packaging', 'Software'] },
         yAxis: { type: 'value' },
-        series: [{ data: [40, 30, 20, 10], type: 'bar', itemStyle: { color: '#8b5cf6' } }]
+        series: [{ data: [40, 30, 20, 10], type: 'bar', itemStyle: { color: '#3b82f6' } }]
     };
 
     return (

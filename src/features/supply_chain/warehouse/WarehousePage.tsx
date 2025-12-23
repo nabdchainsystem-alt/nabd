@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BoardView } from '../../board/BoardView';
 import { Board } from '../../../types';
 import { WarehouseDashboard } from './WarehouseDashboard';
+import { WarehouseCapacityMap } from './WarehouseCapacityMap';
 import warehouseMaster from './warehouse_semantic_master.json';
 const INITIAL_BOARD: Board = {
     id: 'warehouse-main-v2',
@@ -15,7 +16,7 @@ const INITIAL_BOARD: Board = {
         { id: 'location', title: 'Location', type: 'text' }
     ],
     tasks: [],
-    availableViews: ['overview', 'sc_warehouse', 'table', 'kanban'],
+    availableViews: ['overview', 'sc_warehouse', 'warehouse_capacity_map', 'table', 'kanban'],
     defaultView: 'overview'
 };
 
@@ -29,6 +30,9 @@ export const WarehousePage: React.FC = () => {
         // Ensure overview is available and default
         if (!initial.availableViews?.includes('overview')) {
             initial.availableViews = ['overview', ...(initial.availableViews || [])];
+        }
+        if (!initial.availableViews?.includes('warehouse_capacity_map')) {
+            initial.availableViews = [...(initial.availableViews || []), 'warehouse_capacity_map'];
         }
         initial.defaultView = 'overview';
 
@@ -60,6 +64,16 @@ export const WarehousePage: React.FC = () => {
                 id: d.id,
                 description: d.name_en
             }))
+        },
+        {
+            title: 'Advanced Tools',
+            options: [
+                {
+                    label: 'Capacity Map',
+                    id: 'warehouse_capacity_map',
+                    description: 'Visual warehouse space map'
+                }
+            ]
         }
     ];
 
@@ -72,6 +86,9 @@ export const WarehousePage: React.FC = () => {
                 if (viewId === 'sc_warehouse' || viewId.startsWith('W')) {
                     const config = warehouseMaster.dashboards.find(d => d.id === viewId);
                     return <WarehouseDashboard viewId={viewId} title={config?.name_en} />;
+                }
+                if (viewId === 'warehouse_capacity_map') {
+                    return <WarehouseCapacityMap boardName={board.name} />;
                 }
                 return null;
             }}

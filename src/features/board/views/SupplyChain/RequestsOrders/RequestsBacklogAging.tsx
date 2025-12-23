@@ -23,7 +23,7 @@ export const RequestsBacklogAging: React.FC = () => {
         xAxis: { type: 'category', data: ['0-3 Days', '4-7 Days', '8-14 Days', '15-30 Days', '>30 Days'] },
         yAxis: { type: 'value' },
         series: [
-            { name: 'Requests', type: 'bar', data: [110, 35, 45, 18, 6], itemStyle: { color: '#f59e0b' } }
+            { name: 'Requests', type: 'bar', data: [110, 35, 45, 18, 6], itemStyle: { color: '#3b82f6' } }
         ]
     };
 

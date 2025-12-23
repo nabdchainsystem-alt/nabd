@@ -47,9 +47,11 @@ export const VIEW_OPTIONS: ViewOption[] = [
     { label: 'Dashboards', icon: LayoutDashboard, id: 'dashboards', description: 'High-level visibility' },
     { label: 'Whiteboard', icon: Shapes, id: 'whiteboard', description: 'Visual planning canvas' },
     { label: 'Workload View', icon: UserCheck, id: 'workload', description: 'Balance team load' },
+    { label: 'Smart Sheet', icon: Table, id: 'spreadsheet', description: 'Spreadsheet workspace' },
     { label: 'Automation Rules', icon: Settings2, id: 'automation_rules', description: 'Light trigger → action' },
     { label: 'Goals & OKRs', icon: Target, id: 'goals_okrs', description: 'Objective tracking' },
     { label: 'Recurring Logic', icon: RotateCw, id: 'recurring', description: 'Repeatable work patterns' },
+    { label: 'Capacity Map', icon: LayoutDashboard, id: 'warehouse_capacity_map', description: 'Visual warehouse capacity map' },
     // Supply Chain (New)
     { label: 'Warehouse', icon: Package, id: 'sc_warehouse', description: 'Inventory & Stock' },
     { label: 'Shipping', icon: Truck, id: 'sc_shipping', description: 'Logistics & Delivery' },

@@ -22,7 +22,7 @@ export const CustomerVendorPerformance: React.FC = () => {
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: ['Vendor A', 'Vendor B', 'Vendor C', 'Vendor D', 'Vendor E'] },
         yAxis: { type: 'value', max: 100 },
-        series: [{ name: 'OTIF %', data: [98, 85, 92, 78, 95], type: 'bar', itemStyle: { color: '#8b5cf6' } }]
+        series: [{ name: 'OTIF %', data: [98, 85, 92, 78, 95], type: 'bar', itemStyle: { color: '#3b82f6' } }]
     };
 
     const returnsByReason = {

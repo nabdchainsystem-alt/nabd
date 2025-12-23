@@ -22,7 +22,7 @@ export const OrderFulfillmentDashboard: React.FC = () => {
         tooltip: { trigger: 'axis' },
         xAxis: { type: 'category', data: ['On Time', 'Late', 'Partial', 'Not Shipped'] },
         yAxis: { type: 'value' },
-        series: [{ name: 'Orders', data: [350, 15, 20, 45], type: 'bar', itemStyle: { color: '#10b981' } }]
+        series: [{ name: 'Orders', data: [350, 15, 20, 45], type: 'bar', itemStyle: { color: '#3b82f6' } }]
     };
 
     const otifTrend = {

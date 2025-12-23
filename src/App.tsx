@@ -20,6 +20,7 @@ import { UIProvider } from './contexts/UIContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import TeamsPage from './features/teams/TeamsPage';
 import { FocusProvider } from './contexts/FocusContext';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 // import { FocusWidget } from './components/features/focus/FocusWidget';
 
 // Mock Initial Data
@@ -288,24 +289,24 @@ const AppContent: React.FC = () => {
   };
 
   // --- Department Pages (Lazy Loaded) ---
-  const ProcurementPage = React.lazy(() => import('./features/supply_chain/procurement/ProcurementPage'));
-  const WarehousePage = React.lazy(() => import('./features/supply_chain/warehouse/WarehousePage'));
-  const ShippingPage = React.lazy(() => import('./features/supply_chain/shipping/ShippingPage'));
-  const FleetPage = React.lazy(() => import('./features/supply_chain/fleet/FleetPage'));
-  const VendorsPage = React.lazy(() => import('./features/supply_chain/vendors/VendorsPage'));
-  const PlanningPage = React.lazy(() => import('./features/supply_chain/planning/PlanningPage'));
+  const ProcurementPage = lazyWithRetry(() => import('./features/supply_chain/procurement/ProcurementPage'));
+  const WarehousePage = lazyWithRetry(() => import('./features/supply_chain/warehouse/WarehousePage'));
+  const ShippingPage = lazyWithRetry(() => import('./features/supply_chain/shipping/ShippingPage'));
+  const FleetPage = lazyWithRetry(() => import('./features/supply_chain/fleet/FleetPage'));
+  const VendorsPage = lazyWithRetry(() => import('./features/supply_chain/vendors/VendorsPage'));
+  const PlanningPage = lazyWithRetry(() => import('./features/supply_chain/planning/PlanningPage'));
 
-  const MaintenancePage = React.lazy(() => import('./features/operations/maintenance/MaintenancePage'));
-  const ProductionPage = React.lazy(() => import('./features/operations/production/ProductionPage'));
-  const QualityPage = React.lazy(() => import('./features/operations/quality/QualityPage'));
+  const MaintenancePage = lazyWithRetry(() => import('./features/operations/maintenance/MaintenancePage'));
+  const ProductionPage = lazyWithRetry(() => import('./features/operations/production/ProductionPage'));
+  const QualityPage = lazyWithRetry(() => import('./features/operations/quality/QualityPage'));
 
-  const SalesPage = React.lazy(() => import('./features/business/sales/SalesPage'));
-  const FinancePage = React.lazy(() => import('./features/business/finance/FinancePage'));
+  const SalesPage = lazyWithRetry(() => import('./features/business/sales/SalesPage'));
+  const FinancePage = lazyWithRetry(() => import('./features/business/finance/FinancePage'));
 
-  const ITPage = React.lazy(() => import('./features/business_support/it/ITPage'));
-  const HRPage = React.lazy(() => import('./features/business_support/hr/HRPage'));
-  const MarketingPage = React.lazy(() => import('./features/business_support/marketing/MarketingPage'));
-  const CornellNotesPage = React.lazy(() => import('./features/tools/cornell/CornellNotesPage'));
+  const ITPage = lazyWithRetry(() => import('./features/business_support/it/ITPage'));
+  const HRPage = lazyWithRetry(() => import('./features/business_support/hr/HRPage'));
+  const MarketingPage = lazyWithRetry(() => import('./features/business_support/marketing/MarketingPage'));
+  const CornellNotesPage = lazyWithRetry(() => import('./features/tools/cornell/CornellNotesPage'));
 
   const FullScreenLoader = () => (
     <div className="h-full w-full flex items-center justify-center">
