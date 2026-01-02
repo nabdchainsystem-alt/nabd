@@ -1,0 +1,164 @@
+import React, { useState, useEffect } from 'react';
+import { X, Calendar as CalendarIcon, Clock, AlignLeft, Flag, User, CheckCircle2 } from 'lucide-react';
+import { ITask, Status, Priority } from '../../../types/boardTypes';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface CalendarEventModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (task: Partial<ITask>) => void;
+    initialDate?: Date;
+    existingTask?: ITask | null;
+}
+
+export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
+    isOpen,
+    onClose,
+    onSave,
+    initialDate,
+    existingTask
+}) => {
+    const [title, setTitle] = useState('');
+    const [status, setStatus] = useState<Status>(Status.New);
+    const [priority, setPriority] = useState<Priority>(Priority.Normal);
+    const [date, setDate] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            if (existingTask) {
+                setTitle(existingTask.name);
+                setStatus(existingTask.status);
+                setPriority(existingTask.priority);
+                setDate(existingTask.dueDate ? existingTask.dueDate.split('T')[0] : '');
+            } else {
+                setTitle('');
+                setStatus(Status.New);
+                setPriority(Priority.Normal);
+                // Format initialDate as YYYY-MM-DD
+                const d = initialDate || new Date();
+                const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                setDate(dateStr);
+            }
+        }
+    }, [isOpen, existingTask, initialDate]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave({
+            id: existingTask?.id,
+            name: title,
+            status,
+            priority,
+            dueDate: date ? new Date(date).toISOString() : new Date().toISOString()
+        });
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <AnimatePresence>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    className="w-full max-w-md bg-white dark:bg-[#1e2129] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+                >
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            {existingTask ? 'Edit Event' : 'New Event'}
+                        </h2>
+                        <button
+                            onClick={onClose}
+                            className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                Event Title
+                            </label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="What needs to be done?"
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#161922] border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                    <CalendarIcon size={12} /> Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#161922] border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-gray-700 dark:text-gray-200"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                    <Flag size={12} /> Priority
+                                </label>
+                                <select
+                                    value={priority}
+                                    onChange={(e) => setPriority(e.target.value as Priority)}
+                                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#161922] border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-gray-700 dark:text-gray-200 appearance-none cursor-pointer"
+                                >
+                                    {Object.values(Priority).map((p) => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                <CheckCircle2 size={12} /> Status
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {Object.values(Status).map((s) => (
+                                    <button
+                                        key={s}
+                                        type="button"
+                                        onClick={() => setStatus(s)}
+                                        className={`px-3 py-2 text-xs font-medium rounded-lg border transition-all ${status === s
+                                            ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-200 dark:border-blue-500/50 text-blue-700 dark:text-blue-300 shadow-sm'
+                                            : 'bg-white dark:bg-[#161922] border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                                            }`}
+                                    >
+                                        {s}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm transition-colors"
+                            >
+                                {existingTask ? 'Save Changes' : 'Create Event'}
+                            </button>
+                        </div>
+                    </form>
+                </motion.div>
+            </div>
+        </AnimatePresence>
+    );
+};

@@ -761,71 +761,46 @@ const INITIAL_TASKS: Task[] = [];
 // 2. SERVICES
 // ----------------------------------------------------------------------
 
-export default React.memo(function Lists({ roomId, viewId }: { roomId: string; viewId?: string }) {
+interface ListsProps {
+    roomId: string;
+    viewId?: string;
+    tasks: any[];
+    onUpdateTasks: (tasks: any[]) => void;
+}
+
+export default React.memo(function Lists({ roomId, viewId, tasks: externalTasks, onUpdateTasks }: ListsProps) {
     // Shared Storage Keys
     const isSharedView = !viewId || viewId === 'list-main' || viewId === 'list';
-    const storageKeyTasks = !isSharedView ? `board-tasks-${roomId}-${viewId}` : `board-tasks-${roomId}`;
     const storageKeyStatuses = `board-statuses-${roomId}`;
     const getStorageKey = (base: string) => !isSharedView ? `${base}-${roomId}-${viewId}` : `${base}-${roomId}`;
 
     // ----------------------------------------------------------------------
     // STATE: TASKS
     // ----------------------------------------------------------------------
-    const [tasks, setTasks] = useState<Task[]>(() => {
-        try {
-            const saved = localStorage.getItem(storageKeyTasks);
-            if (saved) {
-                const rows = JSON.parse(saved);
-                if (Array.isArray(rows)) {
-                    return rows.map((row: any) => ({
-                        id: row.id,
-                        title: row.name || row.title || 'Untitled',
-                        status: row.statusId || row.status || 'To Do',
-                        assignees: row.assignees || [],
-                        dueDate: row.dueDate || undefined,
-                        startDate: row.startDate,
-                        priority: row.priority as Priority || Priority.NONE,
-                        tags: row.tags || [],
-                        subtasks: row.subtasks || [],
-                        isExpanded: false,
-                        selected: false,
-                        customValues: row.customValues || {}
-                    }));
-                }
-            }
-            return INITIAL_TASKS;
-        } catch (e) {
-            console.warn("Failed to parse tasks", e);
-            return INITIAL_TASKS;
-        }
-    });
+    // ----------------------------------------------------------------------
+    // STATE: TASKS
+    // ----------------------------------------------------------------------
+    const tasks = React.useMemo(() => {
+        if (!externalTasks || !Array.isArray(externalTasks)) return [];
+        return externalTasks.map((row: any) => ({
+            id: row.id,
+            title: row.name || row.title || 'Untitled',
+            status: row.statusId || row.status || 'To Do',
+            assignees: row.assignees || [],
+            dueDate: row.dueDate || undefined,
+            startDate: row.startDate,
+            priority: row.priority as Priority || Priority.NONE,
+            tags: row.tags || [],
+            subtasks: row.subtasks || [],
+            isExpanded: false,
+            selected: false,
+            customValues: row.customValues || {}
+        }));
+    }, [externalTasks]);
 
-    // EFFECT: One-time repair of task statuses (fix 'done' -> 'Done')
-    useEffect(() => {
-        let hasChanges = false;
-        const repairedTasks = tasks.map(t => {
-            const originalStatus = t.status;
-            let newStatus = originalStatus;
-
-            if (newStatus === 'done') newStatus = 'Done';
-            else if (newStatus === 'to-do' || newStatus === 'todo') newStatus = 'To Do';
-            else if (newStatus === 'in-progress' || newStatus === 'inprogress') newStatus = 'In Progress';
-
-            if (newStatus !== originalStatus) {
-                hasChanges = true;
-                return { ...t, status: newStatus };
-            }
-            return t;
-        });
-
-        if (hasChanges) {
-            setTasks(repairedTasks);
-            saveTasksToStorage(repairedTasks);
-        }
-    }, []); // Run once on mount
-
-    const saveTasksToStorage = (newTasks: Task[]) => {
-        const genericTasks = newTasks.map(t => ({
+    // Helper to propagate changes back to parent
+    const updateParent = (newTasks: Task[]) => {
+        const mappedTasks = newTasks.map(t => ({
             id: t.id,
             name: t.title,
             title: t.title,
@@ -839,12 +814,7 @@ export default React.memo(function Lists({ roomId, viewId }: { roomId: string; v
             subtasks: t.subtasks,
             customValues: t.customValues
         }));
-        localStorage.setItem(storageKeyTasks, JSON.stringify(genericTasks));
-    };
-
-    const handleTasksUpdate = (newTasks: Task[]) => {
-        setTasks(newTasks);
-        saveTasksToStorage(newTasks);
+        onUpdateTasks(mappedTasks);
     };
 
     // ----------------------------------------------------------------------
@@ -953,7 +923,8 @@ export default React.memo(function Lists({ roomId, viewId }: { roomId: string; v
                 return t;
             });
         };
-        handleTasksUpdate(toggleRecursive(tasks));
+        // Expansion state is ideally local, but for now syncing it to keep structure simple
+        updateParent(toggleRecursive(tasks));
     };
 
     const toggleSelection = (id: string) => {
@@ -964,10 +935,7 @@ export default React.memo(function Lists({ roomId, viewId }: { roomId: string; v
                 return t;
             });
         };
-        // Selection state might not need to be persisted to shared storage (it's UI state), 
-        // but for simplicity and preventing mismatch, we use handleTasksUpdate.
-        // Actually, selection is usually transient. Let's just setTasks locally for selection.
-        setTasks(toggleRecursive(tasks));
+        updateParent(toggleRecursive(tasks));
     };
 
     const addTask = (title: string, statusId: string, subtasksToAdd: string[] = [], position: 'top' | 'bottom' = 'top') => {
@@ -976,8 +944,8 @@ export default React.memo(function Lists({ roomId, viewId }: { roomId: string; v
             subtasks: subtasksToAdd.map((st, i) => ({ id: `t-${Date.now()}-${i}`, title: st, status: statusId, assignees: [], priority: Priority.NONE, tags: [], subtasks: [], isExpanded: false, selected: false })),
             isExpanded: subtasksToAdd.length > 0, selected: false
         };
-        if (position === 'top') { handleTasksUpdate([newTask, ...tasks]); setAddingTaskToGroup(null); }
-        else { handleTasksUpdate([...tasks, newTask]); setAddingTaskToGroupBottom(null); }
+        if (position === 'top') { updateParent([newTask, ...tasks]); setAddingTaskToGroup(null); }
+        else { updateParent([...tasks, newTask]); setAddingTaskToGroupBottom(null); }
     };
 
     const addSubtask = (parentId: string, title: string, subtasksToAdd: string[] = []) => {
@@ -998,13 +966,13 @@ export default React.memo(function Lists({ roomId, viewId }: { roomId: string; v
                 return t;
             });
         };
-        handleTasksUpdate(addRecursive(tasks));
+        updateParent(addRecursive(tasks));
         setAddingSubtaskTo(null);
     };
 
     const deleteTask = (id: string) => {
         const deleteRecursive = (taskList: Task[]): Task[] => taskList.filter(t => t.id !== id).map(t => ({ ...t, subtasks: deleteRecursive(t.subtasks) }));
-        handleTasksUpdate(deleteRecursive(tasks));
+        updateParent(deleteRecursive(tasks));
     };
 
     const updateTask = (id: string, updates: Partial<Task>) => {
@@ -1015,7 +983,7 @@ export default React.memo(function Lists({ roomId, viewId }: { roomId: string; v
                 return t;
             });
         };
-        handleTasksUpdate(updateRecursive(tasks));
+        updateParent(updateRecursive(tasks));
     };
 
     const addStatus = (title: string, color: string) => {
@@ -1090,9 +1058,9 @@ export default React.memo(function Lists({ roomId, viewId }: { roomId: string; v
                 }
                 return result;
             };
-            handleTasksUpdate(insertRecursive(treeWithoutSource));
+            updateParent(insertRecursive(treeWithoutSource));
         } else if (targetStatusId) {
-            handleTasksUpdate([{ ...(taskToMove as Task), status: targetStatusId, parentId: undefined }, ...treeWithoutSource]);
+            updateParent([{ ...(taskToMove as Task), status: targetStatusId, parentId: undefined }, ...treeWithoutSource]);
         }
     };
 

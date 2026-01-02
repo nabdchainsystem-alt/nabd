@@ -394,12 +394,32 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
 
     const handleUpdateRow = (id: string, updates: Partial<Row>) => {
+        // Clear any pending debounced updates to ensure we send the latest state immediately
+        if (updateTimeoutRef.current) {
+            clearTimeout(updateTimeoutRef.current);
+        }
         const updatedRows = rows.map(r => r.id === id ? { ...r, ...updates } : r);
         setRows(updatedRows);
         if (onUpdateTasks) onUpdateTasks(updatedRows);
     };
 
+    const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleTextChange = (id: string, colId: string, value: string) => {
+        const updatedRows = rows.map(r => r.id === id ? { ...r, [colId]: value } : r);
+        setRows(updatedRows);
+
+        if (updateTimeoutRef.current) {
+            clearTimeout(updateTimeoutRef.current);
+        }
+
+        updateTimeoutRef.current = setTimeout(() => {
+            if (onUpdateTasks) onUpdateTasks(updatedRows);
+        }, 800);
+    };
+
     const handleDeleteRow = (id: string) => {
+        if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
         const updatedRows = rows.filter(r => r.id !== id);
         setRows(updatedRows);
         if (onUpdateTasks) onUpdateTasks(updatedRows);
@@ -678,7 +698,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     <input
                         type="text"
                         value={value || ''}
-                        onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.value })}
+                        onChange={(e) => handleTextChange(row.id, col.id, e.target.value)}
                         className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm font-sans text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:bg-stone-50 dark:focus:bg-stone-800/50 transition-colors py-1"
                     />
                     <button
@@ -706,7 +726,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <input
                     type="text"
                     value={value || ''}
-                    onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.value })}
+                    onChange={(e) => handleTextChange(row.id, col.id, e.target.value)}
                     className="w-full h-full bg-transparent border-none outline-none px-3 text-sm text-stone-700 dark:text-stone-300 placeholder:text-stone-400 focus:bg-stone-50 dark:focus:bg-stone-800/50 transition-colors"
                 />
             </div>

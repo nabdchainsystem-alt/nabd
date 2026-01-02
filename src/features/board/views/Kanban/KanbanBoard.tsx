@@ -836,29 +836,29 @@ const Column: React.FC<ColumnProps> = ({
 
 // --- Main KanbanBoard Component ---
 
+// --- Main KanbanBoard Component ---
+
 interface KanbanBoardProps {
     boardId: string;
     viewId?: string;
+    tasks: any[];
+    onUpdateTasks: (tasks: any[]) => void;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
-    // Shared key for tasks (rows) and statuses
-    // Shared Storage Keys Logic
-    const isSharedView = !viewId || viewId === 'kanban' || viewId === 'kanban-main';
-    const tasksKey = !isSharedView ? `board-tasks-${boardId}-${viewId}` : `board-tasks-${boardId}`;
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: externalTasks, onUpdateTasks }) => {
+    // Shared key for statuses
     const statusesKey = `board-statuses-${boardId}`;
 
-    const [data, setData] = useState<BoardData>(() => {
-        let loadedTasks: Task[] = [];
+    // ----------------------------------------------------------------------
+    // STATE: COLUMNS (Local, persisted to LS)
+    // ----------------------------------------------------------------------
+    const [columns, setColumns] = useState<ColumnType[]>(() => {
         let loadedColumns: ColumnType[] = INITIAL_DATA.columns;
-
-        // Load Columns (Shared Statuses)
         try {
             const savedStatuses = localStorage.getItem(statusesKey);
             if (savedStatuses) {
                 const parsed = JSON.parse(savedStatuses);
                 if (Array.isArray(parsed)) {
-                    // Handle both simple string[] (from Table) and object[] (shared standard)
                     if (typeof parsed[0] === 'string') {
                         loadedColumns = parsed.map((s: string) => {
                             const lower = s.toLowerCase();
@@ -868,31 +868,19 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
                             else if (lower.includes('stuck') || lower.includes('block') || lower.includes('error')) color = 'red';
                             else if (lower.includes('review') || lower.includes('teat')) color = 'purple';
                             else if (lower.includes('hold') || lower.includes('wait')) color = 'yellow';
-
-                            return {
-                                id: s,
-                                title: s,
-                                color: color
-                            };
+                            return { id: s, title: s, color };
                         });
                     } else {
                         loadedColumns = parsed.map((s: any) => {
                             const title = s.label || s.title || s.id;
                             const lower = title.toLowerCase();
                             let color = s.color || 'gray';
-
-                            // Enforce vibrant color names for Kanban
                             if (lower.includes('done') || lower.includes('complete')) color = 'emerald';
                             else if (lower.includes('progress') || lower.includes('working')) color = 'blue';
                             else if (lower.includes('stuck') || lower.includes('error')) color = 'red';
                             else if (lower.includes('review')) color = 'purple';
                             else if (lower.includes('hold') || lower.includes('wait')) color = 'yellow';
-
-                            return {
-                                id: s.id || title,
-                                title: title,
-                                color: color
-                            };
+                            return { id: s.id || title, title, color };
                         });
                     }
                 }
@@ -900,73 +888,56 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
         } catch (e) {
             console.error('Failed to load shared statuses in Kanban', e);
         }
-        // Load Tasks (Shared Row Data)
-        try {
-            const savedRows = localStorage.getItem(tasksKey);
-            if (savedRows) {
-                const rows = JSON.parse(savedRows);
-                if (Array.isArray(rows)) {
-                    loadedTasks = rows.map((row: any) => ({
-                        id: row.id,
-                        title: row.name || 'Untitled',
-                        statusId: row.statusId || row.status || 'To Do',
-                        priority: row.priority ? row.priority.toLowerCase() : 'none',
-                        dueDate: row.dueDate, // Keep string ISO
-                        tags: [], // Rows don't store tags yet, defaulting empty or need to extend Row
-                        subtasks: [],
-                        assignee: '', // Row doesn't store assignee struct yet
-                        description: ''
-                    }));
-                }
-            }
-        } catch (e) {
-            console.error('Failed to load shared tasks', e);
-        }
-
-        // Return combined data
-        return { columns: loadedColumns, tasks: loadedTasks };
+        return loadedColumns;
     });
+
+    // ----------------------------------------------------------------------
+    // STATE: TASKS (Derived from Props)
+    // ----------------------------------------------------------------------
+    const tasks = useMemo<Task[]>(() => {
+        if (!externalTasks || !Array.isArray(externalTasks)) return [];
+        return externalTasks.map((row: any) => ({
+            id: row.id,
+            title: row.name || 'Untitled',
+            statusId: row.statusId || row.status || 'To Do',
+            priority: row.priority ? row.priority.toLowerCase() : 'none',
+            dueDate: row.dueDate,
+            tags: [],
+            subtasks: [],
+            assignee: '',
+            description: ''
+        }));
+    }, [externalTasks]);
+
+    // Helper to update parent
+    const updateParent = (newTasks: Task[]) => {
+        const mappedTasks = newTasks.map(t => ({
+            id: t.id,
+            name: t.title,
+            status: t.statusId,
+            statusId: t.statusId,
+            dueDate: t.dueDate || null,
+            priority: t.priority === 'none' ? null : (t.priority.charAt(0).toUpperCase() + t.priority.slice(1)),
+        }));
+        onUpdateTasks(mappedTasks);
+    };
+
     const { groupedByItem: remindersByItem, addReminder, updateReminder, deleteReminder } = useReminders(boardId);
     const [activeReminderTarget, setActiveReminderTarget] = useState<{ taskId: string; rect: DOMRect } | null>(null);
     const activeReminderTask = useMemo(
-        () => activeReminderTarget ? data.tasks.find(t => t.id === activeReminderTarget.taskId) : null,
-        [activeReminderTarget, data.tasks]
+        () => activeReminderTarget ? tasks.find(t => t.id === activeReminderTarget.taskId) : null,
+        [activeReminderTarget, tasks]
     );
-
-    // Persistence: Save Tasks to Shared Key (mapped back to Rows)
-    useEffect(() => {
-        try {
-            const rows = data.tasks.map(t => ({
-                id: t.id,
-                name: t.title,
-                status: t.statusId, // e.g. 'To Do'
-                statusId: t.statusId,
-                dueDate: t.dueDate || null,
-                priority: t.priority === 'none' ? null : (t.priority.charAt(0).toUpperCase() + t.priority.slice(1)), // shared uses Title Case 'High'
-                // Preserve other fields? Table doesn't support them yet, but we shouldn't lose them if possible.
-                // However, RoomTable writes its own Rows. Data loss risk if fields mismatch.
-                // For now, aligning strictly to requested fields: Name, Status, Date, Priority.
-            }));
-            localStorage.setItem(tasksKey, JSON.stringify(rows));
-        } catch (e) {
-            console.error('Failed to save shared tasks', e);
-        }
-    }, [data.tasks, tasksKey]);
 
     // Persistence: Save Columns (Statuses) to Shared Key
     useEffect(() => {
         try {
-            // Save as simplified object array for shared use
-            const statuses = data.columns.map(c => ({
-                id: c.id,
-                title: c.title,
-                color: c.color
-            }));
+            const statuses = columns.map(c => ({ id: c.id, title: c.title, color: c.color }));
             localStorage.setItem(statusesKey, JSON.stringify(statuses));
         } catch (e) {
             console.error('Failed to save shared statuses from Kanban', e);
         }
-    }, [data.columns, statusesKey]);
+    }, [columns, statusesKey]);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [activeHeaderMenu, setActiveHeaderMenu] = useState<'none' | 'sort' | 'filter' | 'assignee'>('none');
@@ -974,12 +945,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
     useClickOutside(headerMenuRef, () => setActiveHeaderMenu('none'));
 
     const handleTaskMove = (taskId: string, newStatusId: string) => {
-        setData(prev => {
-            const updatedTasks = prev.tasks.map(task =>
-                task.id === taskId ? { ...task, statusId: newStatusId } : task
-            );
-            return { ...prev, tasks: updatedTasks };
-        });
+        const updatedTasks = tasks.map(task =>
+            task.id === taskId ? { ...task, statusId: newStatusId } : task
+        );
+        updateParent(updatedTasks);
     };
 
     const handleAddTask = (statusId: string, title: string, overrides?: Partial<Task>) => {
@@ -993,56 +962,39 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
             dueDate: overrides?.dueDate,
             ...overrides
         };
-
-        setData(prev => ({
-            ...prev,
-            tasks: [...prev.tasks, newTask]
-        }));
+        updateParent([...tasks, newTask]);
     };
 
     const handleUpdateTask = (updatedTask: Task) => {
-        setData(prev => ({
-            ...prev,
-            tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t)
-        }));
+        const updatedTasks = tasks.map(task =>
+            task.id === updatedTask.id ? updatedTask : task
+        );
+        updateParent(updatedTasks);
     };
 
     const handleDeleteTask = (taskId: string) => {
-        setData(prev => ({
-            ...prev,
-            tasks: prev.tasks.filter(t => t.id !== taskId)
-        }));
+        const updatedTasks = tasks.filter(task => task.id !== taskId);
+        updateParent(updatedTasks);
     };
 
     const handleDuplicateTask = (task: Task) => {
         const newTask = { ...task, id: `task-${Date.now()}`, title: `${task.title} (Copy)` };
-        setData(prev => ({
-            ...prev,
-            tasks: [...prev.tasks, newTask]
-        }));
+        updateParent([...tasks, newTask]);
     };
 
     const handleClearColumn = (columnId: string) => {
         if (confirm('Are you sure you want to archive all tasks in this group?')) {
-            setData(prev => ({
-                ...prev,
-                tasks: prev.tasks.filter(t => t.statusId !== columnId)
-            }));
+            const updatedTasks = tasks.filter(task => task.statusId !== columnId);
+            updateParent(updatedTasks);
         }
     };
 
     const handleRenameColumn = (columnId: string, newTitle: string) => {
-        setData(prev => ({
-            ...prev,
-            columns: prev.columns.map(c => c.id === columnId ? { ...c, title: newTitle } : c)
-        }));
+        setColumns(prev => prev.map(c => c.id === columnId ? { ...c, title: newTitle } : c));
     };
 
     const handleColorChange = (columnId: string, newColor: string) => {
-        setData(prev => ({
-            ...prev,
-            columns: prev.columns.map(c => c.id === columnId ? { ...c, color: newColor } : c)
-        }));
+        setColumns(prev => prev.map(c => c.id === columnId ? { ...c, color: newColor } : c));
     };
 
     const handleAddGroup = () => {
@@ -1053,31 +1005,25 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
                 title: title,
                 color: 'gray'
             };
-            setData(prev => ({
-                ...prev,
-                columns: [...prev.columns, newColumn]
-            }));
+            setColumns(prev => [...prev, newColumn]);
         }
     };
 
-    const filteredTasks = data.tasks.filter(t =>
+    const filteredTasks = tasks.filter(t =>
         t.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const handleDeleteColumn = (columnId: string) => {
         if (confirm('Are you sure you want to delete this group? All tasks within it will be deleted.')) {
-            setData(prev => ({
-                ...prev,
-                columns: prev.columns.filter(c => c.id !== columnId),
-                tasks: prev.tasks.filter(t => t.statusId !== columnId)
-            }));
+            setColumns(prev => prev.filter(c => c.id !== columnId));
+            const updatedTasks = tasks.filter(t => t.statusId !== columnId);
+            updateParent(updatedTasks);
         }
     };
 
     return (
 
         <div className="flex flex-col h-full bg-white dark:bg-stone-950 text-stone-800 dark:text-stone-100 font-sans transition-colors duration-300">
-            {/* Top Header */}
             {/* Top Header */}
             <header className="flex-none px-8 py-5 flex items-center justify-between bg-white dark:bg-stone-900/80 backdrop-blur-xl z-20 relative border-b border-stone-200 dark:border-stone-800">
                 <div className="flex items-center gap-3">
@@ -1154,7 +1100,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
             {/* Kanban Board Area */}
             <main className="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-4 pt-6 bg-white dark:bg-stone-950">
                 <div className="flex h-full gap-8">
-                    {data.columns.map(col => (
+                    {columns.map(col => (
                         <Column
                             key={col.id}
                             column={col}
@@ -1179,8 +1125,10 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
                             onClick={handleAddGroup}
                             className="flex items-center gap-2 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 transition-colors group px-2"
                         >
-                            <PlusIcon size={20} className="group-hover:bg-stone-200 dark:group-hover:bg-stone-800 rounded p-0.5" />
-                            <span className="text-sm font-medium">Add group</span>
+                            <div className="w-6 h-6 rounded bg-stone-100 dark:bg-stone-800 text-stone-400 group-hover:bg-stone-200 dark:group-hover:bg-stone-700 flex items-center justify-center transition-colors">
+                                <PlusIcon size={16} />
+                            </div>
+                            <span className="text-sm font-medium">Add Group</span>
                         </button>
                     </div>
                 </div>
@@ -1213,3 +1161,4 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId }) => {
 };
 
 export default KanbanBoard;
+

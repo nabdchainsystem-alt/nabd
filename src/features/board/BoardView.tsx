@@ -30,6 +30,26 @@ import {
     ArrowUpDown,
     RotateCw
 } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragOverlay,
+    defaultDropAnimationSideEffects,
+    DragStartEvent,
+    DragEndEvent
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    horizontalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Board, BoardViewType } from '../../types';
 import Lists from './views/List/Lists';
 import RoomTable from './views/Table/RoomTable';
@@ -37,7 +57,7 @@ import DiscussionPage from '../discussion/DiscussionPage';
 import KanbanBoard from './views/Kanban/KanbanBoard';
 import { DocView } from './views/Doc/DocView';
 
-
+import { useRoomBoardData } from './hooks/useRoomBoardData';
 import CalendarView from './views/Calendar/CalendarView';
 import { PortalPopup } from '../../components/ui/PortalPopup';
 import { Sparkles } from 'lucide-react';
@@ -59,6 +79,71 @@ import WorkloadView from '../tools/WorkloadView';
 import RecurringLogicView from '../tools/RecurringLogicView';
 import SmartSheetView from '../tools/SpreadsheetView';
 
+// --- Sortable Tab Component ---
+interface SortableTabProps {
+    viewId: string;
+    isActive: boolean;
+    label: string;
+    icon: React.ElementType;
+    isPinned?: boolean;
+    onClick: () => void;
+    onContextMenu: (e: React.MouseEvent) => void;
+}
+
+const SortableTab = ({ viewId, isActive, label, icon: Icon, isPinned, onClick, onContextMenu }: SortableTabProps) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: viewId });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.3 : 1,
+        zIndex: isDragging ? 999 : 'auto',
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            onClick={onClick}
+            onContextMenu={onContextMenu}
+            className={`flex items-center gap-2 py-1.5 border-b-2 text-[13px] font-medium transition-colors whitespace-nowrap select-none ${isActive
+                ? 'border-slate-900 text-slate-900 dark:text-slate-100'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+        >
+            <div className="relative">
+                <Icon size={16} />
+                {isPinned && (
+                    <div className="absolute -top-1.5 -right-1.5 bg-white dark:bg-[#1a1d24] rounded-full p-0.5 shadow-sm">
+                        <Pin size={8} className="text-blue-500 fill-current" />
+                    </div>
+                )}
+            </div>
+            <span>{label}</span>
+            {isActive && viewId !== 'overview' && (
+                <div className="ml-1 p-0.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-400 hover:text-blue-600 transition-colors"
+                    // onMouseDown to prevent drag start on the menu button
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onContextMenu(e);
+                    }}>
+                    <MoreHorizontal size={14} />
+                </div>
+            )}
+        </div>
+    );
+};
+
 interface BoardViewProps {
     board: Board;
     onUpdateBoard?: (boardId: string, updates: Partial<Board>) => void;
@@ -67,11 +152,27 @@ interface BoardViewProps {
     dashboardSections?: any[];
 }
 
-export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUpdateTasks, renderCustomView, dashboardSections }) => {
+export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpdateBoard: initialOnUpdateBoard, onUpdateTasks: initialOnUpdateTasks, renderCustomView, dashboardSections }) => {
+    // Assuming useRoomBoardData is a custom hook that provides board data and task management functions
+    // and that 'effectiveKey' is defined elsewhere or needs to be passed as a prop.
+    // For this change, we'll assume 'effectiveKey' is available or can be derived from initialBoard.id
+    const effectiveKey = initialBoard.id; // Placeholder for effectiveKey
+
+    // Use props if provided, or fallback to hook. 
+    // Ideally, if we are in a "controlled" mode (lifting state up), we might not use the hook at all?
+    // But the current architecture seems to mix them.
+    // Let's use the hook for internal state management where needed.
+    const { board, tasks, addTask, updateTask, onUpdateTasks } = useRoomBoardData(effectiveKey, initialBoard);
+
+    // Use the prop 'onUpdateBoard' if it exists, otherwise we might need a local handler if the hook provided one (it doesn't currently).
+    // The hook provides 'setBoard'.
+    const onUpdateBoard = initialOnUpdateBoard;
+
     const storageKey = `board-active-view-${board.id}`;
 
     const normalizeViewId = (viewId?: string | null): BoardViewType | null => {
-        if (viewId === 'listboard' || viewId === 'list_board') return 'list';
+        // Cast to any to avoid "no overlap" error for legacy values
+        if ((viewId as any) === 'listboard' || (viewId as any) === 'list_board') return 'list';
         return viewId as BoardViewType | null;
     };
 
@@ -95,6 +196,54 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
         return 'kanban';
     });
     const [showAddViewMenu, setShowAddViewMenu] = useState(false);
+    const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 5, // minimum distance before drag starts
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveDragId(event.active.id as string);
+    };
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveDragId(null);
+
+        if (over && active.id !== over.id && onUpdateBoard) {
+            const oldIndex = sanitizedAvailableViews.indexOf(active.id as BoardViewType);
+            const newIndex = sanitizedAvailableViews.indexOf(over.id as BoardViewType);
+
+            // "Overview" is implicitly at index 0 if present but not sortable?
+            // Actually, our sanitizedAvailableViews includes overview.
+            // But we will ONLY render sortable items for non-overview views.
+            // So we need to work on the list of draggable items.
+
+            // NOTE: The implementation plan says "Overview" is fixed.
+            // So we should operate on the sub-list of draggable views.
+
+            const draggableViews = sanitizedAvailableViews.filter(v => v !== 'overview');
+            const draggingIndex = draggableViews.indexOf(active.id as BoardViewType);
+            const overIndex = draggableViews.indexOf(over.id as BoardViewType);
+
+            if (draggingIndex !== -1 && overIndex !== -1) {
+                const newDraggableOrder = arrayMove(draggableViews, draggingIndex, overIndex);
+                // Reconstruct full list: Overview + new draggable order
+                const newFullOrder = ['overview', ...newDraggableOrder] as BoardViewType[];
+
+                onUpdateBoard(board.id, { availableViews: newFullOrder });
+            }
+        }
+    };
+
+    // ... existing state ...
     const [showInfoMenu, setShowInfoMenu] = useState(false);
     const [showAIMenu, setShowAIMenu] = useState(false);
     const aiButtonRef = useRef<HTMLButtonElement>(null);
@@ -373,14 +522,22 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
                     <OverviewView boardId={board.id} />
                 );
             case 'kanban':
-                return <KanbanBoard key={board.id} boardId={board.id} />;
+                return (
+                    <KanbanBoard
+                        key={board.id}
+                        boardId={board.id}
+                        viewId="kanban-main"
+                        tasks={tasks}
+                        onUpdateTasks={onUpdateTasks}
+                    />
+                );
             case 'table':
                 return (
                     <RoomTable
                         key={board.id}
                         roomId={board.id}
                         viewId="table-main"
-                        tasks={board.tasks}
+                        tasks={tasks}
                         onUpdateTasks={onUpdateTasks}
                     />
                 );
@@ -394,7 +551,14 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
 
 
             case 'list':
-                return <Lists roomId={board.id} viewId="list-main" />;
+                return (
+                    <Lists
+                        roomId={board.id}
+                        viewId="list-main"
+                        tasks={tasks}
+                        onUpdateTasks={onUpdateTasks}
+                    />
+                );
             case 'calendar':
                 return <CalendarView key={board.id} roomId={board.id} />;
             case 'pivot_table':
@@ -422,7 +586,15 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
             case 'warehouse_capacity_map':
                 return renderCustomView ? renderCustomView('warehouse_capacity_map') : null;
             default:
-                return <KanbanBoard key={board.id} boardId={board.id} />;
+                return (
+                    <KanbanBoard
+                        key={board.id}
+                        boardId={board.id}
+                        viewId="kanban-main"
+                        tasks={board.tasks}
+                        onUpdateTasks={onUpdateTasks}
+                    />
+                );
         }
     };
 
@@ -437,16 +609,30 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
     }
 
     // Sort: Overview first, then Pinned views, then others
-    const pinned = board.pinnedViews || [];
-    availableViews.sort((a, b) => {
-        if (a === 'overview') return -1;
-        if (b === 'overview') return 1;
-        const aPinned = pinned.includes(a);
-        const bPinned = pinned.includes(b);
-        if (aPinned && !bPinned) return -1;
-        if (!aPinned && bPinned) return 1;
-        return 0;
-    });
+    // Sort: Overview first, then RESPECT availableViews order (which is draggable now)
+    // const pinned = board.pinnedViews || [];
+    // availableViews.sort((a, b) => {
+    //     if (a === 'overview') return -1;
+    //     if (b === 'overview') return 1;
+    //     const aPinned = pinned.includes(a);
+    //     const bPinned = pinned.includes(b);
+    //     if (aPinned && !bPinned) return -1;
+    //     if (!aPinned && bPinned) return 1;
+    //     return 0;
+    // });
+
+    // Ensure Overview is first if present in availableViews, but don't double add it
+    // Actually, our DnD logic manages 'overview' + rest.
+    // So we just rely on `sanitizedAvailableViews` order, which comes from board.availableViews.
+    // BUT we need to make sure overview is at index 0 if it exists.
+
+    // If board.availableViews is used as source of truth, we trust it.
+    // The previous sorting logic forced overview to 0. We should probably keep that safeguard or just trust the drag handler.
+    // Let's rely on the drag handler's robust "['overview', ...others]" construction.
+
+    // However, for initial render or legacy data, we might want to ensure overview is first.
+    // But sort() mutates array in place.
+    // Let's just avoid sorting.
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-transparent">
@@ -533,44 +719,81 @@ export const BoardView: React.FC<BoardViewProps> = ({ board, onUpdateBoard, onUp
                 {/* Tabs Row */}
                 <div className="flex items-center gap-0 pr-6 border-b border-gray-200 dark:border-gray-800">
                     <div className="flex items-center justify-start gap-6 overflow-x-auto no-scrollbar max-w-full">
-                        {/* Dynamic Tab Rendering via availableViews */}
-                        {availableViews.map((viewId) => {
-                            const option = VIEW_OPTIONS.find(v => v.id === viewId);
-                            // If option not found (e.g. legacy view ID), skip
-                            if (!option) return null;
-                            const Icon = option.icon;
-
-                            // Check for custom name
-                            const customNames = JSON.parse(localStorage.getItem(`board-view-names-${board.id}`) || '{}');
-                            const label = customNames[viewId] || option.label;
-
+                        {/* Fixed "Overview" Tab */}
+                        {sanitizedAvailableViews.includes('overview') && (() => {
+                            const overviewOption = VIEW_OPTIONS.find(v => v.id === 'overview');
+                            if (!overviewOption) return null;
+                            const Icon = overviewOption.icon;
                             return (
+
                                 <button
-                                    key={viewId}
-                                    onClick={() => setActiveView(viewId as BoardViewType)}
-                                    onContextMenu={(e) => handleContextMenu(e, viewId as BoardViewType)}
-                                    className={`flex items-center gap-2 py-1.5 border-b-2 text-[13px] font-medium transition-colors whitespace-nowrap ${activeView === viewId
+                                    onClick={() => setActiveView('overview')}
+                                    onContextMenu={(e) => handleContextMenu(e, 'overview')}
+                                    className={`flex items-center gap-2 py-1.5 border-b-2 text-[13px] font-medium transition-colors whitespace-nowrap ${activeView === 'overview'
                                         ? 'border-slate-900 text-slate-900 dark:text-slate-100'
                                         : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                         }`}
                                 >
-                                    <div className="relative">
-                                        <Icon size={16} />
-                                        {board.pinnedViews?.includes(viewId as any) && (
-                                            <div className="absolute -top-1.5 -right-1.5 bg-white dark:bg-[#1a1d24] rounded-full p-0.5 shadow-sm">
-                                                <Pin size={8} className="text-blue-500 fill-current" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <span>{label}</span>
-                                    {activeView === viewId && viewId !== 'overview' && (
-                                        <div className="ml-1 p-0.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-400 hover:text-blue-600 transition-colors" onClick={(e) => { e.stopPropagation(); /* Context menu logic */ handleContextMenu(e, viewId as BoardViewType); }}>
-                                            <MoreHorizontal size={14} />
-                                        </div>
-                                    )}
+                                    <Icon size={16} />
+                                    <span>{overviewOption.label}</span>
                                 </button>
                             );
-                        })}
+                        })()}
+
+                        {/* Draggable Tabs */}
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragStart={handleDragStart}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <SortableContext
+                                items={sanitizedAvailableViews.filter(v => v !== 'overview')}
+                                strategy={horizontalListSortingStrategy}
+                            >
+                                {sanitizedAvailableViews.filter(v => v !== 'overview').map((viewId) => {
+                                    const option = VIEW_OPTIONS.find(v => v.id === viewId);
+                                    if (!option) return null;
+
+                                    const customNames = JSON.parse(localStorage.getItem(`board-view-names-${board.id}`) || '{}');
+                                    const label = customNames[viewId] || option.label;
+                                    const isActive = activeView === viewId;
+                                    const isPinned = board.pinnedViews?.includes(viewId);
+
+                                    return (
+                                        <SortableTab
+                                            key={viewId}
+                                            viewId={viewId}
+                                            isActive={isActive}
+                                            label={label}
+                                            icon={option.icon}
+                                            isPinned={isPinned}
+                                            onClick={() => setActiveView(viewId as BoardViewType)}
+                                            onContextMenu={(e) => handleContextMenu(e, viewId as BoardViewType)}
+                                        />
+                                    );
+                                })}
+                            </SortableContext>
+
+                            {/* Drag Overlay for smooth visual feedback */}
+                            <DragOverlay adjustScale={false}>
+                                {activeDragId ? (() => {
+                                    const option = VIEW_OPTIONS.find(v => v.id === activeDragId);
+                                    if (!option) return null;
+                                    const customNames = JSON.parse(localStorage.getItem(`board-view-names-${board.id}`) || '{}');
+                                    const label = customNames[activeDragId] || option.label;
+                                    return (
+
+                                        <button className="flex items-center gap-2 py-1.5 border-b-2 border-slate-900 text-[13px] font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap bg-white dark:bg-[#1a1d24] shadow-lg rounded opacity-90 cursor-grabbing">
+                                            <div className="relative">
+                                                <option.icon size={16} />
+                                            </div>
+                                            <span>{label}</span>
+                                        </button>
+                                    );
+                                })() : null}
+                            </DragOverlay>
+                        </DndContext>
                     </div>
 
                     {/* Add View Button - Always at the end, outside scroll container */}

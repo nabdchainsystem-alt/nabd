@@ -43,8 +43,45 @@ const INITIAL_BOARD: IBoard = {
     ]
 };
 
-export const useRoomBoardData = (storageKey: string) => {
-    const [board, setBoard] = useState<IBoard>(INITIAL_BOARD);
+import { Board } from '../../../types';
+
+export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard | Board) => {
+    const [board, setBoard] = useState<IBoard>(() => {
+        if (!initialBoardData) return INITIAL_BOARD;
+
+        // Check if it's already an IBoard (has groups)
+        if ('groups' in initialBoardData && (initialBoardData as IBoard).groups) {
+            return initialBoardData as IBoard;
+        }
+
+        // Convert flat Board to IBoard
+        const flatBoard = initialBoardData as Board;
+        return {
+            id: flatBoard.id,
+            name: flatBoard.name,
+            description: flatBoard.description,
+            availableViews: flatBoard.availableViews,
+            pinnedViews: flatBoard.pinnedViews,
+            defaultView: flatBoard.defaultView,
+            groups: [{
+                id: 'default-group',
+                title: 'Tasks',
+                color: '#579bff',
+                tasks: (flatBoard.tasks || []).map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    status: t.status as Status,
+                    priority: t.priority as Priority,
+                    personId: t.person,
+                    dueDate: t.date,
+                    textValues: {},
+                    selected: false
+                })),
+                columns: flatBoard.columns as any[],
+                isPinned: false
+            }]
+        };
+    });
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [isAiLoading, setIsAiLoading] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
@@ -213,9 +250,71 @@ export const useRoomBoardData = (storageKey: string) => {
     const handleGeneratePlan = useCallback(() => { }, []);
     const handleAnalyzeBoard = useCallback(() => { }, []);
 
+    // Flatten tasks from all groups for views that need a flat list
+    const tasks = board.groups.flatMap(g => g.tasks);
+
+    // Update tasks from a flat list (reconcile with groups)
+    const onUpdateTasks = useCallback((updatedTasks: any[]) => {
+        setBoard(prev => {
+            // Create a map for faster lookup
+            const updatedTaskMap = new Map(updatedTasks.map(t => [t.id, t]));
+
+            const newGroups = prev.groups.map(g => {
+                // 1. Update existing tasks in the group
+                let newGroupTasks = g.tasks.map(t => {
+                    const updated = updatedTaskMap.get(t.id);
+                    if (updated) {
+                        // Remove from map to track which ones are handled
+                        updatedTaskMap.delete(t.id);
+                        return { ...t, ...updated };
+                    }
+                    return t;
+                });
+
+                // 2. Handle deletions:
+                // If the view sending updates intends to represent the FULL state, 
+                // we might need to remove tasks that are missing.
+                // However, updatedTasks might be filtered. 
+                // For now, we assume 'onUpdateTasks' acts as "upsert/update" for existing methods.
+                // But RoomTable sends the *entire* list of rows it knows about.
+                // If we want to support deletion via this method, we need to know if the suppression was intentional.
+                // Given the current architecture, let's stick to UPDATING content and ADDING new tasks if they have a group ID (or default).
+                // But RoomTable adds new tasks with ID but no group ID.
+
+                return { ...g, tasks: newGroupTasks };
+            });
+
+            // 3. Handle New Tasks (remaining in map)
+            // If there are tasks in updatedTasks that weren't in any group, add them to the first group
+            if (updatedTaskMap.size > 0 && newGroups.length > 0) {
+                const newTasksToAdd: ITask[] = [];
+                updatedTaskMap.forEach((task) => {
+                    // Ensure it looks like a task
+                    newTasksToAdd.push({
+                        id: task.id || uuidv4(),
+                        name: task.name || 'New Task',
+                        status: task.status || Status.New,
+                        priority: task.priority || Priority.Normal,
+                        personId: task.personId || null,
+                        dueDate: task.dueDate || '',
+                        textValues: task.textValues || {},
+                        selected: false,
+                        ...task
+                    });
+                });
+
+                newGroups[0].tasks = [...newGroups[0].tasks, ...newTasksToAdd];
+            }
+
+            return { ...prev, groups: newGroups };
+        });
+    }, []);
+
     return {
         board,
         setBoard,
+        tasks, // Export flattened tasks
+        onUpdateTasks, // Export update handler
         aiPrompt,
         setAiPrompt,
         isAiLoading,

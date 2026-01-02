@@ -266,7 +266,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <button
                         onClick={() => onNavigate('dashboard')}
                         title={t('home')}
-                        className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1 rounded-md transition-colors ${activeView === 'dashboard' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                        className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1 rounded-md transition-colors ${activeView === 'dashboard' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                     >
                         <Home size={18} />
                         <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>{t('home')}</span>
@@ -275,7 +275,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             onClick={() => onNavigate('flow_hub')}
                             title="Flow Hub"
-                            className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1 rounded-md transition-colors ${activeView === 'flow_hub' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                            className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1 rounded-md transition-colors ${activeView === 'flow_hub' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                         >
                             <Sparkles size={18} />
                             <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>Flow Hub</span>
@@ -285,7 +285,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             onClick={() => onNavigate('process_map')}
                             title="Process Map"
-                            className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1 rounded-md transition-colors ${activeView === 'process_map' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                            className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1 rounded-md transition-colors ${activeView === 'process_map' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                         >
                             <Activity size={18} />
                             <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>Process Map</span>
@@ -295,7 +295,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             onClick={() => onNavigate('my_work')}
                             title={t('my_work')}
-                            className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1 rounded-md transition-colors ${activeView === 'my_work' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                            className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1 rounded-md transition-colors ${activeView === 'my_work' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                         >
                             <Grid size={18} />
                             <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>{t('my_work')}</span>
@@ -307,7 +307,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             onClick={() => onNavigate('inbox')}
                             title={t('inbox')}
-                            className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1 rounded-md transition-colors ${activeView === 'inbox' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                            className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1 rounded-md transition-colors ${activeView === 'inbox' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                         >
                             <Inbox size={18} />
                             <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>{t('inbox')}</span>
@@ -317,7 +317,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             onClick={() => onNavigate('discussion')}
                             title="Discussion"
-                            className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1 rounded-md transition-colors ${activeView === 'discussion' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                            className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1 rounded-md transition-colors ${activeView === 'discussion' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                         >
                             <MessageSquare size={18} />
                             <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>Discussion</span>
@@ -328,7 +328,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             onClick={() => onNavigate('teams')}
                             title={t('teams')}
-                            className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1 rounded-md transition-colors ${activeView === 'teams' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                            className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1 rounded-md transition-colors ${activeView === 'teams' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                         >
                             <Users size={18} />
                             <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>{t('teams')}</span>
@@ -338,7 +338,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             onClick={() => onNavigate('vault')}
                             title={t('vault')}
-                            className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1 rounded-md transition-colors ${activeView === 'vault' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                            className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1 rounded-md transition-colors ${activeView === 'vault' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                         >
                             <Lock size={18} />
                             <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>{t('vault')}</span>
@@ -367,11 +367,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     onClick={() => !isCollapsed && toggleDepartment('supply_chain')}
                                     title="Supply Chain"
                                 >
-                                    <div className="flex items-center gap-2 truncate">
+                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
                                         <Boxes size={18} className="text-gray-500" />
                                         <span className={`text-sm font-medium ${textBase} ${textVisibility}`}>Supply Chain</span>
                                     </div>
-                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`} />
+                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
                                 </div>
                                 {expandedDepartments.has('supply_chain') && !isCollapsed && (
                                     <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -418,11 +418,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     onClick={() => !isCollapsed && toggleDepartment('operations')}
                                     title="Operations"
                                 >
-                                    <div className="flex items-center gap-2 truncate">
+                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
                                         <Factory size={18} className="text-gray-500" />
                                         <span className={`text-sm font-medium ${textBase} ${textVisibility}`}>Operations</span>
                                     </div>
-                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`} />
+                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
                                 </div>
                                 {expandedDepartments.has('operations') && !isCollapsed && (
                                     <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -454,11 +454,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     onClick={() => !isCollapsed && toggleDepartment('business')}
                                     title="Business"
                                 >
-                                    <div className="flex items-center gap-2 truncate">
+                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
                                         <Building2 size={18} className="text-gray-500" />
                                         <span className={`text-sm font-medium ${textBase} ${textVisibility}`}>Business</span>
                                     </div>
-                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('business') ? 'rotate-180' : ''} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`} />
+                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('business') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
                                 </div>
                                 {expandedDepartments.has('business') && !isCollapsed && (
                                     <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -495,11 +495,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     onClick={() => !isCollapsed && toggleDepartment('business_support')}
                                     title="Business Support"
                                 >
-                                    <div className="flex items-center gap-2 truncate">
+                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
                                         <Users size={18} className="text-gray-500" />
                                         <span className={`text-sm font-medium ${textBase} ${textVisibility}`}>Support</span>
                                     </div>
-                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('business_support') ? 'rotate-180' : ''} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`} />
+                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${expandedDepartments.has('business_support') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
                                 </div>
                                 {expandedDepartments.has('business_support') && !isCollapsed && (
                                     <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -537,7 +537,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     <div
                                         key={board.id}
                                         onClick={() => onNavigate('board', board.id)}
-                                        className="flex items-center space-x-2 rtl:space-x-reverse text-gray-700 dark:text-monday-dark-text cursor-pointer hover:bg-white/40 dark:hover:bg-monday-dark-hover p-2 rounded transition-colors group"
+                                        className={`flex items-center ${!isCollapsed ? 'space-x-2 rtl:space-x-reverse' : ''} text-gray-700 dark:text-monday-dark-text cursor-pointer hover:bg-white/40 dark:hover:bg-monday-dark-hover p-2 rounded transition-colors group`}
                                     >
                                         <div className="w-1.5 h-1.5 rounded-full bg-monday-blue"></div>
                                         <span className="text-sm truncate flex-1">{board.name}</span>
@@ -736,7 +736,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <button
                                     onClick={() => onNavigate('local_marketplace')}
                                     title="Local Marketplace"
-                                    className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1.5 rounded-md transition-colors ${activeView === 'local_marketplace' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                                    className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1.5 rounded-md transition-colors ${activeView === 'local_marketplace' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                                 >
                                     <ShoppingCart size={16} />
                                     <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>Local Marketplace</span>
@@ -746,7 +746,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <button
                                     onClick={() => onNavigate('foreign_marketplace')}
                                     title="Foreign Marketplace"
-                                    className={`flex items-center space-x-3 rtl:space-x-reverse w-full px-3 py-1.5 rounded-md transition-colors ${activeView === 'foreign_marketplace' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
+                                    className={`flex items-center ${!isCollapsed ? 'space-x-3 rtl:space-x-reverse' : ''} w-full px-3 py-1.5 rounded-md transition-colors ${activeView === 'foreign_marketplace' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} ${isCollapsed ? 'justify-center' : ''}`}
                                 >
                                     <Globe size={16} />
                                     <span className={`font-normal text-sm truncate min-w-0 flex-1 text-start ${textBase} ${textVisibility}`}>Foreign Marketplace</span>

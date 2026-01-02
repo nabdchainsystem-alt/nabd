@@ -69,4 +69,8 @@ export interface IBoard {
     id: string;
     name: string;
     groups: IGroup[];
+    availableViews?: string[];
+    pinnedViews?: string[];
+    description?: string;
+    defaultView?: string;
 }

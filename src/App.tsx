@@ -336,6 +336,12 @@ const AppContent: React.FC = () => {
     </div>
   );
 
+  const handleUpdateTasks = (tasks: any[]) => {
+    if (activeBoardId) {
+      setBoards(prevBoards => prevBoards.map(b => b.id === activeBoardId ? { ...b, tasks } : b));
+    }
+  };
+
   return (
     <div className="flex flex-col h-full w-full bg-[#FCFCFD] dark:bg-monday-dark-bg font-sans text-[#323338] dark:text-monday-dark-text transition-colors duration-200">
       <TopBar onNavigate={handleNavigate} />
@@ -368,7 +374,12 @@ const AppContent: React.FC = () => {
             {activeView === 'dashboard' ? (
               <Dashboard onBoardCreated={handleBoardCreated} />
             ) : activeView === 'board' && activeBoard ? (
-              <BoardView key={activeBoard.id} board={activeBoard} onUpdateBoard={handleUpdateBoard} />
+              <BoardView
+                key={activeBoard.id}
+                board={activeBoard}
+                onUpdateBoard={handleUpdateBoard}
+                onUpdateTasks={handleUpdateTasks}
+              />
             ) : activeView === 'inbox' ? (
               <InboxView />
             ) : activeView === 'discussion' ? (
