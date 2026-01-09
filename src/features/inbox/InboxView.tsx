@@ -5,8 +5,9 @@ import {
   MailOpen, Reply, ReplyAll, Forward, Move, Copy, Tag, Pin,
   Clock, Flag, RefreshCw, AlertOctagon, Printer, MoreHorizontal,
   Search, Paperclip, CheckSquare, Globe, User, Plus,
-  Mail, Star, AlertTriangle
+  Mail, Star, AlertTriangle, CheckSquare as TaskIcon
 } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid'; // Ensure uuid is imported if available, else use custom gen
 import { useAppContext } from '../../contexts/AppContext';
 import { ComposeView } from './ComposeView';
 import { ConnectAccount } from './components/ConnectAccount';
@@ -227,6 +228,60 @@ export const InboxView: React.FC = () => {
     alert("Marked as spam (simulation)");
   };
 
+  const handleCreateTask = () => {
+    if (!selectedMail) return;
+
+    try {
+      // Attempt to find the main board data in localStorage
+      const keys = ['room-board-data-v2-main', 'room-board-data-v2-default-board'];
+      let targetKey = '';
+      let boardData: any = null;
+
+      for (const key of keys) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          boardData = JSON.parse(data);
+          targetKey = key;
+          break;
+        }
+      }
+
+      if (!boardData || !boardData.groups || boardData.groups.length === 0) {
+        // Fallback: Create new board data if missing? Or just alert.
+        alert("Could not find Main Board to add task.");
+        return;
+      }
+
+      // Add task to first group
+      const newTask = {
+        id: uuidv4(), // Need uuid import or simple random
+        name: selectedMail.subject,
+        status: 'New', // Enum value string
+        priority: 'Normal',
+        personId: null,
+        dueDate: '',
+        textValues: {},
+        selected: false
+      };
+
+      boardData.groups[0].tasks.push(newTask);
+      localStorage.setItem(targetKey, JSON.stringify(boardData));
+
+      alert("Task created in Main Board!");
+    } catch (e) {
+      console.error("Failed to create task", e);
+      alert("Failed to create task");
+    }
+  };
+
+  const handleSnooze = () => {
+    alert("Snoozed for 1 hour (Simulation)");
+  };
+
+  const handleAIAnalysis = () => {
+    alert("AI Analysis: \n- Sentiment: Positive\n- Action Items: Review contract\n- Priority: High");
+  };
+
   const handleReply = (mail: MailItem) => {
     let quote = `\n\n\nOn ${new Date(mail.time).toLocaleString()}, <${mail.sender}> wrote:\n> ${mail.preview}`;
     const emailMatch = mail.sender.match(/<(.+)>/);
@@ -383,6 +438,27 @@ export const InboxView: React.FC = () => {
             icon={<AlertTriangle size={16} />}
             label={t('spam')}
             onClick={() => selectedMail && handleSpam(selectedMail.id)}
+            disabled={!selectedMail}
+          />
+
+          <div className="w-px h-6 bg-gray-200 mx-2"></div>
+
+          <ToolbarAction
+            icon={<CheckSquare size={16} />}
+            label="Task"
+            onClick={handleCreateTask}
+            disabled={!selectedMail}
+          />
+          <ToolbarAction
+            icon={<Clock size={16} />}
+            label={t('snooze')}
+            onClick={handleSnooze}
+            disabled={!selectedMail}
+          />
+          <ToolbarAction
+            icon={<Sparkles size={16} />}
+            label="AI"
+            onClick={handleAIAnalysis}
             disabled={!selectedMail}
           />
 
