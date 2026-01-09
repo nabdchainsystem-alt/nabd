@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@azure/msal-node": "^3.8.4",
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

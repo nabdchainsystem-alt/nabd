@@ -10,15 +10,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User System (SaaS)
+model User {
+  id        String   @id // Will store the Auth Provider ID (e.g. Clerk user_id)
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  procurementRequests ProcurementRequest[]
+  rfqs               RFQ[]
+  orders             Order[]
+  boards             Board[]
+  rooms              Room[]
+  emailAccounts      EmailAccount[]
+}
+
 // Procurement System
 model ProcurementRequest {
   id             String    @id
+  userId         String    // SaaS Multi-tenancy
   name           String
-  date           String // Storing dates as string for simplicity to match frontend 'YYYY-MM-DD'
+  date           String 
   department     String
   warehouse      String?
   relatedTo      String?
-  status         String    @default("Pending") // Pending, Approved, Rejected
+  status         String    @default("Pending")
   priority       String    @default("Normal")
   isUrgent       Boolean   @default(false)
   approvalStatus String    @default("Pending")
@@ -26,6 +43,7 @@ model ProcurementRequest {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   items RequestItem[]
   rfqs  RFQ[]
 }
@@ -44,6 +62,7 @@ model RequestItem {
 
 model RFQ {
   id          String   @id
+  userId      String   // SaaS Multi-tenancy
   requestId   String?
   date        String
   department  String
@@ -51,19 +70,18 @@ model RFQ {
   supplier    String
   value       Float    @default(0)
   dueDate     String?
-  status      String   @default("Open") // Open, Sent to PO, Closed
+  status      String   @default("Open")
   createdDate String
   relatedTo   String?
   sentToOrder Boolean  @default(false)
   orderId     String?
   
-  // Aggregate fields often stored on the parent in the JSON, but can be computed. 
-  // We keep them fore compatibility with frontend which reads them directly
   unitPrice   Float?
   quantity    Float?
   vatAmount   Float?
   totalExVat  Float?
 
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   request ProcurementRequest? @relation(fields: [requestId], references: [id])
   items   RFQItem[]
   Order   Order[]
@@ -83,6 +101,7 @@ model RFQItem {
 
 model Order {
   id          String   @id
+  userId      String   // SaaS Multi-tenancy
   rfqId       String?
   requestId   String?
   supplier    String
@@ -96,7 +115,8 @@ model Order {
   approvals   String?
   relatedTo   String?
   
-  rfq   RFQ? @relation(fields: [rfqId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rfq   RFQ?  @relation(fields: [rfqId], references: [id])
   items OrderItem[]
 }
 
@@ -115,15 +135,18 @@ model OrderItem {
 // Board System
 model Board {
   id             String   @id @default(uuid())
-  name           String   // Changed from title to name to match frontend
+  userId         String   // SaaS Multi-tenancy
+  name           String   
   description    String?
-  availableViews String?  // JSON string
-  pinnedViews    String?  // JSON string
-  columns        String?  // JSON string
+  availableViews String?  
+  pinnedViews    String?  
+  columns        String?  
   defaultView    String?
-  cards          Card[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards Card[]
 }
 
 model Card {
@@ -138,30 +161,23 @@ model Card {
 // Room/Table System
 model Room {
   id        String   @id @default(uuid())
+  userId    String   // SaaS Multi-tenancy
   name      String
   type      String   @default("table")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  rows      Row[]
+  
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rows Row[]
 }
 
 model Row {
   id        String   @id @default(uuid())
   roomId    String
-  data      String   // Storing dynamic row data as JSON string (Prisma 5+ SQLite doesn't strictly enforce JSON type on string field but usually we use @map? No, standard String is fine for JSON.stringify)
-                   // actually, we can try to use standard fields if we know them, but for generic table it varies.
-                   // Let's use `data` field to store the entire row object stringified to overlap with json-server behavior?
-                   // No, roomService sends specific fields.
-                   // Wait, json-server just stores whatever you send.
-                   // To mimic this in SQL, we either need a JSON column or specific columns.
-                   // SQLite supports JSON.
+  // Storing dynamic row data as JSON string
+  content   String   @default("{}") 
   
   room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  
-  // If we want to be "Relational", we should have fixed columns. 
-  // But the frontend allows adding columns dynamically.
-  // So a JSON content column is the only way to match json-server flexibility without code changes.
-  content   String   @default("{}") // JSON string of the row data
 }
 
 model ColumnStore {
@@ -173,11 +189,14 @@ model ColumnStore {
 // Email Integration
 model EmailAccount {
   id           String   @id @default(uuid())
-  provider     String   // "google" | "outlook"
+  userId       String   // SaaS Multi-tenancy
+  provider     String   
   email        String
   accessToken  String
   refreshToken String
   tokenExpiry  DateTime
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

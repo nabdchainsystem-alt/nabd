@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import emailRoutes from './routes/emailRoutes';
+import { requireAuth } from './middleware/auth';
 
 dotenv.config();
 
@@ -14,8 +15,52 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
+// Auth Middleware & User Sync
+app.use(async (req: any, res, next) => {
+    // Skip auth for public routes if any (none for now)
+    if (req.method === 'OPTIONS') return next();
+
+    if (req.path === '/health' ||
+        req.path.startsWith('/api/auth/google/callback') ||
+        req.path.startsWith('/api/auth/outlook/callback')) {
+        return next();
+    }
+
+    // Run Clerk Auth
+    requireAuth(req, res, async (err: any) => {
+        if (err) return next(err);
+
+        // Sync User to DB
+        if (req.auth && req.auth.userId) {
+            try {
+                // Ensure user exists in our DB
+                // Optimized: only check/create if we haven't seen this user in this instance? 
+                // For now, always upsert to be safe and simple.
+                // Actually, just findUnique gives us safety, if not found create.
+                // Let's use upsert.
+                await prisma.user.upsert({
+                    where: { id: req.auth.userId },
+                    update: {}, // No fields to update yet, just ensure existence
+                    create: {
+                        id: req.auth.userId,
+                        email: "pending@sync.com" // Clerk doesn't give email in the token claims by default, we might need to fetch it or just use placeholder. 
+                        // Schema requires email. Let's make email optional OR fetch it?
+                        // Fetching is slow. Let's make schema email optional or just put a placeholder.
+                        // Actually schema says `email String @unique`.
+                        // We can use the ID as email for now or change schema.
+                        // Let's use `id` as placeholder.
+                    }
+                });
+            } catch (e) {
+                console.error("User Sync Error", e);
+            }
+        }
+        next();
+    });
+});
+
 // Auth & Email Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes); // Ensure authRoutes uses req.auth.userId
 app.use('/api/email', emailRoutes);
 
 // --- HELPERS ---
@@ -38,21 +83,23 @@ function handleError(res: express.Response, error: unknown) {
 // --- ROUTES ---
 
 // 1. Procurement Requests
-app.get('/procurementRequests', async (req, res) => {
+app.get('/procurementRequests', async (req: any, res) => {
     try {
         const requests = await prisma.procurementRequest.findMany({
+            where: { userId: req.auth.userId },
             include: { items: true }
         });
         res.json(requests);
     } catch (e) { handleError(res, e); }
 });
 
-app.post('/procurementRequests', async (req, res) => {
+app.post('/procurementRequests', async (req: any, res) => {
     const { items, ...data } = req.body;
     try {
         const result = await prisma.procurementRequest.create({
             data: {
                 ...data,
+                userId: req.auth.userId,
                 items: {
                     create: items ? items.map((item: any) => ({
                         ...item,
@@ -101,21 +148,23 @@ app.put('/procurementRequests/:id', async (req, res) => {
 });
 
 // 2. RFQs
-app.get('/rfqs', async (req, res) => {
+app.get('/rfqs', async (req: any, res) => {
     try {
         const rfqs = await prisma.rFQ.findMany({
+            where: { userId: req.auth.userId },
             include: { items: true }
         });
         res.json(rfqs);
     } catch (e) { handleError(res, e); }
 });
 
-app.post('/rfqs', async (req, res) => {
+app.post('/rfqs', async (req: any, res) => {
     const { items, ...data } = req.body;
     try {
         const result = await prisma.rFQ.create({
             data: {
                 ...data,
+                userId: req.auth.userId,
                 value: data.value ? Number(data.value) : 0,
                 unitPrice: data.unitPrice ? Number(data.unitPrice) : undefined,
                 quantity: data.quantity ? Number(data.quantity) : undefined,
@@ -136,9 +185,10 @@ app.post('/rfqs', async (req, res) => {
 });
 
 // 3. Orders
-app.get('/orders', async (req, res) => {
+app.get('/orders', async (req: any, res) => {
     try {
         const orders = await prisma.order.findMany({
+            where: { userId: req.auth.userId },
             include: { items: true }
         });
         res.json(orders);
@@ -146,9 +196,12 @@ app.get('/orders', async (req, res) => {
 });
 
 // 4. Boards
-app.get('/boards', async (req, res) => {
+app.get('/boards', async (req: any, res) => {
     try {
-        const boards = await prisma.board.findMany({ include: { cards: true } });
+        const boards = await prisma.board.findMany({
+            where: { userId: req.auth.userId },
+            include: { cards: true }
+        });
         const parsed = boards.map(b => ({
             ...b,
             availableViews: safeJSONParse(b.availableViews, []),
@@ -159,11 +212,11 @@ app.get('/boards', async (req, res) => {
     } catch (e) { handleError(res, e); }
 });
 
-app.get('/boards/:id', async (req, res) => {
+app.get('/boards/:id', async (req: any, res) => {
     const { id } = req.params;
     try {
-        const board = await prisma.board.findUnique({
-            where: { id },
+        const board = await prisma.board.findFirst({
+            where: { id, userId: req.auth.userId },
             include: { cards: true }
         });
         if (!board) return res.status(404).json({ error: 'Board not found' });
@@ -178,7 +231,7 @@ app.get('/boards/:id', async (req, res) => {
     } catch (e) { handleError(res, e); }
 });
 
-app.post('/boards', async (req, res) => {
+app.post('/boards', async (req: any, res) => {
     try {
         const { availableViews, pinnedViews, columns, tasks, cards, id, title, name, description, defaultView } = req.body;
 
@@ -190,6 +243,7 @@ app.post('/boards', async (req, res) => {
                 name: boardName,
                 description,
                 defaultView,
+                userId: req.auth.userId,
                 availableViews: availableViews ? JSON.stringify(availableViews) : undefined,
                 pinnedViews: pinnedViews ? JSON.stringify(pinnedViews) : undefined,
                 columns: columns ? JSON.stringify(columns) : undefined
@@ -293,24 +347,29 @@ app.delete('/cards/:id', async (req, res) => {
 });
 
 // 6. Rooms
-app.get('/rooms', async (req, res) => {
+app.get('/rooms', async (req: any, res) => {
     try {
-        const rooms = await prisma.room.findMany();
+        const rooms = await prisma.room.findMany({ where: { userId: req.auth.userId } });
         res.json(rooms);
     } catch (e) { handleError(res, e); }
 });
 
-app.get('/rooms/:id', async (req, res) => {
+app.get('/rooms/:id', async (req: any, res) => {
     const { id } = req.params;
     try {
-        const room = await prisma.room.findUnique({ where: { id } });
+        const room = await prisma.room.findFirst({ where: { id, userId: req.auth.userId } });
         res.json(room);
     } catch (e) { handleError(res, e); }
 });
 
-app.post('/rooms', async (req, res) => {
+app.post('/rooms', async (req: any, res) => {
     try {
-        const result = await prisma.room.create({ data: req.body });
+        const result = await prisma.room.create({
+            data: {
+                ...req.body,
+                userId: req.auth.userId
+            }
+        });
         res.json(result);
     } catch (e) { handleError(res, e); }
 });

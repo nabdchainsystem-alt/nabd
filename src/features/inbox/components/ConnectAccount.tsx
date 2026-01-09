@@ -1,10 +1,24 @@
 import React from 'react';
-import { Mail } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
+import { emailService } from '../../../services/emailService';
 
 export const ConnectAccount: React.FC = () => {
-    const handleConnect = (provider: 'google' | 'outlook') => {
-        // Redirect to backend auth
-        window.location.href = `http://localhost:3001/api/auth/${provider}`;
+    const { getToken } = useAuth();
+
+    const handleConnect = async (provider: 'google' | 'outlook') => {
+        try {
+            const token = await getToken();
+            if (!token) {
+                alert("You must be logged in to connect an account.");
+                return;
+            }
+            const { url } = await emailService.getAuthUrl(token, provider);
+            window.location.href = url;
+        } catch (e) {
+            console.error("Failed to start connection", e);
+            alert("Failed to initialize connection");
+        }
     };
 
     return (

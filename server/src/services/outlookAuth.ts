@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 const CLIENT_ID = process.env.OUTLOOK_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.OUTLOOK_CLIENT_SECRET || '';
-const REDIRECT_URI = process.env.OUTLOOK_REDIRECT_URI || 'http://localhost:3000/api/auth/outlook/callback';
+const REDIRECT_URI = process.env.OUTLOOK_REDIRECT_URI || 'http://localhost:3001/api/auth/outlook/callback';
 const TENANT_ID = 'common'; // Supports personal and work
 
 const msalConfig = {

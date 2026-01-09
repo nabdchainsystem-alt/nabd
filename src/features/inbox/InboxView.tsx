@@ -4,13 +4,15 @@ import {
   History, Ban, Folder, ChevronRight, ChevronDown, Trash,
   MailOpen, Reply, ReplyAll, Forward, Move, Copy, Tag, Pin,
   Clock, Flag, RefreshCw, AlertOctagon, Printer, MoreHorizontal,
-  Search, Paperclip, CheckSquare, Globe, User, Plus
+  Search, Paperclip, CheckSquare, Globe, User, Plus,
+  Mail, Star, AlertTriangle
 } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { ComposeView } from './ComposeView';
 import { ConnectAccount } from './components/ConnectAccount';
 import { emailService } from '../../services/emailService';
 import { ConfirmModal } from '../board/components/ConfirmModal';
+import { useAuth } from '@clerk/clerk-react';
 
 interface MailItem {
   id: string;
@@ -76,6 +78,7 @@ export const InboxView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'focused' | 'other'>('focused');
   const [rightPanelMode, setRightPanelMode] = useState<'view' | 'compose'>('view');
   const { t } = useAppContext();
+  const { getToken } = useAuth();
 
   // Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -98,39 +101,49 @@ export const InboxView: React.FC = () => {
 
   useEffect(() => {
     if (hasAccount) {
-      fetchEmails();
+      fetchEmails();     // Refresh emails
+      fetchFolders();    // Fetch current folders
     }
-  }, [activeFolder, hasAccount]);
+  }, [hasAccount, activeFolder]);
 
   const checkConnection = async () => {
     try {
-      const fetchedAccounts = await emailService.getAccounts();
-      if (fetchedAccounts.length > 0) {
+      const token = await getToken();
+      if (!token) return;
+      const data = await emailService.getAccounts(token);
+      setAccounts(data);
+      if (data.length > 0) {
         setHasAccount(true);
-        setAccounts(fetchedAccounts);
-
-        // Fetch folders
-        try {
-          const fetchedFolders = await emailService.getFolders();
-          setFolders(fetchedFolders);
-        } catch (e) { console.error("Failed to load folders", e); }
-
       } else {
         setHasAccount(false);
-        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to check connection", error);
-      setLoading(false);
+    } catch (e) {
+      console.error("Failed to check connection", e);
+      setHasAccount(false);
+    } finally {
+      if (!hasAccount) setLoading(false); // only stop loading if no account, otherwise fetchEmails handles it
+    }
+  };
+
+  const fetchFolders = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const data = await emailService.getFolders(token);
+      setFolders(data);
+    } catch (e) {
+      console.error("Failed to fetch folders", e);
     }
   };
 
   const fetchEmails = async () => {
     setLoading(true);
     try {
+      const token = await getToken();
+      if (!token) return;
       // Pass activeFolder to filtering
       let folderId = activeFolder === 'INBOX' ? undefined : activeFolder;
-      const data = await emailService.getEmails(folderId);
+      const data = await emailService.getEmails(token, folderId);
       setMails(data);
       if (data.length > 0) setSelectedMailId(data[0].id);
       else setSelectedMailId(null);
@@ -159,7 +172,9 @@ export const InboxView: React.FC = () => {
       type: 'danger',
       onConfirm: async () => {
         try {
-          await emailService.trash(id, provider);
+          const token = await getToken();
+          if (!token) return;
+          await emailService.trash(token, id, provider);
           setMails(prev => prev.filter(m => m.id !== id));
           setSelectedMailId(null);
         } catch (e) {
@@ -172,13 +187,44 @@ export const InboxView: React.FC = () => {
 
   const handleArchive = async (id: string, provider: string) => {
     try {
-      await emailService.archive(id, provider);
+      const token = await getToken();
+      if (!token) return;
+      await emailService.archive(token, id, provider);
       setMails(prev => prev.filter(m => m.id !== id));
       setSelectedMailId(null);
     } catch (e) {
       console.error(e);
       alert("Failed to archive");
     }
+  };
+
+  const handleMarkRead = async (id: string, provider: string, isRead: boolean) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      // Optimistic update
+      setMails(prev => prev.map(m => m.id === id ? { ...m, isUnread: !isRead } : m));
+
+      if (isRead) {
+        await emailService.markRead(token, id, provider);
+      } else {
+        // TODO: Implement mark unread in service/backend
+        console.log("Mark unread not fully implemented yet");
+      }
+    } catch (e) {
+      console.error("Failed to mark read/unread", e);
+    }
+  };
+
+  const handleStar = (id: string) => {
+    // Optimistic update
+    console.log("Star clicked", id);
+    // setMails(prev => prev.map(m => m.id === id ? { ...m, isStarred: !m.isStarred } : m));
+  };
+
+  const handleSpam = (id: string) => {
+    console.log("Spam clicked", id);
+    alert("Marked as spam (simulation)");
   };
 
   const handleReply = (mail: MailItem) => {
@@ -203,7 +249,9 @@ export const InboxView: React.FC = () => {
       type: 'danger',
       onConfirm: async () => {
         try {
-          await emailService.disconnectAccount(id);
+          const token = await getToken();
+          if (!token) return;
+          await emailService.disconnectAccount(id, token);
           checkConnection();
         } catch (e) { alert('Failed to disconnect'); }
       }
@@ -312,6 +360,34 @@ export const InboxView: React.FC = () => {
         <div className="h-12 border-b border-gray-200 dark:border-monday-dark-border flex items-center px-2 bg-white dark:bg-monday-dark-surface flex-shrink-0 overflow-x-auto space-x-0.5 rtl:space-x-reverse [&::-webkit-scrollbar]:hidden">
           <ToolbarAction icon={<RefreshCw size={16} />} label={t('sync')} onClick={handleSync} />
           <div className="w-px h-6 bg-gray-200 mx-2"></div>
+
+          <ToolbarAction
+            icon={<MailOpen size={16} />}
+            label={t('read')}
+            onClick={() => selectedMail && handleMarkRead(selectedMail.id, selectedMail.provider, true)}
+            disabled={!selectedMail}
+          />
+          <ToolbarAction
+            icon={<Mail size={16} />}
+            label={t('unread')}
+            onClick={() => selectedMail && handleMarkRead(selectedMail.id, selectedMail.provider, false)}
+            disabled={!selectedMail}
+          />
+          <ToolbarAction
+            icon={<Star size={16} />}
+            label={t('star')}
+            onClick={() => selectedMail && handleStar(selectedMail.id)}
+            disabled={!selectedMail}
+          />
+          <ToolbarAction
+            icon={<AlertTriangle size={16} />}
+            label={t('spam')}
+            onClick={() => selectedMail && handleSpam(selectedMail.id)}
+            disabled={!selectedMail}
+          />
+
+          <div className="w-px h-6 bg-gray-200 mx-2"></div>
+
           <ToolbarAction
             icon={<Trash size={16} />}
             label={t('delete')}

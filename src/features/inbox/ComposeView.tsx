@@ -14,7 +14,10 @@ interface ComposeViewProps {
     initialData?: { to: string, subject: string, body: string };
 }
 
+import { useAuth } from '@clerk/clerk-react';
+
 export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts, initialData }) => {
+    const { getToken } = useAuth();
     const [to, setTo] = useState(initialData?.to || "");
     const [cc, setCc] = useState("");
     const [bcc, setBcc] = useState("");
@@ -38,8 +41,10 @@ export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts, i
 
         try {
             setSending(true);
+            const token = await getToken();
+            if (!token) return;
             const provider = accounts?.[0]?.provider || 'google';
-            await emailService.sendEmail(to, subject, body, provider as 'google' | 'outlook', cc, bcc);
+            await emailService.sendEmail(token, to, subject, body, provider as 'google' | 'outlook', cc, bcc);
             onDiscard();
         } catch (error) {
             console.error("Failed to send", error);

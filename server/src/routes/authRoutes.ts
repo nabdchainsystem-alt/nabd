@@ -8,21 +8,35 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Google Auth
-router.get('/google', (req, res) => {
-    const url = getGoogleAuthURL();
-    res.redirect(url);
+router.get('/google', (req: any, res) => {
+    const userId = req.auth.userId;
+    if (!userId) {
+        return res.status(401).send("Unauthorized: User ID required to connect Google Account");
+    }
+    const url = getGoogleAuthURL(userId);
+    res.json({ url });
 });
 
 router.get('/google/callback', async (req, res) => {
-    const { code } = req.query;
+    const { code, state } = req.query;
+
+    if (!state) {
+        // Fallback or error? For now, if no state, we can't link to user securely.
+        console.error("Google Auth Callback missing state");
+        return res.redirect('http://localhost:3000/inbox?status=error&message=missing_state');
+    }
+
     try {
+        const decodedState = JSON.parse(Buffer.from(state as string, 'base64').toString('utf-8'));
+        const userId = decodedState.userId;
+
         const { tokens } = await googleOAuth2Client.getToken(code as string);
         googleOAuth2Client.setCredentials(tokens);
         const oauth2 = google.oauth2({ version: 'v2', auth: googleOAuth2Client });
         const userInfo = await oauth2.userinfo.get();
 
         if (userInfo.data.email) {
-            await saveGoogleToken(userInfo.data.email, tokens);
+            await saveGoogleToken(userInfo.data.email, tokens, userId);
         }
 
         res.redirect('http://localhost:3000/inbox?status=success&provider=google');

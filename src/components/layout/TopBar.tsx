@@ -1,7 +1,8 @@
 import React from 'react';
 import { Bell, Search, HelpCircle, Grid3X3, Download, Link, Moon, Sun, Play, Pause, RotateCcw, X } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
-import { useAuth } from '../../contexts/AuthContext';
+// import { useAuth } from '../../contexts/AuthContext';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import { LogOut, User as UserIcon, Settings as SettingsIcon } from 'lucide-react';
 import { useFocus } from '../../contexts/FocusContext';
 import { useState, useRef, useEffect } from 'react';
@@ -12,7 +13,10 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ onNavigate }) => {
   const { theme, toggleTheme, language, toggleLanguage, t } = useAppContext();
-  const { user, logout } = useAuth();
+  // const { user, logout } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
   const { isActive, isSessionActive, timeLeft, toggleFocus, resetFocus, cancelFocus, formatTime } = useFocus();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -115,14 +119,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate }) => {
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 text-white flex items-center justify-center font-bold text-xs cursor-pointer hover:scale-105 hover:shadow-md transition-all ms-2 border-2 border-white dark:border-monday-dark-border"
           >
-            {user?.name?.charAt(0) || 'U'}
+            {user?.fullName?.charAt(0) || user?.firstName?.charAt(0) || 'U'}
           </div>
 
           {isProfileOpen && (
             <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl border border-gray-100 dark:border-monday-dark-border py-2 z-50 animate-fadeIn">
               <div className="px-4 py-3 border-b border-gray-100 dark:border-monday-dark-border">
-                <p className="text-sm font-semibold text-gray-800 dark:text-monday-dark-text truncate">{user?.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-monday-dark-text truncate">{user?.fullName || user?.firstName}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
               </div>
               <div className="py-1">
                 <button
@@ -137,7 +141,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate }) => {
                 </button>
                 <button
                   onClick={() => {
-                    logout();
+                    signOut();
                     setIsProfileOpen(false);
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"

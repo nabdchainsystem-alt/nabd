@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/auth/google/callback';
 
 export const googleOAuth2Client = new google.auth.OAuth2(
     GOOGLE_CLIENT_ID,
@@ -14,14 +14,17 @@ export const googleOAuth2Client = new google.auth.OAuth2(
     GOOGLE_REDIRECT_URI
 );
 
-export const getGoogleAuthURL = () => {
+export const getGoogleAuthURL = (userId: string) => {
+    const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
     return googleOAuth2Client.generateAuthUrl({
-        access_type: 'offline', // Request refresh token
+        access_type: 'offline',
+        prompt: 'consent', // Force refresh token
         scope: [
             'https://www.googleapis.com/auth/userinfo.email',
             'https://www.googleapis.com/auth/gmail.readonly',
             'https://www.googleapis.com/auth/gmail.send',
         ],
+        state
     });
 };
 
@@ -62,21 +65,27 @@ export const handleGoogleCallback = async (code: string) => {
     // Let's implement manual logic.
 };
 
-export const saveGoogleToken = async (email: string, tokens: any) => {
+export const saveGoogleToken = async (email: string, tokens: any, userId: string) => {
+    // Check if this email is already connected by ANY user
     const existing = await prisma.emailAccount.findFirst({
-        where: { email, provider: 'google' }
+        where: { email }
     });
 
     const data = {
         provider: 'google',
         email,
         accessToken: encrypt(tokens.access_token!),
-        // Only update refresh token if provided (it comes only on first consent)
+        // Only update refresh token if provided
         ...(tokens.refresh_token ? { refreshToken: encrypt(tokens.refresh_token) } : {}),
         tokenExpiry: new Date(tokens.expiry_date || Date.now() + 3600 * 1000),
     };
 
     if (existing) {
+        // If it exists, verify ownership
+        if (existing.userId !== userId) {
+            throw new Error(`This email is already connected to another workspace.`);
+        }
+
         return prisma.emailAccount.update({
             where: { id: existing.id },
             data: {
@@ -91,6 +100,7 @@ export const saveGoogleToken = async (email: string, tokens: any) => {
         }
         return prisma.emailAccount.create({
             data: {
+                userId, // Link to the SaaS user
                 provider: 'google',
                 email,
                 accessToken: data.accessToken,

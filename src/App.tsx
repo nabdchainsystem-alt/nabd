@@ -9,8 +9,10 @@ import { VaultView } from './features/vault/VaultView';
 import FlowHubPage from './features/flowHub/FlowHubPage';
 import ProcessMapPage from './features/flowHub/ProcessMapPage';
 import { MyWorkPage } from './features/myWork/MyWorkPage';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { LoginPage } from './features/auth/LoginPage';
+// import { AuthProvider, useAuth } from './contexts/AuthContext';
+// import { LoginPage } from './features/auth/LoginPage';
+import { SignedIn, SignedOut, SignIn, SignUp, useUser } from '@clerk/clerk-react';
+import { Logo } from './components/Logo';
 import { LandingPage } from './features/landing/LandingPage';
 import { Board, Workspace, ViewState, BoardViewType, BoardColumn } from './types';
 import { BoardTemplate } from './features/board/data/templates';
@@ -451,11 +453,15 @@ const AppContent: React.FC = () => {
 
 
 
-const AppRoutes: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [hasEnteredSystem, setHasEnteredSystem] = useState(false);
 
-  if (isLoading) {
+import { SignUpPage } from './features/auth/SignUpPage';
+
+const AppRoutes: React.FC = () => {
+  const { isLoaded, isSignedIn } = useUser();
+  // View state: 'landing' | 'signin' | 'signup'
+  const [authView, setAuthView] = useState<'landing' | 'signin' | 'signup'>('landing');
+
+  if (!isLoaded) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#F7F9FB]">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -463,35 +469,68 @@ const AppRoutes: React.FC = () => {
     );
   }
 
-  // Not authenticated and hasn't clicked "Enter System" -> Show Landing Page
-  if (!isAuthenticated && !hasEnteredSystem) {
-    return <LandingPage onEnterSystem={() => setHasEnteredSystem(true)} />;
-  }
+  return (
+    <>
+      <SignedOut>
+        {authView === 'landing' && (
+          <LandingPage onEnterSystem={() => setAuthView('signin')} />
+        )}
 
-  // Not authenticated but clicked "Enter System" -> Show Login Page
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
+        {authView === 'signin' && (
+          <div className="flex h-screen w-full items-center justify-center bg-white flex-col gap-6">
+            <div className="flex flex-col items-center justify-center mb-2">
+              <Logo className="h-28 w-auto" showText={true} textClassName="scale-[2.0] ml-4 text-center items-center" />
+            </div>
+            <SignIn
+              fallbackRedirectUrl="/dashboard"
+              appearance={{
+                elements: {
+                  footer: "hidden" // Hide default footer to use custom navigation
+                }
+              }}
+            />
+            <div className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <button
+                onClick={() => setAuthView('signup')}
+                className="text-blue-600 font-medium hover:underline"
+              >
+                Sign up
+              </button>
+            </div>
+            <button
+              onClick={() => setAuthView('landing')}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              ← Back to Home
+            </button>
+          </div>
+        )}
 
-  // Authenticated -> Show Main App
-  return <AppContent />;
+        {authView === 'signup' && (
+          <SignUpPage onNavigateToLogin={() => setAuthView('signin')} />
+        )}
+      </SignedOut>
+      <SignedIn>
+        <AppContent />
+      </SignedIn>
+    </>
+  );
 };
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <UIProvider>
-          <LanguageProvider>
-            <NavigationProvider>
-              <FocusProvider>
-                <AppRoutes />
-              </FocusProvider>
-            </NavigationProvider>
-          </LanguageProvider>
-        </UIProvider>
-      </AppProvider>
-    </AuthProvider>
+    <AppProvider>
+      <UIProvider>
+        <LanguageProvider>
+          <NavigationProvider>
+            <FocusProvider>
+              <AppRoutes />
+            </FocusProvider>
+          </NavigationProvider>
+        </LanguageProvider>
+      </UIProvider>
+    </AppProvider>
   )
 }
 
