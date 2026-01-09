@@ -4,18 +4,21 @@ import {
   History, Ban, Folder, ChevronRight, ChevronDown, Trash,
   MailOpen, Reply, ReplyAll, Forward, Move, Copy, Tag, Pin,
   Clock, Flag, RefreshCw, AlertOctagon, Printer, MoreHorizontal,
-  Search, Paperclip, CheckSquare, Globe, User
+  Search, Paperclip, CheckSquare, Globe, User, Plus
 } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { ComposeView } from './ComposeView';
 import { ConnectAccount } from './components/ConnectAccount';
 import { emailService } from '../../services/emailService';
+import { ConfirmModal } from '../board/components/ConfirmModal';
 
 interface MailItem {
   id: string;
   sender: string;
   subject: string;
   preview: string;
+  body?: string; // HTML content
+  provider: 'google' | 'outlook';
   time: string;
   initial: string;
   color: string;
@@ -33,7 +36,8 @@ const MOCK_MAILS: MailItem[] = [
     initial: 'A',
     color: 'bg-purple-500',
     isUnread: true,
-    hasAttachment: true
+    hasAttachment: true,
+    provider: 'google'
   },
   {
     id: '2',
@@ -43,7 +47,8 @@ const MOCK_MAILS: MailItem[] = [
     time: '10:04 PM',
     initial: 'M',
     color: 'bg-pink-500',
-    isUnread: false
+    isUnread: false,
+    provider: 'google'
   },
   {
     id: '3',
@@ -54,7 +59,8 @@ const MOCK_MAILS: MailItem[] = [
     initial: 'B',
     color: 'bg-blue-500',
     isUnread: false,
-    hasAttachment: true
+    hasAttachment: true,
+    provider: 'outlook'
   }
 ];
 
@@ -62,23 +68,53 @@ export const InboxView: React.FC = () => {
   const [mails, setMails] = useState<MailItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasAccount, setHasAccount] = useState(false);
-  const [accounts, setAccounts] = useState<any[]>([]); // Add accounts state
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]); // Folder list
+  const [activeFolder, setActiveFolder] = useState<string>('INBOX'); // Currently selected folder
+
   const [selectedMailId, setSelectedMailId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'focused' | 'other'>('focused');
   const [rightPanelMode, setRightPanelMode] = useState<'view' | 'compose'>('view');
   const { t } = useAppContext();
 
+  // Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { },
+  });
+
   useEffect(() => {
     checkConnection();
   }, []);
+
+  useEffect(() => {
+    if (hasAccount) {
+      fetchEmails();
+    }
+  }, [activeFolder, hasAccount]);
 
   const checkConnection = async () => {
     try {
       const fetchedAccounts = await emailService.getAccounts();
       if (fetchedAccounts.length > 0) {
         setHasAccount(true);
-        setAccounts(fetchedAccounts); // Store accounts
-        fetchEmails();
+        setAccounts(fetchedAccounts);
+
+        // Fetch folders
+        try {
+          const fetchedFolders = await emailService.getFolders();
+          setFolders(fetchedFolders);
+        } catch (e) { console.error("Failed to load folders", e); }
+
       } else {
         setHasAccount(false);
         setLoading(false);
@@ -92,14 +128,86 @@ export const InboxView: React.FC = () => {
   const fetchEmails = async () => {
     setLoading(true);
     try {
-      const data = await emailService.getEmails();
+      // Pass activeFolder to filtering
+      let folderId = activeFolder === 'INBOX' ? undefined : activeFolder;
+      const data = await emailService.getEmails(folderId);
       setMails(data);
       if (data.length > 0) setSelectedMailId(data[0].id);
+      else setSelectedMailId(null);
     } catch (error) {
       console.error("Failed to fetch emails", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSync = async () => {
+    setLoading(true);
+    await checkConnection();
+    await fetchEmails();
+    setLoading(false);
+  };
+
+  const [replyData, setReplyData] = useState<{ to: string, subject: string, body: string } | undefined>(undefined);
+
+  const handleDelete = async (id: string, provider: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Move to Trash?',
+      message: 'This email will be moved to your trash folder.',
+      confirmText: 'Move to Trash',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await emailService.trash(id, provider);
+          setMails(prev => prev.filter(m => m.id !== id));
+          setSelectedMailId(null);
+        } catch (e) {
+          console.error(e);
+          alert("Failed to delete");
+        }
+      }
+    });
+  };
+
+  const handleArchive = async (id: string, provider: string) => {
+    try {
+      await emailService.archive(id, provider);
+      setMails(prev => prev.filter(m => m.id !== id));
+      setSelectedMailId(null);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to archive");
+    }
+  };
+
+  const handleReply = (mail: MailItem) => {
+    let quote = `\n\n\nOn ${new Date(mail.time).toLocaleString()}, <${mail.sender}> wrote:\n> ${mail.preview}`;
+    const emailMatch = mail.sender.match(/<(.+)>/);
+    const to = emailMatch ? emailMatch[1] : mail.sender;
+
+    setReplyData({
+      to: to,
+      subject: mail.subject.startsWith('Re:') ? mail.subject : `Re: ${mail.subject}`,
+      body: quote
+    });
+    setRightPanelMode('compose');
+  };
+
+  const handleDisconnect = (id: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Disconnect Account?',
+      message: 'Are you sure you want to disconnect this email account? You will stop receiving updates.',
+      confirmText: 'Disconnect',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await emailService.disconnectAccount(id);
+          checkConnection();
+        } catch (e) { alert('Failed to disconnect'); }
+      }
+    });
   };
 
   if (loading && !hasAccount) {
@@ -113,7 +221,7 @@ export const InboxView: React.FC = () => {
   const selectedMail = mails.find(m => m.id === selectedMailId);
 
   return (
-    <div className="flex h-full w-full bg-white dark:bg-monday-dark-bg overflow-hidden font-sans text-gray-800 dark:text-monday-dark-text">
+    <div className="flex h-full w-full bg-white dark:bg-monday-dark-bg overflow-hidden font-sans text-gray-800 dark:text-monday-dark-text relative">
 
       {/* 1. Inner Sidebar (Folders) */}
       <div className="w-60 bg-[#f7f8fa] dark:bg-monday-dark-surface border-e border-gray-200 dark:border-monday-dark-border flex flex-col flex-shrink-0">
@@ -135,21 +243,63 @@ export const InboxView: React.FC = () => {
           </button>
         </div>
 
+        {/* Connected Accounts List */}
+        <div className="px-3 pb-2 space-y-1">
+          <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Connected</div>
+          {accounts.map(acc => (
+            <div key={acc.id} className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-monday-dark-hover group">
+              <span className="truncate max-w-[140px]" title={acc.email}>{acc.email}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDisconnect(acc.id);
+                }}
+                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+
         <div className="flex-1 overflow-y-auto px-2 space-y-0.5 custom-scrollbar">
-          <NavItem icon={<Inbox size={16} />} label={t('inbox')} isActive count={mails.filter(m => m.isUnread).length || undefined} />
-          <NavItem icon={<Archive size={16} />} label={t('archive')} />
-          <NavItem icon={<FileText size={16} />} label={t('drafts')} />
-          <NavItem icon={<Send size={16} />} label={t('sent')} />
-          <NavItem icon={<Trash2 size={16} />} label={t('deleted_items')} />
+          {/* Main Links */}
+          <NavItem
+            icon={<Inbox size={16} />}
+            label="Inbox"
+            isActive={activeFolder === 'INBOX' || !activeFolder}
+            onClick={() => setActiveFolder('INBOX')}
+            count={mails.filter(m => m.isUnread).length || undefined}
+          />
+          <NavItem
+            icon={<Send size={16} />}
+            label="Sent"
+            isActive={activeFolder === 'SENT'}
+            onClick={() => setActiveFolder('SENT')}
+          />
+          <NavItem
+            icon={<Trash2 size={16} />}
+            label="Trash"
+            isActive={activeFolder === 'TRASH' || activeFolder === 'deleteditems'}
+            onClick={() => setActiveFolder('TRASH')}
+          />
 
           <div className="pt-4 pb-2 px-3">
             <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 dark:text-monday-dark-text-secondary uppercase tracking-wider mb-2">
               {t('folders')} <PlusIcon />
             </div>
-            {/* Mock folders for now */}
+
             <div className="space-y-0.5">
-              <FolderItem label="Work" hasChildren />
-              <FolderItem label="Personal" indent />
+              {folders
+                .filter(f => !['INBOX', 'SENT', 'TRASH', 'DRAFT', 'IMPORTANT', 'STARRED', 'deleteditems', 'junk', 'sentitems'].includes(f.id.toLowerCase()))
+                .map(folder => (
+                  <FolderItem
+                    key={folder.id}
+                    label={folder.name}
+                    onClick={() => setActiveFolder(folder.id)}
+                    isActive={activeFolder === folder.id}
+                  />
+                ))}
             </div>
           </div>
         </div>
@@ -160,11 +310,26 @@ export const InboxView: React.FC = () => {
 
         {/* Top Action Toolbar */}
         <div className="h-12 border-b border-gray-200 dark:border-monday-dark-border flex items-center px-2 bg-white dark:bg-monday-dark-surface flex-shrink-0 overflow-x-auto space-x-0.5 rtl:space-x-reverse [&::-webkit-scrollbar]:hidden">
-          <ToolbarAction icon={<RefreshCw size={16} />} label={t('sync')} />
+          <ToolbarAction icon={<RefreshCw size={16} />} label={t('sync')} onClick={handleSync} />
           <div className="w-px h-6 bg-gray-200 mx-2"></div>
-          <ToolbarAction icon={<Trash size={16} />} label={t('delete')} />
-          <ToolbarAction icon={<Archive size={16} />} label={t('archive')} />
-          <ToolbarAction icon={<Reply size={16} />} label={t('reply')} />
+          <ToolbarAction
+            icon={<Trash size={16} />}
+            label={t('delete')}
+            onClick={() => selectedMail && handleDelete(selectedMail.id, selectedMail.provider)}
+            disabled={!selectedMail}
+          />
+          <ToolbarAction
+            icon={<Archive size={16} />}
+            label={t('archive')}
+            onClick={() => selectedMail && handleArchive(selectedMail.id, selectedMail.provider)}
+            disabled={!selectedMail}
+          />
+          <ToolbarAction
+            icon={<Reply size={16} />}
+            label={t('reply')}
+            onClick={() => selectedMail && handleReply(selectedMail)}
+            disabled={!selectedMail}
+          />
         </div>
 
         <div className="flex-1 flex overflow-hidden relative">
@@ -230,31 +395,37 @@ export const InboxView: React.FC = () => {
               <ComposeView onDiscard={() => setRightPanelMode('view')} accounts={accounts} />
             </div>
           ) : selectedMail ? (
-            <div className="flex-1 bg-white dark:bg-monday-dark-bg overflow-y-auto p-6 relative">
-              <div className="flex items-start gap-3 mb-6">
-                <div className={`w-10 h-10 rounded-full ${selectedMail.color} text-white flex items-center justify-center text-lg font-medium shadow-sm`}>
-                  {selectedMail.initial}
-                </div>
-                <div className="flex-1">
-                  <h1 className="text-xl font-semibold text-[#323338] dark:text-monday-dark-text mb-0.5 leading-tight">{selectedMail.subject}</h1>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="font-medium text-gray-900 dark:text-gray-300">{selectedMail.sender}</span>
-                    <span>•</span>
-                    <span>{new Date(selectedMail.time).toLocaleString()}</span>
+            <div className="flex-1 flex flex-col relative min-w-0 bg-white dark:bg-monday-dark-bg">
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex items-start gap-3 mb-6">
+                  <div className={`w-10 h-10 rounded-full ${selectedMail.color} text-white flex items-center justify-center text-lg font-medium shadow-sm`}>
+                    {selectedMail.initial}
+                  </div>
+                  <div className="flex-1">
+                    <h1 className="text-xl font-semibold text-[#323338] dark:text-monday-dark-text mb-0.5 leading-tight">{selectedMail.subject}</h1>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="font-medium text-gray-900 dark:text-gray-300">{selectedMail.sender}</span>
+                      <span>•</span>
+                      <span>{new Date(selectedMail.time).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleReply(selectedMail)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded text-gray-500 dark:text-gray-400" title="Reply"><Reply size={16} /></button>
+                    <button onClick={() => handleDelete(selectedMail.id, selectedMail.provider)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded text-gray-500 dark:text-gray-400" title="Delete"><Trash2 size={16} /></button>
+                    <button onClick={() => handleArchive(selectedMail.id, selectedMail.provider)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded text-gray-500 dark:text-gray-400" title="Archive"><Archive size={16} /></button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded text-gray-500 dark:text-gray-400"><Reply size={16} /></button>
-                  <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded text-gray-500 dark:text-gray-400"><MoreHorizontal size={16} /></button>
-                </div>
-              </div>
 
-              <div className="prose max-w-3xl text-[#323338] dark:text-monday-dark-text">
-                <p className="text-base leading-7 font-normal text-gray-800 dark:text-gray-200">
-                  {selectedMail.preview} ...
-                  <br />
-                  <span className="text-xs text-gray-400 italic">(Full body content fetching not implemented in this preview)</span>
-                </p>
+                <div className="prose max-w-none text-[#323338] dark:text-monday-dark-text">
+                  {selectedMail.body ? (
+                    <div dangerouslySetInnerHTML={{ __html: selectedMail.body }} />
+                  ) : (
+                    <p className="text-base leading-7 font-normal text-gray-800 dark:text-gray-200">
+                      {selectedMail.preview} ...
+                    </p>
+                  )}
+                </div>
 
                 {selectedMail.hasAttachment && (
                   <div className="mt-6 border border-gray-200 dark:border-monday-dark-border rounded p-3 w-60 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-monday-dark-hover cursor-pointer transition-colors">
@@ -266,28 +437,35 @@ export const InboxView: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-monday-dark-border">
+                  <button
+                    onClick={() => handleReply(selectedMail)}
+                    className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-monday-dark-hover text-gray-600 dark:text-gray-300 text-xs font-medium transition-colors">
+                    <Reply size={14} /> {t('reply')}
+                  </button>
+                </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-gray-100 dark:border-monday-dark-border">
-                <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-monday-dark-hover text-gray-600 dark:text-gray-300 text-xs font-medium transition-colors">
-                  <Reply size={14} /> {t('reply')}
-                </button>
-              </div>
-
-              {/* Compose View Panel */}
+              {/* Compose View Panel Overlay */}
               <div
                 className={`
                      absolute inset-0 z-30 bg-white dark:bg-stone-900 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl
                      ${rightPanelMode === 'compose' ? 'translate-y-0' : 'translate-y-[110%] pointer-events-none'}
                    `}
               >
-                <ComposeView onDiscard={() => setRightPanelMode('view')} />
+                <ComposeView
+                  onDiscard={() => setRightPanelMode('view')}
+                  accounts={accounts}
+                  initialData={replyData}
+                />
               </div>
-
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm relative">
-              Select an item to read
+            <div className="flex-1 flex flex-col relative min-w-0 bg-white dark:bg-monday-dark-bg">
+              <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+                Select an item to read
+              </div>
               <div
                 className={`
                          absolute inset-0 z-30 bg-white dark:bg-stone-900 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl
@@ -300,13 +478,24 @@ export const InboxView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modal Portal - Rendered at end */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        type={confirmModal.type}
+      />
     </div>
   );
 };
 
 // Helper Components
-const NavItem = ({ icon, label, isActive, count }: { icon: React.ReactNode, label: string, isActive?: boolean, count?: number }) => (
-  <div className={`flex items-center justify-between px-3 py-1.5 rounded-md cursor-pointer group ${isActive ? 'bg-[#e5f0fa] dark:bg-monday-dark-hover text-monday-blue font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-monday-dark-hover'}`}>
+const NavItem = ({ icon, label, isActive, count, onClick }: { icon: React.ReactNode, label: string, isActive?: boolean, count?: number, onClick?: () => void }) => (
+  <div onClick={onClick} className={`flex items-center justify-between px-3 py-1.5 rounded-md cursor-pointer group ${isActive ? 'bg-[#e5f0fa] dark:bg-monday-dark-hover text-monday-blue font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-monday-dark-hover'}`}>
     <div className="flex items-center gap-2.5">
       <span className={isActive ? 'text-monday-blue' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'}>{icon}</span>
       <span className="text-[13px]">{label}</span>
@@ -317,16 +506,20 @@ const NavItem = ({ icon, label, isActive, count }: { icon: React.ReactNode, labe
   </div>
 );
 
-const FolderItem = ({ label, hasChildren, indent }: { label: string, hasChildren?: boolean, indent?: boolean }) => (
-  <div className={`flex items-center gap-2 px-3 py-1 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-monday-dark-hover text-gray-600 dark:text-gray-400 ${indent ? 'ps-8' : ''}`}>
+const FolderItem = ({ label, hasChildren, indent, onClick, isActive }: { label: string, hasChildren?: boolean, indent?: boolean, onClick?: () => void, isActive?: boolean }) => (
+  <div onClick={onClick} className={`flex items-center gap-2 px-3 py-1 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-monday-dark-hover text-gray-600 dark:text-gray-400 ${indent ? 'ps-8' : ''} ${isActive ? 'bg-gray-200 dark:bg-monday-dark-hover font-medium' : ''}`}>
     {hasChildren && <ChevronDown size={12} className="text-gray-400" />}
     {!hasChildren && <div className="w-3"></div>}
     <span className="text-[13px]">{label}</span>
   </div>
 );
 
-const ToolbarAction = ({ icon, label }: { icon: React.ReactNode, label: string }) => (
-  <button className="flex flex-col items-center justify-center px-1.5 py-1 rounded hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 min-w-[50px] flex-shrink-0 transition-colors gap-0.5 group h-full">
+const ToolbarAction = ({ icon, label, onClick, disabled }: { icon: React.ReactNode, label: string, onClick?: () => void, disabled?: boolean }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`flex flex-col items-center justify-center px-1.5 py-1 rounded hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 min-w-[50px] flex-shrink-0 transition-colors gap-0.5 group h-full ${disabled ? 'opacity-50 cursor-not-allowed hover:bg-transparent' : ''}`}
+  >
     <div className="group-hover:scale-105 transition-transform">{icon}</div>
     <span className="text-[9px] font-medium whitespace-nowrap opacity-80 group-hover:opacity-100">{label}</span>
   </button>

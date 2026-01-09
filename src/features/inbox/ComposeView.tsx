@@ -11,28 +11,50 @@ import { emailService, EmailAccount } from '../../services/emailService';
 interface ComposeViewProps {
     onDiscard: () => void;
     accounts?: EmailAccount[];
+    initialData?: { to: string, subject: string, body: string };
 }
 
-export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts }) => {
-    const [to, setTo] = useState("");
-    const [subject, setSubject] = useState("");
-    const [body, setBody] = useState("");
+export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts, initialData }) => {
+    const [to, setTo] = useState(initialData?.to || "");
+    const [cc, setCc] = useState("");
+    const [bcc, setBcc] = useState("");
+    const [showCc, setShowCc] = useState(false);
+    const [showBcc, setShowBcc] = useState(false);
+
+    const [subject, setSubject] = useState(initialData?.subject || "");
+    const [body, setBody] = useState(initialData?.body || "");
     const [sending, setSending] = useState(false);
+
+    // Sync initial body to contentEditable div
+    React.useEffect(() => {
+        const el = document.getElementById('compose-body');
+        if (el && initialData?.body) {
+            el.innerText = initialData.body;
+        }
+    }, [initialData?.body]);
 
     const handleSend = async () => {
         if (!to || !subject || !body) return;
 
         try {
             setSending(true);
-            // Default to first account or google if available
             const provider = accounts?.[0]?.provider || 'google';
-            await emailService.sendEmail(to, subject, body, provider as 'google' | 'outlook');
-            onDiscard(); // Close compose on success
+            await emailService.sendEmail(to, subject, body, provider as 'google' | 'outlook', cc, bcc);
+            onDiscard();
         } catch (error) {
             console.error("Failed to send", error);
             alert("Failed to send email");
         } finally {
             setSending(false);
+        }
+    };
+
+    const handleInsertSignature = () => {
+        const signature = `\n\nBest regards,\n${accounts?.[0]?.email || 'NABD User'}`;
+        setBody(prev => prev + signature);
+        const el = document.getElementById('compose-body');
+        if (el) {
+            el.innerText = el.innerText + signature;
         }
     };
 
@@ -51,8 +73,8 @@ export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts })
                     </button>
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                         <ToolBtn icon={<Trash2 size={16} />} label="Discard" onClick={onDiscard} />
-                        <ToolBtn icon={<Paperclip size={16} />} label="Attach File" />
-                        <ToolBtn icon={<FileSignature size={16} />} label="Signature" />
+                        <ToolBtn icon={<Paperclip size={16} />} label="Attach File" onClick={() => alert("Attachments coming soon!")} />
+                        <ToolBtn icon={<FileSignature size={16} />} label="Signature" onClick={handleInsertSignature} />
                         <ToolBtn icon={<Edit3 size={16} />} label="Editor" />
                         <ToolBtn icon={<Accessibility size={16} />} label="Check Accessibility" />
                     </div>
@@ -105,7 +127,9 @@ export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts })
                 <div className="flex items-baseline gap-4 group">
                     <label className="text-sm text-gray-500 w-12 text-right">From:</label>
                     <div className="flex-1 flex items-center justify-between border-b border-transparent group-hover:border-gray-200 py-1">
-                        <span className="text-sm text-gray-800 dark:text-gray-200">Mohamed Ali (mohamedali89114@gmail.com)</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-200">
+                            {accounts?.[0]?.email || 'me'}
+                        </span>
                         <div className="flex items-center gap-2 text-gray-400">
                             <ChevronDown size={14} />
                             <Maximize2 size={12} className="rotate-45" />
@@ -122,17 +146,44 @@ export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts })
                             value={to}
                             onChange={(e) => setTo(e.target.value)}
                             className="w-full outline-none bg-transparent text-sm"
+                            placeholder="Recipients..."
                         />
                     </div>
                     <div className="absolute right-0 top-1 text-xs text-gray-500 flex gap-2">
-                        <button className="hover:text-gray-800">Cc</button>
-                        <button className="hover:text-gray-800">Bcc</button>
-                        <div className="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-[10px] text-gray-600 dark:text-gray-300">
-                            <span className="sr-only">Avatar</span>
-                            <UserIcon />
-                        </div>
+                        <button onClick={() => setShowCc(!showCc)} className={`hover:text-gray-800 ${showCc ? 'text-monday-blue font-bold' : ''}`}>Cc</button>
+                        <button onClick={() => setShowBcc(!showBcc)} className={`hover:text-gray-800 ${showBcc ? 'text-monday-blue font-bold' : ''}`}>Bcc</button>
                     </div>
                 </div>
+
+                {/* CC (Conditional) */}
+                {showCc && (
+                    <div className="flex items-baseline gap-4 group animate-in slide-in-from-top-2 duration-200">
+                        <label className="text-sm text-gray-500 w-12 text-right">Cc:</label>
+                        <div className="flex-1 border-b border-gray-200 dark:border-monday-dark-border py-1">
+                            <input
+                                type="text"
+                                value={cc}
+                                onChange={(e) => setCc(e.target.value)}
+                                className="w-full outline-none bg-transparent text-sm"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* BCC (Conditional) */}
+                {showBcc && (
+                    <div className="flex items-baseline gap-4 group animate-in slide-in-from-top-2 duration-200">
+                        <label className="text-sm text-gray-500 w-12 text-right">Bcc:</label>
+                        <div className="flex-1 border-b border-gray-200 dark:border-monday-dark-border py-1">
+                            <input
+                                type="text"
+                                value={bcc}
+                                onChange={(e) => setBcc(e.target.value)}
+                                className="w-full outline-none bg-transparent text-sm"
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Subject */}
                 <div className="flex items-baseline gap-4 group">
@@ -143,25 +194,22 @@ export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts })
                             value={subject}
                             onChange={(e) => setSubject(e.target.value)}
                             className="w-full outline-none bg-transparent text-sm"
-                            placeholder=""
+                            placeholder="Subject line"
                         />
-                        <div className="text-xs text-gray-400 flex items-center gap-1 cursor-pointer hover:text-gray-600">
-                            Importance <ChevronDown size={10} />
-                        </div>
                     </div>
                 </div>
 
                 {/* Body */}
-                <div className="mt-6 pl-16">
+                <div className="mt-2 pl-16">
                     <div
-                        className="min-h-[300px] outline-none text-sm text-gray-800 dark:text-gray-200"
+                        id="compose-body"
+                        className="min-h-[300px] outline-none text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap"
                         contentEditable
                         onInput={(e) => setBody(e.currentTarget.textContent || "")}
+                        suppressContentEditableWarning={true}
                     >
-
+                        {/* Initial content mapped in useEffect or handled via initialData props */}
                     </div>
-                    {/* Blinking Cursor Simulation (optional, as contentEditable has one) */}
-                    <div className="h-5 w-px bg-black animate-pulse inline-block"></div>
                 </div>
 
             </div>

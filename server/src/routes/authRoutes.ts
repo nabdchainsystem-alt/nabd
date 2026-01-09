@@ -54,18 +54,29 @@ router.get('/outlook/callback', async (req, res) => {
     }
 });
 
-// List Accounts
+// List accounts
 router.get('/accounts', async (req, res) => {
-    const accounts = await prisma.emailAccount.findMany({
-        select: {
-            id: true,
-            provider: true,
-            email: true,
-            updatedAt: true
-        }
-    });
-    res.json(accounts);
+    try {
+        const accounts = await prisma.emailAccount.findMany({
+            select: { id: true, provider: true, email: true }
+        });
+        res.json(accounts);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to fetch accounts" });
+    }
 });
 
+// Disconnect account
+router.delete('/accounts/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.emailAccount.delete({
+            where: { id }
+        });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to disconnect account" });
+    }
+});
 
 export default router;
