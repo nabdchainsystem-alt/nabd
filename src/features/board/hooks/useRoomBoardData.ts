@@ -352,40 +352,44 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
     // Update tasks from a flat list (reconcile with groups)
     const onUpdateTasks = useCallback((updatedTasks: any[]) => {
         setBoard(prev => {
-            // Create a map for faster lookup
+            // Create a map for faster lookup of updated task data
             const updatedTaskMap = new Map(updatedTasks.map(t => [t.id, t]));
 
             const newGroups = prev.groups.map(g => {
-                // 1. Update existing tasks in the group
-                let newGroupTasks = g.tasks.map(t => {
-                    const updated = updatedTaskMap.get(t.id);
-                    if (updated) {
-                        // Remove from map to track which ones are handled
-                        updatedTaskMap.delete(t.id);
-                        return { ...t, ...updated };
-                    }
-                    return t;
-                });
+                // 1. Identify tasks that currently belong to this group
+                const currentGroupTaskIds = new Set(g.tasks.map(t => t.id));
 
-                // 2. Handle deletions:
-                // If the view sending updates intends to represent the FULL state, 
-                // we might need to remove tasks that are missing.
-                // However, updatedTasks might be filtered. 
-                // For now, we assume 'onUpdateTasks' acts as "upsert/update" for existing methods.
-                // But RoomTable sends the *entire* list of rows it knows about.
-                // If we want to support deletion via this method, we need to know if the suppression was intentional.
-                // Given the current architecture, let's stick to UPDATING content and ADDING new tasks if they have a group ID (or default).
-                // But RoomTable adds new tasks with ID but no group ID.
+                // 2. Reconstruct the group's tasks based on the ORDER in updatedTasks.
+                // We filter updatedTasks to find those that belong to this group.
+                // This preserves the new sort order delivered by the UI.
+                const newGroupTasks = updatedTasks
+                    .filter(t => currentGroupTaskIds.has(t.id))
+                    .map(t => {
+                        // Merge with original to ensure we don't lose properties not present in the flat view
+                        // though updatedTasks usually comes from the view which has the full object.
+                        // But we safely merge just in case.
+                        // Find the *original* task object to preserve hidden props if any, 
+                        // but prioritize 't' (the update).
+                        const original = g.tasks.find(ot => ot.id === t.id);
+                        return { ...(original || {}), ...t };
+                    });
 
-                return { ...g, tasks: newGroupTasks };
+                // 3. If there are tasks in the group that are NOT in updatedTasks 
+                // (e.g. if the view was filtered), we should append them at the end 
+                // so they are not lost.
+                const tasksNotInUpdate = g.tasks.filter(t => !updatedTaskMap.has(t.id));
+
+                return { ...g, tasks: [...newGroupTasks, ...tasksNotInUpdate] };
             });
 
-            // 3. Handle New Tasks (remaining in map)
+            // 3. Handle New Tasks (remaining in map that were NOT in any group)
             // If there are tasks in updatedTasks that weren't in any group, add them to the first group
-            if (updatedTaskMap.size > 0 && newGroups.length > 0) {
-                const newTasksToAdd: ITask[] = [];
-                updatedTaskMap.forEach((task) => {
-                    // Ensure it looks like a task
+            // We need to check which IDs were processed
+            const allProcessedIds = new Set(newGroups.flatMap(g => g.tasks.map(t => t.id)));
+            const newTasksToAdd: ITask[] = [];
+
+            updatedTasks.forEach(task => {
+                if (!allProcessedIds.has(task.id)) {
                     newTasksToAdd.push({
                         id: task.id || uuidv4(),
                         name: task.name || 'New Task',
@@ -397,8 +401,10 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
                         selected: false,
                         ...task
                     });
-                });
+                }
+            });
 
+            if (newTasksToAdd.length > 0 && newGroups.length > 0) {
                 newGroups[0].tasks = [...newGroups[0].tasks, ...newTasksToAdd];
             }
 

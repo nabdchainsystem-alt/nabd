@@ -6,24 +6,48 @@ import {
     AlignLeft, List, Code, Quote, Maximize2
 } from 'lucide-react';
 
+import { emailService, EmailAccount } from '../../services/emailService';
+
 interface ComposeViewProps {
     onDiscard: () => void;
+    accounts?: EmailAccount[];
 }
 
-export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard }) => {
+export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard, accounts }) => {
     const [to, setTo] = useState("");
     const [subject, setSubject] = useState("");
     const [body, setBody] = useState("");
+    const [sending, setSending] = useState(false);
+
+    const handleSend = async () => {
+        if (!to || !subject || !body) return;
+
+        try {
+            setSending(true);
+            // Default to first account or google if available
+            const provider = accounts?.[0]?.provider || 'google';
+            await emailService.sendEmail(to, subject, body, provider as 'google' | 'outlook');
+            onDiscard(); // Close compose on success
+        } catch (error) {
+            console.error("Failed to send", error);
+            alert("Failed to send email");
+        } finally {
+            setSending(false);
+        }
+    };
 
     return (
         <div className="flex flex-col h-full w-full bg-white dark:bg-monday-dark-bg text-gray-900 dark:text-gray-100 font-sans">
-
             {/* 1. Main Action Toolbar */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-surface">
                 <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-2 bg-monday-blue hover:bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors">
+                    <button
+                        onClick={handleSend}
+                        disabled={sending}
+                        className="flex items-center gap-2 bg-monday-blue hover:bg-blue-600 disabled:opacity-50 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+                    >
                         <Send size={14} className="-ml-0.5" />
-                        Send
+                        {sending ? 'Sending...' : 'Send'}
                     </button>
                     <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
                         <ToolBtn icon={<Trash2 size={16} />} label="Discard" onClick={onDiscard} />
@@ -129,7 +153,11 @@ export const ComposeView: React.FC<ComposeViewProps> = ({ onDiscard }) => {
 
                 {/* Body */}
                 <div className="mt-6 pl-16">
-                    <div className="min-h-[300px] outline-none text-sm text-gray-800 dark:text-gray-200" contentEditable>
+                    <div
+                        className="min-h-[300px] outline-none text-sm text-gray-800 dark:text-gray-200"
+                        contentEditable
+                        onInput={(e) => setBody(e.currentTarget.textContent || "")}
+                    >
 
                     </div>
                     {/* Blinking Cursor Simulation (optional, as contentEditable has one) */}

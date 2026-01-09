@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   PenSquare, Sparkles, Inbox, Archive, FileText, Send, Trash2,
   History, Ban, Folder, ChevronRight, ChevronDown, Trash,
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { ComposeView } from './ComposeView';
+import { ConnectAccount } from './components/ConnectAccount';
+import { emailService } from '../../services/emailService';
 
 interface MailItem {
   id: string;
@@ -57,12 +59,58 @@ const MOCK_MAILS: MailItem[] = [
 ];
 
 export const InboxView: React.FC = () => {
-  const [selectedMailId, setSelectedMailId] = useState<string>(MOCK_MAILS[0].id);
+  const [mails, setMails] = useState<MailItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasAccount, setHasAccount] = useState(false);
+  const [accounts, setAccounts] = useState<any[]>([]); // Add accounts state
+  const [selectedMailId, setSelectedMailId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'focused' | 'other'>('focused');
-  const [rightPanelMode, setRightPanelMode] = useState<'view' | 'compose'>('view'); // Added rightPanelMode state
+  const [rightPanelMode, setRightPanelMode] = useState<'view' | 'compose'>('view');
   const { t } = useAppContext();
 
-  const selectedMail = MOCK_MAILS.find(m => m.id === selectedMailId);
+  useEffect(() => {
+    checkConnection();
+  }, []);
+
+  const checkConnection = async () => {
+    try {
+      const fetchedAccounts = await emailService.getAccounts();
+      if (fetchedAccounts.length > 0) {
+        setHasAccount(true);
+        setAccounts(fetchedAccounts); // Store accounts
+        fetchEmails();
+      } else {
+        setHasAccount(false);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error("Failed to check connection", error);
+      setLoading(false);
+    }
+  };
+
+  const fetchEmails = async () => {
+    setLoading(true);
+    try {
+      const data = await emailService.getEmails();
+      setMails(data);
+      if (data.length > 0) setSelectedMailId(data[0].id);
+    } catch (error) {
+      console.error("Failed to fetch emails", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !hasAccount) {
+    return <div className="flex items-center justify-center h-full">Loading...</div>;
+  }
+
+  if (!hasAccount) {
+    return <ConnectAccount />;
+  }
+
+  const selectedMail = mails.find(m => m.id === selectedMailId);
 
   return (
     <div className="flex h-full w-full bg-white dark:bg-monday-dark-bg overflow-hidden font-sans text-gray-800 dark:text-monday-dark-text">
@@ -74,7 +122,7 @@ export const InboxView: React.FC = () => {
             <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           </div>
           <button
-            onClick={() => setRightPanelMode('compose')} // Changed onClick handler
+            onClick={() => setRightPanelMode('compose')}
             className="w-full bg-monday-blue hover:bg-blue-600 text-white py-1.5 px-4 rounded shadow-sm flex items-center justify-center gap-2 transition-colors"
           >
             <PenSquare size={14} />
@@ -88,61 +136,41 @@ export const InboxView: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 space-y-0.5 custom-scrollbar">
-          <NavItem icon={<Inbox size={16} />} label={t('inbox')} isActive count={4} />
+          <NavItem icon={<Inbox size={16} />} label={t('inbox')} isActive count={mails.filter(m => m.isUnread).length || undefined} />
           <NavItem icon={<Archive size={16} />} label={t('archive')} />
           <NavItem icon={<FileText size={16} />} label={t('drafts')} />
           <NavItem icon={<Send size={16} />} label={t('sent')} />
           <NavItem icon={<Trash2 size={16} />} label={t('deleted_items')} />
-          <NavItem icon={<Ban size={16} />} label={t('junk_email')} />
 
           <div className="pt-4 pb-2 px-3">
             <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 dark:text-monday-dark-text-secondary uppercase tracking-wider mb-2">
               {t('folders')} <PlusIcon />
             </div>
+            {/* Mock folders for now */}
             <div className="space-y-0.5">
-              <FolderItem label="Personal" hasChildren />
-              <FolderItem label="Receipts" indent />
-              <FolderItem label="Travel Plans" indent />
-              <FolderItem label="Work Projects" hasChildren />
+              <FolderItem label="Work" hasChildren />
+              <FolderItem label="Personal" indent />
             </div>
           </div>
         </div>
       </div>
 
       {/* 2. Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden"> {/* Added overflow-hidden */}
+      <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
 
         {/* Top Action Toolbar */}
-        <div
-          className="h-12 border-b border-gray-200 dark:border-monday-dark-border flex items-center px-2 bg-white dark:bg-monday-dark-surface flex-shrink-0 overflow-x-auto space-x-0.5 rtl:space-x-reverse [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-        >
+        <div className="h-12 border-b border-gray-200 dark:border-monday-dark-border flex items-center px-2 bg-white dark:bg-monday-dark-surface flex-shrink-0 overflow-x-auto space-x-0.5 rtl:space-x-reverse [&::-webkit-scrollbar]:hidden">
+          <ToolbarAction icon={<RefreshCw size={16} />} label={t('sync')} />
+          <div className="w-px h-6 bg-gray-200 mx-2"></div>
           <ToolbarAction icon={<Trash size={16} />} label={t('delete')} />
           <ToolbarAction icon={<Archive size={16} />} label={t('archive')} />
-          <ToolbarAction icon={<MailOpen size={16} />} label={t('read_unread')} />
-          <div className="w-px h-6 bg-gray-200 dark:bg-monday-dark-border mx-2 flex-shrink-0"></div>
           <ToolbarAction icon={<Reply size={16} />} label={t('reply')} />
-          <ToolbarAction icon={<ReplyAll size={16} />} label={t('reply_all')} />
-          <ToolbarAction icon={<Forward size={16} />} label={t('forward')} />
-          <div className="w-px h-6 bg-gray-200 dark:bg-monday-dark-border mx-2 flex-shrink-0"></div>
-          <ToolbarAction icon={<Move size={16} />} label={t('move')} />
-          <ToolbarAction icon={<Copy size={16} />} label={t('copy')} />
-          <ToolbarAction icon={<Tag size={16} />} label={t('categorize')} />
-          <ToolbarAction icon={<Pin size={16} />} label={t('pin')} />
-          <ToolbarAction icon={<Clock size={16} />} label={t('snooze')} />
-          <ToolbarAction icon={<Flag size={16} />} label={t('flag')} />
-          <div className="w-px h-6 bg-gray-200 dark:bg-monday-dark-border mx-2 flex-shrink-0"></div>
-          <ToolbarAction icon={<RefreshCw size={16} />} label={t('sync')} />
-          <ToolbarAction icon={<AlertOctagon size={16} />} label={t('report')} />
-          <ToolbarAction icon={<Ban size={16} />} label={t('block')} />
-          <div className="flex-1"></div>
-          <ToolbarAction icon={<Globe size={16} />} label={t('translate')} />
-          <ToolbarAction icon={<Printer size={16} />} label={t('print')} />
-          <ToolbarAction icon={<MoreHorizontal size={16} />} label={t('more')} />
         </div>
 
-        <div className="flex-1 flex overflow-hidden relative"> {/* Added relative */}
+        <div className="flex-1 flex overflow-hidden relative">
           {/* 2a. Mail List */}
           <div className="w-80 border-e border-gray-200 dark:border-monday-dark-border flex flex-col flex-shrink-0 bg-white dark:bg-monday-dark-surface">
+            {/* Tabs */}
             <div className="p-2 border-b border-gray-100 dark:border-monday-dark-border flex items-center justify-center bg-white dark:bg-monday-dark-surface">
               <div className="flex p-0.5 bg-gray-100 dark:bg-monday-dark-bg rounded-lg w-full">
                 <button
@@ -161,42 +189,48 @@ export const InboxView: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden">
-              {MOCK_MAILS.map(mail => (
-                <div
-                  key={mail.id}
-                  onClick={() => setSelectedMailId(mail.id)}
-                  className={`py-2 px-3 border-b border-gray-100 dark:border-monday-dark-border cursor-pointer transition-colors group relative ${selectedMailId === mail.id ? 'bg-blue-50/50 dark:bg-monday-dark-hover/50' : 'hover:bg-gray-50 dark:hover:bg-monday-dark-hover'}`}
-                >
-                  {selectedMailId === mail.id && (
-                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-monday-blue"></div>
-                  )}
-                  <div className="flex justify-between items-baseline mb-0.5">
-                    <span className={`text-sm truncate pe-2 leading-tight ${mail.isUnread ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
-                      {mail.sender}
-                    </span>
-                    <span className={`text-xs flex-shrink-0 ${mail.isUnread ? 'text-monday-blue font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
-                      {mail.time}
-                    </span>
+              {loading ? (
+                <div className="p-4 text-center text-gray-400 text-sm">Syncing emails...</div>
+              ) : mails.length === 0 ? (
+                <div className="p-4 text-center text-gray-400 text-sm">No emails found</div>
+              ) : (
+                mails.map(mail => (
+                  <div
+                    key={mail.id}
+                    onClick={() => setSelectedMailId(mail.id)}
+                    className={`py-2 px-3 border-b border-gray-100 dark:border-monday-dark-border cursor-pointer transition-colors group relative ${selectedMailId === mail.id ? 'bg-blue-50/50 dark:bg-monday-dark-hover/50' : 'hover:bg-gray-50 dark:hover:bg-monday-dark-hover'}`}
+                  >
+                    {selectedMailId === mail.id && (
+                      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-monday-blue"></div>
+                    )}
+                    <div className="flex justify-between items-baseline mb-0.5">
+                      <span className={`text-sm truncate pe-2 leading-tight ${mail.isUnread ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
+                        {mail.sender}
+                      </span>
+                      <span className={`text-xs flex-shrink-0 ${mail.isUnread ? 'text-monday-blue font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                        {/* Parse simple time if possible, or just string */}
+                        {new Date(mail.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className={`text-sm mb-0.5 truncate leading-tight ${mail.isUnread ? 'text-gray-800 dark:text-gray-200 font-semibold' : 'text-gray-600 dark:text-gray-400'}`}>
+                      {mail.subject}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-500 line-clamp-2 leading-snug">
+                      {mail.preview}
+                    </div>
                   </div>
-                  <div className={`text-sm mb-0.5 truncate leading-tight ${mail.isUnread ? 'text-gray-800 dark:text-gray-200 font-semibold' : 'text-gray-600 dark:text-gray-400'}`}>
-                    {mail.subject}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500 line-clamp-2 leading-snug">
-                    {mail.preview}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity h-4">
-                    <Tag size={12} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                    <CheckSquare size={12} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                    {mail.hasAttachment && <Paperclip size={12} className="text-gray-400" />}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
           {/* 2b. Reading Pane */}
-          {selectedMail ? (
-            <div className="flex-1 bg-white dark:bg-monday-dark-bg overflow-y-auto p-6 relative"> {/* Added relative */}
+          {rightPanelMode === 'compose' ? (
+            <div className="flex-1 bg-white dark:bg-monday-dark-bg overflow-y-auto relative">
+              <ComposeView onDiscard={() => setRightPanelMode('view')} accounts={accounts} />
+            </div>
+          ) : selectedMail ? (
+            <div className="flex-1 bg-white dark:bg-monday-dark-bg overflow-y-auto p-6 relative">
               <div className="flex items-start gap-3 mb-6">
                 <div className={`w-10 h-10 rounded-full ${selectedMail.color} text-white flex items-center justify-center text-lg font-medium shadow-sm`}>
                   {selectedMail.initial}
@@ -204,9 +238,9 @@ export const InboxView: React.FC = () => {
                 <div className="flex-1">
                   <h1 className="text-xl font-semibold text-[#323338] dark:text-monday-dark-text mb-0.5 leading-tight">{selectedMail.subject}</h1>
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="font-medium text-gray-900 dark:text-gray-300">You</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-300">{selectedMail.sender}</span>
                     <span>•</span>
-                    <span>12/12/2025, 10:44:31 PM</span>
+                    <span>{new Date(selectedMail.time).toLocaleString()}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -217,10 +251,9 @@ export const InboxView: React.FC = () => {
 
               <div className="prose max-w-3xl text-[#323338] dark:text-monday-dark-text">
                 <p className="text-base leading-7 font-normal text-gray-800 dark:text-gray-200">
-                  {selectedMail.preview} We need to finalize the allocation for the new marketing campaign by Friday.
-                </p>
-                <p className="mt-4 text-base leading-7 text-gray-800 dark:text-gray-200">
-                  Please check the attached document for the breakdown of expenses.
+                  {selectedMail.preview} ...
+                  <br />
+                  <span className="text-xs text-gray-400 italic">(Full body content fetching not implemented in this preview)</span>
                 </p>
 
                 {selectedMail.hasAttachment && (
@@ -229,20 +262,19 @@ export const InboxView: React.FC = () => {
                       <FileText size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">Budget_Q4_Final.pdf</div>
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400">2.4 MB</div>
+                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">Attachment.pdf</div>
                     </div>
                   </div>
                 )}
-
-                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-monday-dark-border">
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-monday-dark-hover text-gray-600 dark:text-gray-300 text-xs font-medium transition-colors">
-                    <Reply size={14} /> {t('reply')}
-                  </button>
-                </div>
               </div>
 
-              {/* Compose View Panel - Sliding up */}
+              <div className="mt-8 pt-6 border-t border-gray-100 dark:border-monday-dark-border">
+                <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-monday-dark-hover text-gray-600 dark:text-gray-300 text-xs font-medium transition-colors">
+                  <Reply size={14} /> {t('reply')}
+                </button>
+              </div>
+
+              {/* Compose View Panel */}
               <div
                 className={`
                      absolute inset-0 z-30 bg-white dark:bg-stone-900 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl
@@ -254,9 +286,8 @@ export const InboxView: React.FC = () => {
 
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm relative"> {/* Added relative */}
+            <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm relative">
               Select an item to read
-              {/* Ensure Compose View works even if no mail selected */}
               <div
                 className={`
                          absolute inset-0 z-30 bg-white dark:bg-stone-900 flex flex-col transition-transform duration-500 ease-in-out shadow-2xl

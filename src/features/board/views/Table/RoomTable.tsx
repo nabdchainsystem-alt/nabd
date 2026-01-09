@@ -30,6 +30,26 @@ import {
     Sparkles,
     LayoutGrid,
 } from 'lucide-react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragOverlay,
+    defaultDropAnimationSideEffects,
+    DragStartEvent,
+    DragEndEvent
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { ColumnMenu } from '../../components/ColumnMenu';
 import { getPriorityClasses, normalizePriority, PRIORITY_LEVELS, PriorityLevel, comparePriority } from '../../../priorities/priorityUtils';
 import { useReminders } from '../../../reminders/reminderStore';
@@ -45,6 +65,7 @@ export interface Column {
     width: number;
     minWidth: number;
     resizable: boolean;
+    pinned?: boolean;
     options?: { id: string; label: string; color: string }[]; // For status/priority/select
 }
 
@@ -60,6 +81,12 @@ interface RoomTableProps {
     tasks?: any[];
     columns?: Column[];
     onUpdateTasks?: (tasks: any[]) => void;
+    renderCustomActions?: (props: {
+        setRows: React.Dispatch<React.SetStateAction<Row[]>>;
+        setColumns: React.Dispatch<React.SetStateAction<Column[]>>;
+        setIsChartModalOpen: (open: boolean) => void;
+        setIsAIReportModalOpen: (open: boolean) => void;
+    }) => React.ReactNode;
 }
 
 // --- Helpers ---
@@ -240,11 +267,56 @@ const SelectPicker: React.FC<{
     );
 };
 
+// --- Sortable Row Component ---
+interface SortableRowProps {
+    row: Row;
+    children: (dragListeners: any, isDragging: boolean) => React.ReactNode;
+    className?: string;
+    style?: React.CSSProperties;
+}
+
+const SortableRow = ({ row, children, className, style: propStyle }: SortableRowProps) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: row.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        position: 'relative' as 'relative',
+        zIndex: isDragging ? 50 : 'auto',
+        ...propStyle,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className={className} {...attributes}>
+            {children(listeners, isDragging)}
+        </div>
+    );
+};
+
 // --- Main RoomTable Component ---
-const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, columns: externalColumns, onUpdateTasks }) => {
+const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, columns: externalColumns, onUpdateTasks, renderCustomActions }) => {
     // Keys for persistence
     const storageKeyColumns = `room-table-columns-v4-${roomId}-${viewId}`;
     const storageKeyRows = `room-table-rows-v4-${roomId}-${viewId}`;
+
+    // --- DnD Sensors ---
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // Require 8px movement before drag starts prevents accidental drags on clicks
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // --- State ---
     const [columns, setColumns] = useState<Column[]>(() => {
@@ -260,6 +332,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false },
                 { id: 'name', label: 'Name', type: 'text', width: 320, minWidth: 200, resizable: true },
                 { id: 'status', label: 'Status', type: 'status', width: 140, minWidth: 100, resizable: true },
+                { id: 'date', label: 'Date', type: 'date', width: 140, minWidth: 100, resizable: true },
                 { id: 'dueDate', label: 'Due date', type: 'date', width: 140, minWidth: 100, resizable: true },
                 { id: 'priority', label: 'Priority', type: 'priority', width: 140, minWidth: 100, resizable: true, options: PRIORITY_LEVELS.map(p => ({ id: p.toLowerCase(), label: p, color: getPriorityDot(p) })) },
             ];
@@ -268,6 +341,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false },
                 { id: 'name', label: 'Name', type: 'text', width: 320, minWidth: 200, resizable: true },
                 { id: 'status', label: 'Status', type: 'status', width: 140, minWidth: 100, resizable: true },
+                { id: 'date', label: 'Date', type: 'date', width: 140, minWidth: 100, resizable: true },
                 { id: 'dueDate', label: 'Due date', type: 'date', width: 140, minWidth: 100, resizable: true },
                 { id: 'priority', label: 'Priority', type: 'priority', width: 140, minWidth: 100, resizable: true, options: PRIORITY_LEVELS.map(p => ({ id: p.toLowerCase(), label: p, color: getPriorityDot(p) })) },
             ];
@@ -348,14 +422,17 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Drag & Drop State
-    const dragItem = useRef<number | null>(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const [dropTarget, setDropTarget] = useState<{ index: number, position: 'top' | 'bottom' } | null>(null);
+    const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
     // Column Resize State
     const resizingColId = useRef<string | null>(null);
     const startX = useRef<number>(0);
     const startWidth = useRef<number>(0);
+
+    // Virtualization State
+    const [scrollTop, setScrollTop] = useState(0);
+    const tableBodyRef = useRef<HTMLDivElement>(null);
+    const ROW_HEIGHT = 40; // h-10 = 40px
 
     // Persistence Effects
     useEffect(() => {
@@ -405,11 +482,27 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     }, [filteredRows, sortConfig]);
 
     // Pagination Logic
-    const totalPages = Math.ceil(sortedRows.length / rowsPerPage);
+    const isAllRows = rowsPerPage === -1;
+    const totalPages = isAllRows ? 1 : Math.ceil(sortedRows.length / rowsPerPage);
     const paginatedRows = useMemo(() => {
+        if (isAllRows) return sortedRows;
         const start = (currentPage - 1) * rowsPerPage;
         return sortedRows.slice(start, start + rowsPerPage);
-    }, [sortedRows, currentPage, rowsPerPage]);
+    }, [sortedRows, currentPage, rowsPerPage, isAllRows]);
+
+    // Virtualization Calculation
+    const { visibleRows, paddingTop, paddingBottom } = useMemo(() => {
+        const totalRows = paginatedRows.length;
+        const containerHeight = tableBodyRef.current?.clientHeight || 800; // Estimate
+        const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 5); // 5 rows buffer above
+        const endIndex = Math.min(totalRows, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + 5); // 5 rows buffer below
+
+        const visible = paginatedRows.slice(startIndex, endIndex);
+        const paddingTop = startIndex * ROW_HEIGHT;
+        const paddingBottom = (totalRows - endIndex) * ROW_HEIGHT;
+
+        return { visibleRows: visible, paddingTop, paddingBottom };
+    }, [paginatedRows, scrollTop]);
 
     const handleAddPinnedChart = (config: ChartBuilderConfig) => {
         setPinnedCharts(prev => [...prev, config]);
@@ -440,6 +533,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             [primaryCol.id]: newTaskName,
             status: 'To Do',
             dueDate: null,
+            date: new Date().toISOString(),
             priority: null
         };
 
@@ -493,6 +587,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         if (activeCell?.rowId === rowId && activeCell?.colId === colId) {
             setActiveCell(null);
         } else {
+            // const rect = e.currentTarget.getBoundingClientRect();
+            // setActiveCell({ rowId, colId, rect });
+            // Optimization: Defer rect calculation or use ref if flickering occurs during DnD
+            // But for simple cell toggle it's fine.
             const rect = e.currentTarget.getBoundingClientRect();
             setActiveCell({ rowId, colId, rect });
         }
@@ -511,48 +609,29 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         setColumns([...columns, newCol]);
     };
 
-    // Drag and Drop
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-        dragItem.current = index;
-        setIsDragging(true);
-        e.dataTransfer.effectAllowed = "move";
+    const handleDragStart = (event: DragStartEvent) => {
+        if (sortConfig) return; // Disable DnD when sorting is active
+        setActiveDragId(event.active.id as string);
     };
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-        e.preventDefault();
-        if (dragItem.current === null || dragItem.current === index) return;
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveDragId(null);
 
-        const rect = e.currentTarget.getBoundingClientRect();
-        const mid = (rect.bottom - rect.top) / 2;
-        const clientY = e.clientY - rect.top;
-        const position = clientY < mid ? 'top' : 'bottom';
+        if (over && active.id !== over.id) {
+            setRows((items) => {
+                const oldIndex = items.findIndex((item) => item.id === active.id);
+                const newIndex = items.findIndex((item) => item.id === over.id);
 
-        if (dropTarget?.index !== index || dropTarget?.position !== position) {
-            setDropTarget({ index, position });
+                // If indices found
+                if (oldIndex !== -1 && newIndex !== -1) {
+                    const newRows = arrayMove(items, oldIndex, newIndex);
+                    if (onUpdateTasks) onUpdateTasks(newRows);
+                    return newRows;
+                }
+                return items;
+            });
         }
-    };
-
-    const handleDragEnd = () => {
-        dragItem.current = null;
-        setIsDragging(false);
-        setDropTarget(null);
-    };
-
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        if (dragItem.current !== null && dropTarget) {
-            const copy = [...rows];
-            const [draggedItem] = copy.splice(dragItem.current, 1);
-
-            let insertIndex = dropTarget.index;
-            if (dropTarget.position === 'bottom') insertIndex += 1;
-            if (dragItem.current < insertIndex) insertIndex -= 1;
-
-            copy.splice(insertIndex, 0, draggedItem);
-            setRows(copy);
-            if (onUpdateTasks) onUpdateTasks(copy);
-        }
-        handleDragEnd();
     };
 
     // Column Resize
@@ -1012,44 +1091,64 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         )
     };
 
+    const renderRowContent = (row: Row, dragListeners?: any, isOverlay = false) => {
+        return (
+            <>
+                {/* Columns */}
+                {columns.map(col => (
+                    <div
+                        key={col.id}
+                        style={{ width: col.width }}
+                        className={`h-full border-e border-transparent ${!isOverlay ? 'group-hover:border-stone-100 dark:group-hover:border-stone-800' : ''} ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''}`}
+                    >
+                        {col.id === 'select' ? (
+                            <div
+                                {...dragListeners}
+                                className="cursor-grab text-stone-300 hover:text-stone-600 flex items-center justify-center p-1 rounded hover:bg-stone-200/50 active:cursor-grabbing"
+                            >
+                                <GripVertical size={14} />
+                            </div>
+                        ) : (
+                            renderCellContent(col, row)
+                        )}
+                    </div>
+                ))}
+
+                {/* Fixed Actions Column (Delete) */}
+                <div className="w-8 h-full flex items-center justify-center text-stone-300 border-s border-stone-100/50 dark:border-stone-800">
+                    {!isOverlay && (
+                        <button
+                            onClick={() => handleDeleteRow(row.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    )}
+                </div>
+            </>
+        );
+    };
+
     return (
         <div className="flex flex-col w-full h-full bg-stone-50 dark:bg-stone-900/50 font-sans">
             {/* Secondary Toolbar */}
             <div className="flex items-center justify-end h-12 border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4">
                 <div className="flex items-center gap-2">
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileImport}
-                        className="hidden"
-                        accept=".csv,.xlsx,.xls"
-                    />
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-full hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
-                    >
-                        <Download size={14} className="text-stone-400" />
-                        <span>Import</span>
-                    </button>
-                    <button
-                        onClick={() => setIsChartModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-                    >
-                        <BarChart3 size={13} />
-                        <span>Generate Chart</span>
-                    </button>
-                    <button
-                        onClick={() => setIsAIReportModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-full hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm shadow-blue-200"
-                    >
-                        <Sparkles size={13} />
-                        <span>AI Report</span>
-                    </button>
+                    {renderCustomActions && renderCustomActions({
+                        setRows,
+                        setColumns,
+                        setIsChartModalOpen,
+                        setIsAIReportModalOpen
+                    })}
                 </div>
             </div>
 
             {/* Table Body */}
-            <div className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-stone-900 relative overscroll-y-contain">
+            <div
+                ref={tableBodyRef}
+                onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+                className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-stone-900 relative overscroll-y-contain"
+            >
                 {/* Pinned Charts Section */}
                 {pinnedCharts.length > 0 && (
                     <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-stone-50/50 dark:bg-stone-900/30 border-b border-stone-100 dark:border-stone-800">
@@ -1144,64 +1243,47 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     </div>
                 </div>
 
+                {/* Spacer Top */}
+                <div style={{ height: paddingTop }} />
+
                 {/* Tasks */}
-                {
-                    paginatedRows.map((row, index) => (
-                        <div
-                            key={row.id}
-                            className={`
-                group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 
-                hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors relative min-w-max
-                ${isDragging && dragItem.current === index ? 'opacity-40' : ''}
-             `}
-                            onDrop={handleDrop}
-                            onDragOver={(e) => handleDragOver(e, index)}
-                        >
-                            {/* Drop Indicators */}
-                            {isDragging && dropTarget?.index === index && (
-                                <div
-                                    className={`absolute left-0 right-0 h-[2px] bg-stone-900 dark:bg-stone-100 z-50 pointer-events-none ${dropTarget.position === 'top' ? 'top-0' : 'bottom-0'}`}
-                                >
-                                    <div className="absolute left-0 w-1.5 h-1.5 bg-stone-900 dark:bg-stone-100 rounded-full -translate-x-1/2 -translate-y-[1px]" />
-                                </div>
-                            )}
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext items={visibleRows.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                        {visibleRows.map((row) => (
+                            <SortableRow
+                                key={row.id}
+                                row={row}
+                                className={`
+                                    group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 
+                                    hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors relative min-w-max bg-white dark:bg-stone-900
+                                    ${activeDragId === row.id ? 'opacity-30' : ''}
+                                `}
+                            >
+                                {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
+                            </SortableRow>
+                        ))}
+                    </SortableContext>
 
-                            {columns.map(col => (
-                                <div
-                                    key={col.id}
-                                    style={{ width: col.width }}
-                                    draggable={col.id === 'select'}
-                                    onDragStart={(e) => {
-                                        if (col.id === 'select') handleDragStart(e, index);
-                                    }}
-                                    onDragEnd={handleDragEnd}
-                                    className={`h-full border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-grab active:cursor-grabbing' : ''}`}
-                                >
-                                    {col.id === 'select' ? (
-                                        <>
-                                            <div className="hidden group-hover:flex text-stone-300">
-                                                <GripVertical size={14} />
-                                            </div>
-                                            <div className="group-hover:hidden w-3.5 h-3.5 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-800 hover:border-stone-400 cursor-pointer" />
-                                        </>
-                                    ) : (
-                                        renderCellContent(col, row)
-                                    )}
-                                </div>
-                            ))}
-
-                            {/* Fixed Actions Column (Delete) */}
-                            <div className="w-8 h-full flex items-center justify-center text-stone-300 border-s border-stone-100/50 dark:border-stone-800">
-                                <button
-                                    onClick={() => handleDeleteRow(row.id)}
-                                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
+                    <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
+                        {activeDragId ? (
+                            <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
+                                {(() => {
+                                    const row = rows.find(r => r.id === activeDragId);
+                                    if (!row) return null;
+                                    return renderRowContent(row, null, true);
+                                })()}
                             </div>
-                        </div>
-                    ))
-                }
+                        ) : null}
+                    </DragOverlay>
+                </DndContext>
+
+                {/* Spacer Bottom */}
+                <div style={{ height: paddingBottom }} />
 
                 {/* Input Row */}
                 <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors focus-within:bg-stone-50 dark:focus-within:bg-stone-800/50 min-w-max">
@@ -1243,6 +1325,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         <option value={5}>5</option>
                         <option value={10}>10</option>
                         <option value={50}>50</option>
+                        <option value={-1}>All</option>
                     </select>
                 </div>
 

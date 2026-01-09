@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import RoomTable, { Row, Column } from './RoomTable';
-import { Upload } from 'lucide-react';
+import { Upload, Download, BarChart3, Sparkles } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface DataTableProps {
@@ -27,7 +27,7 @@ const DataTable: React.FC<DataTableProps & { viewId?: string }> = ({ roomId, vie
         const reader = new FileReader();
         reader.onload = (evt) => {
             const bstr = evt.target?.result;
-            const wb = XLSX.read(bstr, { type: 'binary' });
+            const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
             const wsname = wb.SheetNames[0];
             const ws = wb.Sheets[wsname];
 
@@ -90,7 +90,12 @@ const DataTable: React.FC<DataTableProps & { viewId?: string }> = ({ roomId, vie
                     const val = rowArr[idx];
                     const colId = headerToIdMap[idx];
                     if (colId) {
-                        rowObj[colId] = val;
+                        // Normalize Date objects to ISO strings for consistency
+                        if (val instanceof Date) {
+                            rowObj[colId] = val.toISOString();
+                        } else {
+                            rowObj[colId] = val;
+                        }
                     }
                 });
                 // Ensure defaults for RoomTable structure if they don't exist in Excel
@@ -132,18 +137,34 @@ const DataTable: React.FC<DataTableProps & { viewId?: string }> = ({ roomId, vie
             defaultColumns={defaultColumns}
             // If RoomTable supports `rows` prop for controlled, we should use it.
             // If not, we hope renderCustomActions provides it.
-            renderCustomActions={({ setRows, setColumns }) => (
-                <div className="relative isolate flex items-center">
-                    <input
-                        type="file"
-                        accept=".xlsx, .xls, .csv"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                        title="Import to Data Table"
-                        onChange={(e) => handleImport(e, setRows, setColumns)}
-                    />
-                    <button className="flex items-center gap-2 px-2 py-0.5 text-[12px] font-medium text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-full hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors pointer-events-none">
-                        <Upload size={12} />
-                        <span className="sr-only">Import</span>
+            renderCustomActions={({ setRows, setColumns, setIsChartModalOpen, setIsAIReportModalOpen }) => (
+                <div className="flex items-center gap-2">
+                    <div className="relative isolate flex items-center">
+                        <input
+                            type="file"
+                            accept=".xlsx, .xls, .csv"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            title="Import to Data Table"
+                            onChange={(e) => handleImport(e, setRows, setColumns)}
+                        />
+                        <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 rounded-full hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors pointer-events-none">
+                            <Download size={14} className="text-stone-400" />
+                            <span>Import</span>
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => setIsChartModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                    >
+                        <BarChart3 size={13} />
+                        <span>Generate Chart</span>
+                    </button>
+                    <button
+                        onClick={() => setIsAIReportModalOpen(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-full hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm shadow-blue-200"
+                    >
+                        <Sparkles size={13} />
+                        <span>AI Report</span>
                     </button>
                 </div>
             )}

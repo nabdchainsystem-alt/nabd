@@ -61,10 +61,8 @@ export async function generateSubtasks(taskTitle: string): Promise<string[]> {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `Generate 3-5 concise, actionable subtasks for the task: "${taskTitle}". Return ONLY the subtasks as a JSON array of strings. Example: ["Research competitors", "Draft outline"]. Do not include markdown formatting like \`\`\`json.`;
-
         const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+        const text = result.response.text();
 
         // Clean up potential markdown code blocks if the model ignores instruction
         const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();

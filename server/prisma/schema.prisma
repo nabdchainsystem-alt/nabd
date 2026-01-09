@@ -119,6 +119,7 @@ model Board {
   description    String?
   availableViews String?  // JSON string
   pinnedViews    String?  // JSON string
+  columns        String?  // JSON string
   defaultView    String?
   cards          Card[]
   createdAt      DateTime @default(now())
@@ -167,4 +168,16 @@ model ColumnStore {
   id        String @id @default(uuid())
   roomId    String 
   columns   String // JSON string of Column[] definitions
+}
+
+// Email Integration
+model EmailAccount {
+  id           String   @id @default(uuid())
+  provider     String   // "google" | "outlook"
+  email        String
+  accessToken  String
+  refreshToken String
+  tokenExpiry  DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

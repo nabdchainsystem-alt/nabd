@@ -1,6 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
+import authRoutes from './routes/authRoutes';
+import emailRoutes from './routes/emailRoutes';
+
+dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
@@ -9,14 +14,37 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
+// Auth & Email Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/email', emailRoutes);
+
+// --- HELPERS ---
+
+function safeJSONParse<T>(jsonString: string | null | undefined, fallback: T): T {
+    if (!jsonString) return fallback;
+    try {
+        return JSON.parse(jsonString);
+    } catch (e) {
+        return fallback;
+    }
+}
+
+function handleError(res: express.Response, error: unknown) {
+    console.error(error);
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
+}
+
 // --- ROUTES ---
 
 // 1. Procurement Requests
 app.get('/procurementRequests', async (req, res) => {
-    const requests = await prisma.procurementRequest.findMany({
-        include: { items: true }
-    });
-    res.json(requests);
+    try {
+        const requests = await prisma.procurementRequest.findMany({
+            include: { items: true }
+        });
+        res.json(requests);
+    } catch (e) { handleError(res, e); }
 });
 
 app.post('/procurementRequests', async (req, res) => {
@@ -26,36 +54,60 @@ app.post('/procurementRequests', async (req, res) => {
             data: {
                 ...data,
                 items: {
-                    create: items
+                    create: items ? items.map((item: any) => ({
+                        ...item,
+                        quantity: Number(item.quantity || 0),
+                        unitPrice: item.unitPrice ? Number(item.unitPrice) : undefined
+                    })) : []
                 }
             },
             include: { items: true }
         });
         res.json(result);
-    } catch (e) {
-        res.status(500).json({ error: e });
-    }
+    } catch (e) { handleError(res, e); }
 });
 
 app.put('/procurementRequests/:id', async (req, res) => {
     const { id } = req.params;
     const { items, ...data } = req.body;
-    // For simplicity, we update fields. Identifying changed items vs new items is complex, 
-    // so we typically might delete all items and recreate them, or require item IDs.
-    // For this prototype, let's just update the main fields.
-    const result = await prisma.procurementRequest.update({
-        where: { id },
-        data: data
-    });
-    res.json(result);
+    try {
+        // Transactional update: update main fields, replace items
+        const result = await prisma.$transaction(async (tx) => {
+            const updated = await tx.procurementRequest.update({
+                where: { id },
+                data: data
+            });
+
+            if (items) {
+                await tx.requestItem.deleteMany({ where: { requestId: id } });
+                await tx.requestItem.createMany({
+                    data: items.map((item: any) => ({
+                        ...item,
+                        requestId: id,
+                        quantity: Number(item.quantity || 0),
+                        unitPrice: item.unitPrice ? Number(item.unitPrice) : undefined
+                    }))
+                });
+            }
+
+            return await tx.procurementRequest.findUnique({
+                where: { id },
+                include: { items: true }
+            });
+        });
+
+        res.json(result);
+    } catch (e) { handleError(res, e); }
 });
 
 // 2. RFQs
 app.get('/rfqs', async (req, res) => {
-    const rfqs = await prisma.rFQ.findMany({
-        include: { items: true }
-    });
-    res.json(rfqs);
+    try {
+        const rfqs = await prisma.rFQ.findMany({
+            include: { items: true }
+        });
+        res.json(rfqs);
+    } catch (e) { handleError(res, e); }
 });
 
 app.post('/rfqs', async (req, res) => {
@@ -64,128 +116,203 @@ app.post('/rfqs', async (req, res) => {
         const result = await prisma.rFQ.create({
             data: {
                 ...data,
+                value: data.value ? Number(data.value) : 0,
+                unitPrice: data.unitPrice ? Number(data.unitPrice) : undefined,
+                quantity: data.quantity ? Number(data.quantity) : undefined,
+                vatAmount: data.vatAmount ? Number(data.vatAmount) : undefined,
+                totalExVat: data.totalExVat ? Number(data.totalExVat) : undefined,
                 items: {
-                    create: items
+                    create: items ? items.map((item: any) => ({
+                        ...item,
+                        quantity: Number(item.quantity || 0),
+                        unitPrice: item.unitPrice ? Number(item.unitPrice) : undefined
+                    })) : []
                 }
             },
             include: { items: true }
         });
         res.json(result);
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: "Failed to create RFQ" });
-    }
+    } catch (e) { handleError(res, e); }
 });
 
 // 3. Orders
 app.get('/orders', async (req, res) => {
-    const orders = await prisma.order.findMany({
-        include: { items: true }
-    });
-    res.json(orders);
+    try {
+        const orders = await prisma.order.findMany({
+            include: { items: true }
+        });
+        res.json(orders);
+    } catch (e) { handleError(res, e); }
 });
 
 // 4. Boards
 app.get('/boards', async (req, res) => {
-    const boards = await prisma.board.findMany({ include: { cards: true } });
-    const parsed = boards.map(b => ({
-        ...b,
-        availableViews: b.availableViews ? JSON.parse(b.availableViews) : [],
-        pinnedViews: b.pinnedViews ? JSON.parse(b.pinnedViews) : []
-    }));
-    res.json(parsed);
+    try {
+        const boards = await prisma.board.findMany({ include: { cards: true } });
+        const parsed = boards.map(b => ({
+            ...b,
+            availableViews: safeJSONParse(b.availableViews, []),
+            pinnedViews: safeJSONParse(b.pinnedViews, []),
+            columns: safeJSONParse(b.columns, [])
+        }));
+        res.json(parsed);
+    } catch (e) { handleError(res, e); }
+});
+
+app.get('/boards/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const board = await prisma.board.findUnique({
+            where: { id },
+            include: { cards: true }
+        });
+        if (!board) return res.status(404).json({ error: 'Board not found' });
+
+        const parsed = {
+            ...board,
+            availableViews: safeJSONParse(board.availableViews, []),
+            pinnedViews: safeJSONParse(board.pinnedViews, []),
+            columns: safeJSONParse(board.columns, [])
+        };
+        res.json(parsed);
+    } catch (e) { handleError(res, e); }
 });
 
 app.post('/boards', async (req, res) => {
     try {
-        const { availableViews, pinnedViews, ...rest } = req.body;
+        const { availableViews, pinnedViews, columns, tasks, cards, id, title, name, description, defaultView } = req.body;
+
+        // Handle name/title mismatch
+        const boardName = name || title || "Untitled Board";
+
         const result = await prisma.board.create({
             data: {
-                ...rest,
+                name: boardName,
+                description,
+                defaultView,
                 availableViews: availableViews ? JSON.stringify(availableViews) : undefined,
-                pinnedViews: pinnedViews ? JSON.stringify(pinnedViews) : undefined
+                pinnedViews: pinnedViews ? JSON.stringify(pinnedViews) : undefined,
+                columns: columns ? JSON.stringify(columns) : undefined
             }
         });
-        // Return parsed
+
         res.json({
             ...result,
-            availableViews: result.availableViews ? JSON.parse(result.availableViews) : [],
-            pinnedViews: result.pinnedViews ? JSON.parse(result.pinnedViews) : []
+            availableViews: safeJSONParse(result.availableViews, []),
+            pinnedViews: safeJSONParse(result.pinnedViews, []),
+            columns: safeJSONParse(result.columns, [])
         });
-    } catch (e) { res.status(500).json({ error: e }); }
+    } catch (e) { handleError(res, e); }
 });
 
 app.patch('/boards/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const { availableViews, pinnedViews, ...rest } = req.body;
-        const data: any = { ...rest };
+        const { availableViews, pinnedViews, columns, tasks, cards, id: _id, title, name, description, defaultView } = req.body;
+        const data: any = {};
+
+        // Whitelist fields
+        if (name || title) data.name = name || title;
+        if (description !== undefined) data.description = description;
+        if (defaultView !== undefined) data.defaultView = defaultView;
         if (availableViews !== undefined) data.availableViews = JSON.stringify(availableViews);
         if (pinnedViews !== undefined) data.pinnedViews = JSON.stringify(pinnedViews);
+        if (columns !== undefined) data.columns = JSON.stringify(columns);
 
         const result = await prisma.board.update({ where: { id }, data });
         res.json({
             ...result,
-            availableViews: result.availableViews ? JSON.parse(result.availableViews) : [],
-            pinnedViews: result.pinnedViews ? JSON.parse(result.pinnedViews) : []
+            availableViews: safeJSONParse(result.availableViews, []),
+            pinnedViews: safeJSONParse(result.pinnedViews, []),
+            columns: safeJSONParse(result.columns, [])
         });
-    } catch (e) { res.status(500).json({ error: e }); }
+    } catch (e) { handleError(res, e); }
 });
 
 app.delete('/boards/:id', async (req, res) => {
     const { id } = req.params;
-    await prisma.board.delete({ where: { id } });
-    res.json({ success: true });
+    try {
+        await prisma.board.delete({ where: { id } });
+        res.json({ success: true });
+    } catch (e) { handleError(res, e); }
 });
 
 // 5. Cards
 app.get('/cards', async (req, res) => {
     const { boardId } = req.query;
-    if (boardId) {
-        const cards = await prisma.card.findMany({ where: { boardId: String(boardId) } });
-        res.json(cards);
-    } else {
-        const cards = await prisma.card.findMany();
-        res.json(cards);
-    }
+    try {
+        if (boardId) {
+            const cards = await prisma.card.findMany({ where: { boardId: String(boardId) } });
+            res.json(cards);
+        } else {
+            const cards = await prisma.card.findMany();
+            res.json(cards);
+        }
+    } catch (e) { handleError(res, e); }
 });
 
 app.post('/cards', async (req, res) => {
     try {
-        const result = await prisma.card.create({ data: req.body });
+        const { boardId, title, description, columnId } = req.body;
+        if (!boardId || !title) return res.status(400).json({ error: "Missing required fields" });
+
+        const result = await prisma.card.create({
+            data: {
+                boardId,
+                title,
+                description,
+                columnId
+            }
+        });
         res.json(result);
-    } catch (e) { res.status(500).json({ error: e }); }
+    } catch (e) { handleError(res, e); }
 });
 
 app.patch('/cards/:id', async (req, res) => {
     const { id } = req.params;
-    const result = await prisma.card.update({ where: { id }, data: req.body });
-    res.json(result);
+    try {
+        const { title, description, columnId, boardId } = req.body;
+        const data: any = {};
+
+        if (title !== undefined) data.title = title;
+        if (description !== undefined) data.description = description;
+        if (columnId !== undefined) data.columnId = columnId;
+        if (boardId !== undefined) data.boardId = boardId;
+
+        const result = await prisma.card.update({ where: { id }, data });
+        res.json(result);
+    } catch (e) { handleError(res, e); }
 });
 
 app.delete('/cards/:id', async (req, res) => {
     const { id } = req.params;
-    await prisma.card.delete({ where: { id } });
-    res.json({ success: true });
+    try {
+        await prisma.card.delete({ where: { id } });
+        res.json({ success: true });
+    } catch (e) { handleError(res, e); }
 });
 
 // 6. Rooms
 app.get('/rooms', async (req, res) => {
-    const rooms = await prisma.room.findMany();
-    res.json(rooms);
+    try {
+        const rooms = await prisma.room.findMany();
+        res.json(rooms);
+    } catch (e) { handleError(res, e); }
 });
 
 app.get('/rooms/:id', async (req, res) => {
     const { id } = req.params;
-    const room = await prisma.room.findUnique({ where: { id } });
-    res.json(room);
+    try {
+        const room = await prisma.room.findUnique({ where: { id } });
+        res.json(room);
+    } catch (e) { handleError(res, e); }
 });
 
 app.post('/rooms', async (req, res) => {
     try {
         const result = await prisma.room.create({ data: req.body });
         res.json(result);
-    } catch (e) { res.status(500).json({ error: e }); }
+    } catch (e) { handleError(res, e); }
 });
 
 // 7. Rows (Dynamic Content)
@@ -193,17 +320,18 @@ app.get('/rows', async (req, res) => {
     const { roomId } = req.query;
     if (!roomId) return res.json([]);
 
-    const rows = await prisma.row.findMany({ where: { roomId: String(roomId) } });
-    // Unpack content JSON
-    const unpacked = rows.map(r => {
-        const content = JSON.parse(r.content);
-        return {
-            id: r.id,
-            roomId: r.roomId,
-            ...content
-        };
-    });
-    res.json(unpacked);
+    try {
+        const rows = await prisma.row.findMany({ where: { roomId: String(roomId) } });
+        const unpacked = rows.map(r => {
+            const content = safeJSONParse(r.content, {});
+            return {
+                id: r.id,
+                roomId: r.roomId,
+                ...content
+            };
+        });
+        res.json(unpacked);
+    } catch (e) { handleError(res, e); }
 });
 
 app.post('/rows', async (req, res) => {
@@ -211,64 +339,76 @@ app.post('/rows', async (req, res) => {
     try {
         const result = await prisma.row.create({
             data: {
-                id, // Use provided ID if any
-                roomId,
+                id,
+                room: { connect: { id: roomId } },
+                data: JSON.stringify(rest),
                 content: JSON.stringify(rest)
             }
         });
         res.json({ id: result.id, roomId: result.roomId, ...rest });
-    } catch (e) { res.status(500).json({ error: e }); }
+    } catch (e) { handleError(res, e); }
 });
 
 app.patch('/rows/:id', async (req, res) => {
     const { id } = req.params;
-    const { roomId, ...updates } = req.body; // Don't allow changing roomId easily or ignore it
+    const { roomId, ...updates } = req.body;
 
-    // First get existing
-    const existing = await prisma.row.findUnique({ where: { id } });
-    if (!existing) return res.status(404).json({ error: "Not found" });
+    try {
+        const existing = await prisma.row.findUnique({ where: { id } });
+        if (!existing) return res.status(404).json({ error: "Not found" });
 
-    const currentContent = JSON.parse(existing.content);
-    const newContent = { ...currentContent, ...updates };
+        const currentContent = safeJSONParse(existing.content, {});
+        const newContent = { ...currentContent, ...updates };
 
-    const result = await prisma.row.update({
-        where: { id },
-        data: {
-            content: JSON.stringify(newContent)
-        }
-    });
+        const result = await prisma.row.update({
+            where: { id },
+            data: {
+                content: JSON.stringify(newContent),
+                data: JSON.stringify(newContent) // Also update data field
+            }
+        });
 
-    res.json({ id: result.id, roomId: result.roomId, ...newContent });
+        res.json({ id: result.id, roomId: result.roomId, ...newContent });
+    } catch (e) { handleError(res, e); }
 });
 
 app.delete('/rows/:id', async (req, res) => {
     const { id } = req.params;
-    await prisma.row.delete({ where: { id } });
-    res.json({ success: true });
+    try {
+        await prisma.row.delete({ where: { id } });
+        res.json({ success: true });
+    } catch (e) { handleError(res, e); }
 });
 
-// 8. Columns (Stored as JSON blob per room)
+// 8. Columns
 app.get('/columns', async (req, res) => {
     const { roomId } = req.query;
     if (!roomId) return res.json([]);
-    const store = await prisma.columnStore.findFirst({ where: { roomId: String(roomId) } });
-    if (!store) return res.json([]);
+    try {
+        const store = await prisma.columnStore.findFirst({ where: { roomId: String(roomId) } });
+        if (!store) return res.json([]);
 
-    // Frontend expects array of wrappers presumably? Or just the store?
-    // roomService returns: "result.length > 0 ? result[0].columns : []"
-    // So it expects an array of ColumnStore objects.
-    // We should return an array containing our store.
-    const parsed = {
-        id: store.id,
-        roomId: store.roomId,
-        columns: JSON.parse(store.columns)
-    };
-    res.json([parsed]);
+        const parsed = {
+            id: store.id,
+            roomId: store.roomId,
+            columns: safeJSONParse(store.columns, [])
+        };
+        res.json([parsed]);
+    } catch (e) { handleError(res, e); }
 });
 
 app.post('/columns', async (req, res) => {
     const { roomId, columns } = req.body;
     try {
+        const existing = await prisma.columnStore.findFirst({ where: { roomId } });
+        if (existing) {
+            const result = await prisma.columnStore.update({
+                where: { id: existing.id },
+                data: { columns: JSON.stringify(columns) }
+            });
+            return res.json({ id: result.id, roomId: result.roomId, columns });
+        }
+
         const result = await prisma.columnStore.create({
             data: {
                 roomId,
@@ -276,21 +416,22 @@ app.post('/columns', async (req, res) => {
             }
         });
         res.json({ id: result.id, roomId: result.roomId, columns });
-    } catch (e) { res.status(500).json({ error: e }); }
+    } catch (e) { handleError(res, e); }
 });
 
 app.patch('/columns/:id', async (req, res) => {
     const { id } = req.params;
     const { columns } = req.body;
-    const result = await prisma.columnStore.update({
-        where: { id },
-        data: {
-            columns: JSON.stringify(columns)
-        }
-    });
-    res.json({ id: result.id, roomId: result.roomId, columns });
+    try {
+        const result = await prisma.columnStore.update({
+            where: { id },
+            data: {
+                columns: JSON.stringify(columns)
+            }
+        });
+        res.json({ id: result.id, roomId: result.roomId, columns });
+    } catch (e) { handleError(res, e); }
 });
-
 
 app.listen(PORT, () => {
     console.log(`SQL Server running on http://localhost:${PORT}`);

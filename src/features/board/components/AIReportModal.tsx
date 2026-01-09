@@ -98,7 +98,6 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({ isOpen, onClose, c
 
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
             // Filter columns based on selection
             const activeColumns = columns.filter(c => colsToUse.has(c.id));
@@ -106,8 +105,10 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({ isOpen, onClose, c
             // Prepare a compact representation of the data for the AI
             const schema = activeColumns.map(c => ({ id: c.id, label: c.label, type: c.type }));
 
-            // Slice rows based on sample size
-            const dataSample = rows.slice(0, sizeToUse).map(r => {
+            // Slice rows based on sample size (-1 means all rows)
+            const rowsToUse = sizeToUse === -1 ? rows : rows.slice(0, sizeToUse);
+
+            const dataSample = rowsToUse.map(r => {
                 const sample: any = {};
                 activeColumns.forEach(c => {
                     sample[c.id] = r[c.id];
@@ -123,10 +124,10 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({ isOpen, onClose, c
                 
                 Constraints for the suggested charts:
                 1. Chart Type must be one of: 'bar', 'pie', 'line', 'area', 'doughnut', 'radar', 'funnel'.
-                2. 'line' and 'area' charts MUST use a column of type 'date' for xAxisColumnId.
+                2. 'line' and 'area' charts usually use a 'date' column for xAxis, but categorical (text) columns are also allowed if they represent a sequence (e.g. Month names).
                 3. Aggregation can be: 'count', 'sum', 'avg', 'min', 'max'.
-                4. 'sum', 'avg', 'min', 'max' MUST use a column of type 'number' for yAxisColumnId.
-                5. 'count' does not require yAxisColumnId (can be empty string).
+                4. For quantitative aggregations ('sum', 'avg', etc.), prefer 'number' columns. However, if a column is labeled 'text' but contains numeric data (e.g. currency, large numbers), YOU MUST USE IT.
+                5. 'count' does not require yAxisColumnId.
                 
                 Return the response ONLY as a JSON array of objects matching this TypeScript interface:
                 interface ChartBuilderConfig {
@@ -140,6 +141,9 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({ isOpen, onClose, c
                 Do not include any explanation or markdown formatting like \`\`\`json.
             `;
 
+            // Direct call to gemini-2.5-flash as requested
+            console.log("Attempting generation with gemini-2.5-flash...");
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const text = response.text();
@@ -149,13 +153,24 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({ isOpen, onClose, c
             const suggestions = JSON.parse(cleanText);
 
             // Validate suggestions against schema
+            // Validate suggestions against schema
             const validSuggestions = suggestions.filter((s: ChartBuilderConfig) => {
                 const xCol = activeColumns.find(c => c.id === s.xAxisColumnId);
                 const yCol = activeColumns.find(c => c.id === s.yAxisColumnId);
 
                 if (!xCol) return false;
-                if (['line', 'area'].includes(s.chartType) && xCol.type !== 'date') return false;
-                if (s.aggregation !== 'count' && (!yCol || yCol.type !== 'number')) return false;
+
+                // Relaxed Validation:
+                // 1. Allow 'text' columns for Line/Area charts (categorical or string-dates)
+                // 2. Allow 'text' columns for numeric aggregations (parsed numbers)
+
+                // if (['line', 'area'].includes(s.chartType) && xCol.type !== 'date') return false; // REMOVED STRICT CHECK
+
+                // Ensure we have a Y column for aggregations
+                if (s.aggregation !== 'count' && !yCol) return false;
+
+                // We'll trust the AI to pick numeric-like text columns for now
+                // if (s.aggregation !== 'count' && yCol.type !== 'number') return false; // REMOVED STRICT CHECK
 
                 return true;
             });
@@ -163,7 +178,21 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({ isOpen, onClose, c
             setSuggestedConfigs(validSuggestions);
         } catch (err) {
             console.error("AI Analysis failed:", err);
-            const errorMessage = err instanceof Error ? err.message : "Unknown error";
+            let errorMessage = err instanceof Error ? err.message : "Unknown error";
+
+            // Diagnostic: If model not found or overloaded, try to list available models to help debug
+            try {
+                if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+                    const genAI = new GoogleGenerativeAI(apiKey);
+                    // Note: accessing the model list requires a different call structure, 
+                    // but usually 404 means the model string is wrong.
+                    // We can't easily list models client-side with full auth sometimes, but let's encourage checking the docs.
+                    errorMessage += " (Double check the model name in code. 'gemini-2.5-flash' might not exist or your API key doesn't have access.)";
+                }
+            } catch (e) {
+                // ignore diagnostic error
+            }
+
             setError(`Failed: ${errorMessage}`);
         } finally {
             setIsAnalyzing(false);
@@ -313,7 +342,8 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({ isOpen, onClose, c
                                     Sample Size (Rows)
                                 </h3>
                                 <div className="flex items-center gap-3">
-                                    {[5, 10, 50].map(size => (
+                                    {/* Added -1 for "All" option */}
+                                    {[5, 10, 50, -1].map(size => (
                                         <button
                                             key={size}
                                             onClick={() => setSampleSize(size)}
@@ -325,7 +355,7 @@ export const AIReportModal: React.FC<AIReportModalProps> = ({ isOpen, onClose, c
                                                 }
                                             `}
                                         >
-                                            {size} Rows
+                                            {size === -1 ? 'All Rows' : `${size} Rows`}
                                         </button>
                                     ))}
                                     <p className="text-sm text-stone-400 ml-2">

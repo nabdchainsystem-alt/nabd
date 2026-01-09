@@ -178,7 +178,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
     const getSanitizedViews = (views?: BoardViewType[]) => {
         const base = (views && views.length > 0 ? views : ['overview', 'table', 'kanban']) as BoardViewType[];
-        const filtered = base.filter(view => view !== 'listboard' && view !== 'list_board') as BoardViewType[];
+        const filtered = base.filter(view => (view as any) !== 'listboard' && (view as any) !== 'list_board') as BoardViewType[];
         return filtered.length ? filtered : ['overview', 'table', 'kanban'];
     };
 
@@ -404,7 +404,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
         return sanitizedAvailableViews.includes(view);
     };
 
-    const isWarehouseBoard = board.id.startsWith('warehouse');
+    const isWarehouseBoard = board.id.startsWith('warehouse') || board.id === 'sc_warehouse';
 
     // Keep capacity map scoped to the warehouse experience only
     useEffect(() => {
@@ -534,6 +534,26 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
         { label: 'Recurring Logic', icon: RotateCw, id: 'recurring', description: 'Repeat work patterns' },
     ];
 
+    // --- Merge dashboardSections into VIEW_OPTIONS ---
+    const effectiveViewOptions = useMemo(() => {
+        const customOptions: typeof VIEW_OPTIONS = [];
+        if (dashboardSections) {
+            dashboardSections.forEach(section => {
+                section.options.forEach((opt: any) => {
+                    if (!VIEW_OPTIONS.find(v => v.id === opt.id)) {
+                        customOptions.push({
+                            label: opt.label,
+                            id: opt.id,
+                            description: opt.description,
+                            icon: opt.icon || Layout // Default icon
+                        });
+                    }
+                });
+            });
+        }
+        return [...VIEW_OPTIONS, ...customOptions];
+    }, [isWarehouseBoard, dashboardSections]);
+
     const renderView = () => {
         switch (activeView) {
             case 'overview':
@@ -609,6 +629,12 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             case 'warehouse_capacity_map':
                 return renderCustomView ? renderCustomView('warehouse_capacity_map') : null;
             default:
+                // Handle custom views
+                if (renderCustomView) {
+                    const custom = renderCustomView(activeView);
+                    if (custom) return custom;
+                }
+
                 return (
                     <KanbanBoard
                         key={board.id}
@@ -744,7 +770,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                     <div className="flex items-center justify-start gap-6 overflow-x-auto no-scrollbar max-w-full">
                         {/* Fixed "Overview" Tab */}
                         {sanitizedAvailableViews.includes('overview') && (() => {
-                            const overviewOption = VIEW_OPTIONS.find(v => v.id === 'overview');
+                            const overviewOption = effectiveViewOptions.find(v => v.id === 'overview');
                             if (!overviewOption) return null;
                             const Icon = overviewOption.icon;
                             return (
@@ -775,7 +801,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                 strategy={horizontalListSortingStrategy}
                             >
                                 {sanitizedAvailableViews.filter(v => v !== 'overview').map((viewId) => {
-                                    const option = VIEW_OPTIONS.find(v => v.id === viewId);
+                                    const option = effectiveViewOptions.find(v => v.id === viewId);
                                     if (!option) return null;
 
                                     const label = viewNames[viewId] || option.label;
@@ -800,7 +826,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                             {/* Drag Overlay for smooth visual feedback */}
                             <DragOverlay adjustScale={false}>
                                 {activeDragId ? (() => {
-                                    const option = VIEW_OPTIONS.find(v => v.id === activeDragId);
+                                    const option = effectiveViewOptions.find(v => v.id === activeDragId);
                                     if (!option) return null;
                                     const label = viewNames[activeDragId] || option.label;
                                     return (
@@ -846,73 +872,117 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
                                             {/* Sections */}
                                             <div className="space-y-12">
-                                                {/* Basic Tools */}
-                                                <section>
-                                                    <div className="flex items-center gap-4 mb-6">
-                                                        <h3 className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest whitespace-nowrap">Basic Tools</h3>
-                                                        <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {VIEW_OPTIONS.filter(opt => !['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet'].includes(opt.id)).map((option) => (
-                                                            <button
-                                                                key={option.id}
-                                                                onClick={() => {
-                                                                    setShowAddViewMenu(false);
-                                                                    const viewId = option.id as BoardViewType;
-                                                                    if (onUpdateBoard && board.availableViews && !board.availableViews.includes(viewId)) {
-                                                                        onUpdateBoard(board.id, { availableViews: [...board.availableViews, viewId] });
-                                                                    } else if (onUpdateBoard && !board.availableViews) {
-                                                                        onUpdateBoard(board.id, { availableViews: [viewId] });
-                                                                    }
-                                                                    setActiveView(viewId);
-                                                                }}
-                                                                className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-stone-100 dark:hover:border-stone-800/50 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group"
-                                                            >
-                                                                <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 group-hover:bg-black dark:group-hover:bg-stone-100 group-hover:text-white dark:group-hover:text-black transition-all">
-                                                                    <option.icon size={16} strokeWidth={1.5} />
-                                                                </div>
-                                                                <div className="text-left">
-                                                                    <div className="text-[13px] font-semibold text-stone-900 dark:text-stone-200 group-hover:translate-x-0.5 transition-transform">{option.label}</div>
-                                                                    <div className="text-[10px] text-stone-400 dark:text-stone-500 line-clamp-1 truncate">{option.description}</div>
-                                                                </div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </section>
+                                                {dashboardSections ? (
+                                                    // Render custom sections
+                                                    dashboardSections.map((section: any, idx: number) => (
+                                                        <section key={idx}>
+                                                            <div className="flex items-center gap-4 mb-6">
+                                                                <h3 className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest whitespace-nowrap">{section.title}</h3>
+                                                                <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
+                                                            </div>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                {section.options.map((option: any) => {
+                                                                    // Fallback icon if not provided in dynamic options
+                                                                    const Icon = option.icon || Layout;
+                                                                    return (
+                                                                        <button
+                                                                            key={option.id}
+                                                                            onClick={() => {
+                                                                                setShowAddViewMenu(false);
+                                                                                const viewId = option.id as BoardViewType;
+                                                                                if (onUpdateBoard && board.availableViews && !board.availableViews.includes(viewId)) {
+                                                                                    onUpdateBoard(board.id, { availableViews: [...board.availableViews, viewId] });
+                                                                                } else if (onUpdateBoard && !board.availableViews) {
+                                                                                    onUpdateBoard(board.id, { availableViews: [viewId] });
+                                                                                }
+                                                                                setActiveView(viewId);
+                                                                            }}
+                                                                            className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-stone-100 dark:hover:border-stone-800/50 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group"
+                                                                        >
+                                                                            <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 group-hover:bg-black dark:group-hover:bg-stone-100 group-hover:text-white dark:group-hover:text-black transition-all">
+                                                                                <Icon size={16} strokeWidth={1.5} />
+                                                                            </div>
+                                                                            <div className="text-left">
+                                                                                <div className="text-[13px] font-semibold text-stone-900 dark:text-stone-200 group-hover:translate-x-0.5 transition-transform">{option.label}</div>
+                                                                                <div className="text-[10px] text-stone-400 dark:text-stone-500 line-clamp-1 truncate">{option.description}</div>
+                                                                            </div>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </section>
+                                                    ))
+                                                ) : (
+                                                    <>
+                                                        {/* Basic Tools */}
+                                                        <section>
+                                                            <div className="flex items-center gap-4 mb-6">
+                                                                <h3 className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest whitespace-nowrap">Basic Tools</h3>
+                                                                <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
+                                                            </div>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                {VIEW_OPTIONS.filter(opt => !['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'warehouse_capacity_map'].includes(opt.id)).map((option) => (
+                                                                    <button
+                                                                        key={option.id}
+                                                                        onClick={() => {
+                                                                            setShowAddViewMenu(false);
+                                                                            const viewId = option.id as BoardViewType;
+                                                                            if (onUpdateBoard && board.availableViews && !board.availableViews.includes(viewId)) {
+                                                                                onUpdateBoard(board.id, { availableViews: [...board.availableViews, viewId] });
+                                                                            } else if (onUpdateBoard && !board.availableViews) {
+                                                                                onUpdateBoard(board.id, { availableViews: [viewId] });
+                                                                            }
+                                                                            setActiveView(viewId);
+                                                                        }}
+                                                                        className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-stone-100 dark:hover:border-stone-800/50 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group"
+                                                                    >
+                                                                        <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 group-hover:bg-black dark:group-hover:bg-stone-100 group-hover:text-white dark:group-hover:text-black transition-all">
+                                                                            <option.icon size={16} strokeWidth={1.5} />
+                                                                        </div>
+                                                                        <div className="text-left">
+                                                                            <div className="text-[13px] font-semibold text-stone-900 dark:text-stone-200 group-hover:translate-x-0.5 transition-transform">{option.label}</div>
+                                                                            <div className="text-[10px] text-stone-400 dark:text-stone-500 line-clamp-1 truncate">{option.description}</div>
+                                                                        </div>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </section>
 
-                                                {/* Advanced Tools */}
-                                                <section>
-                                                    <div className="flex items-center gap-4 mb-6">
-                                                        <h3 className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest whitespace-nowrap">Advanced Tools</h3>
-                                                        <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'warehouse_capacity_map'].includes(opt.id)).map((option) => (
-                                                            <button
-                                                                key={option.id}
-                                                                onClick={() => {
-                                                                    setShowAddViewMenu(false);
-                                                                    const viewId = option.id as BoardViewType;
-                                                                    if (onUpdateBoard && board.availableViews && !board.availableViews.includes(viewId)) {
-                                                                        onUpdateBoard(board.id, { availableViews: [...board.availableViews, viewId] });
-                                                                    } else if (onUpdateBoard && !board.availableViews) {
-                                                                        onUpdateBoard(board.id, { availableViews: [viewId] });
-                                                                    }
-                                                                    setActiveView(viewId);
-                                                                }}
-                                                                className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-stone-100 dark:hover:border-stone-800/50 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group"
-                                                            >
-                                                                <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 group-hover:bg-black dark:group-hover:bg-stone-100 group-hover:text-white dark:group-hover:text-black transition-all">
-                                                                    <option.icon size={16} strokeWidth={1.5} />
-                                                                </div>
-                                                                <div className="text-left">
-                                                                    <div className="text-[13px] font-semibold text-stone-900 dark:text-stone-200 group-hover:translate-x-0.5 transition-transform">{option.label}</div>
-                                                                    <div className="text-[10px] text-stone-400 dark:text-stone-500 line-clamp-1 truncate">{option.description}</div>
-                                                                </div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </section>
+                                                        {/* Advanced Tools */}
+                                                        <section>
+                                                            <div className="flex items-center gap-4 mb-6">
+                                                                <h3 className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest whitespace-nowrap">Advanced Tools</h3>
+                                                                <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
+                                                            </div>
+                                                            <div className="grid grid-cols-3 gap-2">
+                                                                {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'warehouse_capacity_map'].includes(opt.id)).map((option) => (
+                                                                    <button
+                                                                        key={option.id}
+                                                                        onClick={() => {
+                                                                            setShowAddViewMenu(false);
+                                                                            const viewId = option.id as BoardViewType;
+                                                                            if (onUpdateBoard && board.availableViews && !board.availableViews.includes(viewId)) {
+                                                                                onUpdateBoard(board.id, { availableViews: [...board.availableViews, viewId] });
+                                                                            } else if (onUpdateBoard && !board.availableViews) {
+                                                                                onUpdateBoard(board.id, { availableViews: [viewId] });
+                                                                            }
+                                                                            setActiveView(viewId);
+                                                                        }}
+                                                                        className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-stone-100 dark:hover:border-stone-800/50 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group"
+                                                                    >
+                                                                        <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 group-hover:bg-black dark:group-hover:bg-stone-100 group-hover:text-white dark:group-hover:text-black transition-all">
+                                                                            <option.icon size={16} strokeWidth={1.5} />
+                                                                        </div>
+                                                                        <div className="text-left">
+                                                                            <div className="text-[13px] font-semibold text-stone-900 dark:text-stone-200 group-hover:translate-x-0.5 transition-transform">{option.label}</div>
+                                                                            <div className="text-[10px] text-stone-400 dark:text-stone-500 line-clamp-1 truncate">{option.description}</div>
+                                                                        </div>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </section>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
