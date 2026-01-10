@@ -23,7 +23,7 @@ export interface BoardColumn {
   type: 'text' | 'person' | 'status' | 'date' | 'number' | 'priority';
 }
 
-export type BoardViewType = 'kanban' | 'table' | 'datatable' | 'list' | 'doc' | 'discussion' | 'calendar' | 'taskboard' | 'gantt' | 'chart' | 'file_gallery' | 'form' | 'pivot_table' | 'overview' | 'sc_warehouse' | 'sc_shipping' | 'sc_fleet' | 'sc_vendors' | 'sc_planning' | 'warehouse_capacity_map' | 'gtd' | 'cornell' | 'dashboards' | 'whiteboard' | 'automation_rules' | 'goals_okrs' | 'workload' | 'recurring' | 'spreadsheet';
+export type BoardViewType = 'kanban' | 'table' | 'datatable' | 'list' | 'doc' | 'calendar' | 'taskboard' | 'gantt' | 'chart' | 'file_gallery' | 'form' | 'pivot_table' | 'overview' | 'sc_warehouse' | 'sc_shipping' | 'sc_fleet' | 'sc_vendors' | 'sc_planning' | 'warehouse_capacity_map' | 'gtd' | 'cornell' | 'dashboards' | 'whiteboard' | 'automation_rules' | 'goals_okrs' | 'workload' | 'recurring' | 'spreadsheet';
 
 export interface Board {
   id: string;
@@ -38,7 +38,7 @@ export interface Board {
   icon?: string;
   parentId?: string;
   pinnedViews?: string[];
-  type?: 'project' | 'discussion';
+  type?: 'project';
 }
 
 export interface Workspace {
@@ -48,7 +48,7 @@ export interface Workspace {
   color: string;
 }
 
-export type ViewState = 'dashboard' | 'board' | 'inbox' | 'teams' | 'vault' | 'discussion' | 'my_work' | 'flow_hub' | 'process_map' | 'procurement' | 'warehouse' | 'shipping' | 'fleet' | 'vendors' | 'planning' | 'maintenance' | 'production' | 'quality' | 'sales_factory' | 'sales_listing' | 'sales' | 'finance' | 'it_support' | 'hr' | 'marketing' | 'local_marketplace' | 'foreign_marketplace' | 'cornell_notes' | 'settings';
+export type ViewState = 'dashboard' | 'board' | 'inbox' | 'teams' | 'vault' | 'my_work' | 'flow_hub' | 'process_map' | 'procurement' | 'warehouse' | 'shipping' | 'fleet' | 'vendors' | 'planning' | 'maintenance' | 'production' | 'quality' | 'sales_factory' | 'sales_listing' | 'sales' | 'finance' | 'it_support' | 'hr' | 'marketing' | 'local_marketplace' | 'foreign_marketplace' | 'cornell_notes' | 'settings';
 
 export interface RecentlyVisitedItem {
   id: string;

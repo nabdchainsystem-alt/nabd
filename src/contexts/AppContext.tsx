@@ -16,6 +16,7 @@ const translations: Translations = {
   inbox: { en: 'Inbox', ar: 'الوارد' },
   teams: { en: 'Teams', ar: 'الفرق' },
   vault: { en: 'Vault', ar: 'الخزنة' },
+  talk: { en: 'Talk', ar: 'المحادثة' },
   favorites: { en: 'Favorites', ar: 'المفضلة' },
   workspaces: { en: 'Workspaces', ar: 'مساحات العمل' },
   search: { en: 'Search', ar: 'بحث' },

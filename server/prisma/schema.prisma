@@ -195,7 +195,7 @@ model Board {
   columns        String?  
   defaultView    String?
   tasks          String   @default("[]") // Storing tasks as JSON for flexibility
-  type           String   @default("project") // "project" or "discussion"
+  type           String   @default("project") // "project"
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -205,21 +205,7 @@ model Board {
   workspace   Workspace? @relation(fields: [workspaceId], references: [id]) // Optional for now to support private boards? Or enforce it? Let's make it optional for migration safety but intended for use.
   
   cards      Card[]
-  threads    Thread[]
   activities Activity[]
-}
-
-model Thread {
-  id        String   @id @default(uuid())
-  boardId   String
-  title     String
-  preview   String?
-  updatedAt DateTime @updatedAt
-  messages  String   @default("[]") // JSON string of Message[]
-  priority  String?
-  dueDate   DateTime?
-  
-  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
 
 model Card {

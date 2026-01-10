@@ -6,7 +6,6 @@ import authRoutes from './routes/authRoutes';
 import emailRoutes from './routes/emailRoutes';
 import inviteRoutes from './routes/inviteRoutes';
 import boardRoutes from './routes/boardRoutes';
-import discussionRoutes from './routes/discussionRoutes';
 import vaultRoutes from './routes/vaultRoutes';
 import { requireAuth } from './middleware/auth';
 
@@ -76,7 +75,6 @@ app.use('/api/email', emailRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/boards', boardRoutes);
 app.use('/api/vault', vaultRoutes);
-app.use('/api/threads', discussionRoutes);
 
 // --- Workspace Routes ---
 app.get('/api/workspaces', requireAuth, async (req: any, res) => {

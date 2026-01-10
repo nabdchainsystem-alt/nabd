@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    House, Sparkle, Activity, SquaresFour, Tray, ChatCircle, Users, Lock,
+    House, Sparkle, Activity, SquaresFour, Tray, Users, Lock,
     Package, CaretDown, ShoppingCart, Truck, UsersThree, Layout, Factory, Wrench, ShieldCheck,
     Buildings, Table, Megaphone, Money, Monitor, Globe, MagnifyingGlass, Plus, DotsThree, Trash,
     CaretRight, CaretLeft, Briefcase, Folder, FileText, GitMerge, PuzzlePiece, DownloadSimple, MagicWand,
     Pencil, Gauge, X, Star, Heart, Smiley, Cpu, Database, Cloud, Code, TerminalWindow,
     Command, Hash, Image, MusicNotes, VideoCamera, PenNib, Cube, Stack,
     Copy, ArrowSquareOut, Archive, ArrowCircleRight, CheckSquare, Kanban, List,
-    CreditCard
+    CreditCard, ChatCircleText
 } from 'phosphor-react';
 import { Board, Workspace, ViewState } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         icon: 'Briefcase',
         color: 'from-gray-400 to-gray-500'
     };
-    const workspaceBoards = boards.filter(b => b.workspaceId === activeWorkspaceId && b.type !== 'discussion');
+    const workspaceBoards = boards.filter(b => b.workspaceId === activeWorkspaceId);
     const favoriteBoards = boards.filter(b => b.isFavorite);
 
     // Close menus on click outside
@@ -346,18 +346,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('inbox')}</span>
                         </button>
                     )}
-                    {pageVisibility['discussion'] !== false && (
+                    {pageVisibility['talk'] !== false && (
                         <button
-                            onClick={() => onNavigate('discussion')}
-                            title="Discussion"
+                            onClick={() => onNavigate('talk')}
+                            title={t('talk')}
                             className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
-                            ${activeView === 'discussion'
+                            ${activeView === 'talk'
                                     ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                         >
-                            <ChatCircle size={17} weight="light" />
-                            <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Discussion</span>
+                            <ChatCircleText size={17} weight="light" />
+                            <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('talk')}</span>
                         </button>
                     )}
 
@@ -397,6 +397,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* 2. Scrollable Content */}
                 <div className={`flex-1 min-h-0 overflow-y-auto py-2 custom-scrollbar pl-5 pr-3 transition-[padding] duration-300`}>
 
+
                     {/* Departments Section */}
                     <div className="mb-3">
                         {!isCollapsed && (
@@ -405,116 +406,107 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                         )}
 
-                        {/* New Flat Departments List */}
-                        <div className="space-y-0.5">
-                            {/* Dashboards */}
-                            <button
-                                onClick={() => onNavigate('dashboards')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all 
-                                ${activeView === 'dashboards'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                `}
-                            >
-                                <Layout size={17} weight="light" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Dashboards</span>
-                            </button>
+                        <div className="space-y-1">
+                            {/* Overview */}
+                            <div className="mb-1">
+                                <div
+                                    className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                    onClick={() => !isCollapsed && toggleDepartment('mini_overview')}
+                                    title="Overview"
+                                >
+                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
+                                        <Layout size={17} weight="light" className="text-gray-500" />
+                                        <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Overview</span>
+                                    </div>
+                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('mini_overview') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                </div>
+                                {expandedDepartments.has('mini_overview') && !isCollapsed && (
+                                    <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                        <button onClick={() => onNavigate('dashboards')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'dashboards' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                            <Layout size={14} weight="light" /> <span>Dashboards</span>
+                                        </button>
+                                        <button onClick={() => onNavigate('reports')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'reports' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                            <FileText size={14} weight="light" /> <span>Reports</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
-                            {/* Sales */}
-                            <button
-                                onClick={() => onNavigate('sales')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all 
-                                ${activeView === 'sales'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                `}
-                            >
-                                <Megaphone size={17} weight="light" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Sales</span>
-                            </button>
+                            {/* Operations */}
+                            <div className="mb-1">
+                                <div
+                                    className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                    onClick={() => !isCollapsed && toggleDepartment('mini_operations')}
+                                    title="Operations"
+                                >
+                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
+                                        <Factory size={17} weight="light" className="text-gray-500" />
+                                        <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Operations</span>
+                                    </div>
+                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('mini_operations') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                </div>
+                                {expandedDepartments.has('mini_operations') && !isCollapsed && (
+                                    <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                        <button onClick={() => onNavigate('sales')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                            <Megaphone size={14} weight="light" /> <span>Sales</span>
+                                        </button>
+                                        <button onClick={() => onNavigate('purchases')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'purchases' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                            <ShoppingCart size={14} weight="light" /> <span>Purchases</span>
+                                        </button>
+                                        <button onClick={() => onNavigate('inventory')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'inventory' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                            <Package size={14} weight="light" /> <span>Stock / Inventory</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
-                            {/* Purchases */}
-                            <button
-                                onClick={() => onNavigate('purchases')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all 
-                                ${activeView === 'purchases'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                `}
-                            >
-                                <ShoppingCart size={17} weight="light" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Purchases</span>
-                            </button>
+                            {/* Finance */}
+                            <div className="mb-1">
+                                <div
+                                    className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                    onClick={() => !isCollapsed && toggleDepartment('mini_finance')}
+                                    title="Finance"
+                                >
+                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
+                                        <Money size={17} weight="light" className="text-gray-500" />
+                                        <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Finance</span>
+                                    </div>
+                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('mini_finance') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                </div>
+                                {expandedDepartments.has('mini_finance') && !isCollapsed && (
+                                    <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                        <button onClick={() => onNavigate('expenses')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'expenses' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                            <Money size={14} weight="light" /> <span>Expenses</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
-                            {/* Stock / Inventory */}
-                            <button
-                                onClick={() => onNavigate('inventory')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all 
-                                ${activeView === 'inventory'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                `}
-                            >
-                                <Package size={17} weight="light" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Stock / Inventory</span>
-                            </button>
+                            {/* People */}
+                            <div className="mb-1">
+                                <div
+                                    className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                    onClick={() => !isCollapsed && toggleDepartment('mini_people')}
+                                    title="People"
+                                >
+                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
+                                        <UsersThree size={17} weight="light" className="text-gray-500" />
+                                        <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>People</span>
+                                    </div>
+                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('mini_people') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                </div>
+                                {expandedDepartments.has('mini_people') && !isCollapsed && (
+                                    <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                        <button onClick={() => onNavigate('customers')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'customers' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                            <Users size={14} weight="light" /> <span>Customers</span>
+                                        </button>
+                                        <button onClick={() => onNavigate('suppliers')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'suppliers' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
+                                            <Truck size={14} weight="light" /> <span>Suppliers</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
-                            {/* Expenses */}
-                            <button
-                                onClick={() => onNavigate('expenses')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all 
-                                ${activeView === 'expenses'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                `}
-                            >
-                                <Money size={17} weight="light" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Expenses</span>
-                            </button>
-
-                            {/* Suppliers */}
-                            <button
-                                onClick={() => onNavigate('suppliers')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all 
-                                ${activeView === 'suppliers'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                `}
-                            >
-                                <Truck size={17} weight="light" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Suppliers</span>
-                            </button>
-
-                            {/* Customers */}
-                            <button
-                                onClick={() => onNavigate('customers')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all 
-                                ${activeView === 'customers'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                `}
-                            >
-                                <Users size={17} weight="light" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Customers</span>
-                            </button>
-
-                            {/* Reports */}
-                            <button
-                                onClick={() => onNavigate('reports')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all 
-                                ${activeView === 'reports'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                `}
-                            >
-                                <FileText size={17} weight="light" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Reports</span>
-                            </button>
-                        </div>
-
-                        {/* Traditional Departments Structure */}
-
-                        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-monday-dark-border">
                             {/* Supply Chain */}
                             {pageVisibility['supply_chain'] !== false && (
                                 <div className="mb-1">
@@ -566,17 +558,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 </div>
                             )}
 
-                            {/* Operations */}
+                            {/* Manufacturing (Legacy Operations) */}
                             {pageVisibility['operations'] !== false && (
                                 <div className="mb-1">
                                     <div
                                         className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
                                         onClick={() => !isCollapsed && toggleDepartment('operations')}
-                                        title="Operations"
+                                        title="Manufacturing"
                                     >
                                         <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
                                             <Factory size={17} weight="light" className="text-gray-500" />
-                                            <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Operations</span>
+                                            <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Manufacturing</span>
                                         </div>
                                         <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
                                     </div>
@@ -626,16 +618,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             {pageVisibility['sales_factory'] !== false && (
                                                 <button onClick={() => onNavigate('sales_factory')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales_factory' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
                                                     <Factory size={14} /> <span>Sales Factory</span>
-                                                </button>
-                                            )}
-                                            {pageVisibility['sales'] !== false && (
-                                                <button onClick={() => onNavigate('sales')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
-                                                    <Megaphone size={14} /> <span>Sales</span>
-                                                </button>
-                                            )}
-                                            {pageVisibility['finance'] !== false && (
-                                                <button onClick={() => onNavigate('finance')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'finance' ? 'bg-blue-50 text-blue-600 dark:bg-monday-dark-hover' : ''}`}>
-                                                    <Money size={14} weight="light" /> <span>Finance</span>
                                                 </button>
                                             )}
                                         </div>

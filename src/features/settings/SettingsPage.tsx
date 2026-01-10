@@ -3,7 +3,7 @@ import { useUser, useClerk } from '../../auth-adapter';
 import { useAppContext } from '../../contexts/AppContext';
 import {
     FloppyDisk, Warning, Layout, Check, Shield,
-    House, Sparkle, Activity, SquaresFour, Tray, ChatCircle, Users, Lock,
+    House, Sparkle, Activity, SquaresFour, Tray, Users, Lock,
     ShoppingCart, Globe, Package, Truck, UsersThree,
     Wrench, Factory, ShieldCheck, Buildings, Table, Megaphone, Money,
     Monitor, User, Bell, Eye, Moon, Sun, SignOut
@@ -16,7 +16,6 @@ export const ALL_PAGES = {
     'process_map': { label: 'Process Map', section: 'Main', icon: Activity },
     'my_work': { label: 'My Work', section: 'Main', icon: SquaresFour },
     'inbox': { label: 'Inbox', section: 'Main', icon: Tray },
-    'discussion': { label: 'Discussion', section: 'Main', icon: ChatCircle },
     'teams': { label: 'Teams', section: 'Main', icon: Users },
     'vault': { label: 'Vault', section: 'Main', icon: Lock },
 

@@ -5,7 +5,6 @@ import { TopBar } from './components/layout/TopBar';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { BoardView } from './features/board/BoardView';
 import { InboxView } from './features/inbox/InboxView';
-import DiscussionPage from './features/discussion/DiscussionPage';
 import { VaultView } from './features/vault/VaultView';
 import FlowHubPage from './features/flowHub/FlowHubPage';
 import ProcessMapPage from './features/flowHub/ProcessMapPage';
@@ -30,6 +29,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 // import { RedirectToSignIn } from '@clerk/clerk-react';
 import { RedirectToSignIn } from './auth-adapter';
 import { boardService } from './services/boardService';
+const TalkPage = React.lazy(() => import('./features/talk/TalkPage'));
 
 // Mock Initial Data
 const INITIAL_WORKSPACES: Workspace[] = [
@@ -722,13 +722,6 @@ const AppContent: React.FC = () => {
               />
             ) : activeView === 'inbox' ? (
               <InboxView logActivity={logActivity} />
-            ) : activeView === 'discussion' ? (
-              <DiscussionPage
-                groups={boards}
-                onGroupCreated={handleBoardCreated}
-                onGroupDeleted={handleDeleteBoard}
-                logActivity={logActivity}
-              />
             ) : activeView === 'my_work' ? (
               <MyWorkPage
                 boards={boards}
@@ -800,6 +793,8 @@ const AppContent: React.FC = () => {
               <CornellNotesPage />
             ) : activeView === 'settings' ? (
               <SettingsPage visibility={pageVisibility} onVisibilityChange={setPageVisibility} />
+            ) : activeView === 'talk' ? (
+              <TalkPage />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-400 font-light text-xl">
                 {activeView === 'board' && !activeBoard && "No board selected"}

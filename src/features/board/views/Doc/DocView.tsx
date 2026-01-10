@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus as PlusIcon } from 'lucide-react';
 
 import { DocEditor } from './DocEditor';
-import DiscussionPage from '../../../discussion/DiscussionPage';
 import { Theme, NavItem } from './types';
 import { INITIAL_NAV_ITEMS } from './constants';
 
@@ -60,26 +59,18 @@ export const DocView: React.FC<DocViewProps> = ({ roomId }) => {
                 {/* Document Canvas */}
                 <main className="flex-1 overflow-y-auto relative [&::-webkit-scrollbar]:hidden scrollbar-none">
                     {/* Add Page Button (Corner Left) */}
-                    {activeItemId !== 'discussion' && (
-                        <div className="absolute top-4 left-4 z-20">
-                            <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-sm hover:shadow-md text-stone-600 dark:text-stone-300 text-sm font-medium transition-all group">
-                                <PlusIcon size={16} className="text-stone-400 group-hover:text-stone-600 dark:group-hover:text-stone-200" />
-                                Add page
-                            </button>
-                        </div>
-                    )}
+                    <div className="absolute top-4 left-4 z-20">
+                        <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-sm hover:shadow-md text-stone-600 dark:text-stone-300 text-sm font-medium transition-all group">
+                            <PlusIcon size={16} className="text-stone-400 group-hover:text-stone-600 dark:group-hover:text-stone-200" />
+                            Add page
+                        </button>
+                    </div>
 
-                    {activeItemId === 'discussion' ? (
-                        <div className="h-full w-full">
-                            <DiscussionPage />
-                        </div>
-                    ) : (
-                        <DocEditor
-                            key={`${roomId}-${activeItemId}`}
-                            storageKey={`doc-data-${roomId}-${activeItemId}`}
-                            defaultTitle={activePageTitle}
-                        />
-                    )}
+                    <DocEditor
+                        key={`${roomId}-${activeItemId}`}
+                        storageKey={`doc-data-${roomId}-${activeItemId}`}
+                        defaultTitle={activePageTitle}
+                    />
                 </main>
             </div>
 

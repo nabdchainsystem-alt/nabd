@@ -53,7 +53,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Board, BoardViewType } from '../../types';
 import Lists from './views/List/Lists';
 import RoomTable from './views/Table/RoomTable';
-import DiscussionPage from '../discussion/DiscussionPage';
 import KanbanBoard from './views/Kanban/KanbanBoard';
 import { DocView } from './views/Doc/DocView';
 
@@ -599,8 +598,6 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             case 'datatable':
                 // Keeping it for legacy but maybe redirect or hide?
                 return <DataTable key={board.id} roomId={board.id} />;
-            case 'discussion':
-                return <DiscussionPage />;
             case 'doc':
                 return <DocView key={board.id} roomId={board.id} />;
 

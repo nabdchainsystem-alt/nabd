@@ -5,7 +5,7 @@ export interface NavItem {
     label: string;
     icon?: React.ReactNode;
     children?: NavItem[];
-    type: 'folder' | 'doc' | 'list' | 'discussion';
+    type: 'folder' | 'doc' | 'list';
 }
 
 export type Theme = 'light' | 'dark';

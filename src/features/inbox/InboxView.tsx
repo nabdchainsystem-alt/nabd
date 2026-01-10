@@ -14,6 +14,7 @@ import { ConnectAccount } from './components/ConnectAccount';
 import { emailService } from '../../services/emailService';
 import { ConfirmModal } from '../board/components/ConfirmModal';
 import { useAuth } from '../../auth-adapter';
+import ProductivitySidebar from '../../components/common/ProductivitySidebar';
 
 interface MailItem {
   id: string;
@@ -341,23 +342,20 @@ export const InboxView: React.FC<InboxViewProps> = ({ logActivity }) => {
     <div className="flex h-full w-full bg-white dark:bg-monday-dark-bg overflow-hidden font-sans text-gray-800 dark:text-monday-dark-text relative">
 
       {/* 1. Inner Sidebar (Folders) */}
-      <div className="w-60 bg-[#f7f8fa] dark:bg-monday-dark-surface border-e border-gray-200 dark:border-monday-dark-border flex flex-col flex-shrink-0">
-        <div className="p-3 space-y-2">
-          <div className="mb-2 px-1">
+      <div className="w-64 bg-gray-50 dark:bg-monday-dark-surface border-r border-gray-200 dark:border-monday-dark-border flex flex-col flex-shrink-0 p-4">
+        <div className="mb-6">
+          <div className="mb-4 px-2">
             <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inbox</h1>
           </div>
-          <button
-            onClick={() => setRightPanelMode('compose')}
-            className="w-full bg-monday-blue hover:bg-blue-600 text-white py-1.5 px-4 rounded shadow-sm flex items-center justify-center gap-2 transition-colors"
-          >
-            <PenSquare size={14} />
-            <span className="font-medium text-xs">{t('new_mail')}</span>
-          </button>
-
-          <button className="w-full bg-white dark:bg-transparent border border-gray-200 dark:border-monday-dark-border hover:bg-gray-50 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text py-1.5 px-4 rounded shadow-sm flex items-center justify-center gap-2 transition-colors">
-            <Sparkles size={14} className="text-monday-blue" />
-            <span className="font-medium text-xs">{t('capture')}</span>
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={() => setRightPanelMode('compose')}
+              className="w-full bg-monday-blue hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md shadow-sm flex items-center justify-center gap-2 transition-colors"
+            >
+              <PenSquare size={18} />
+              <span className="font-medium text-sm">{t('new_mail')}</span>
+            </button>
+          </div>
         </div>
 
         {/* Connected Accounts List */}
@@ -379,44 +377,46 @@ export const InboxView: React.FC<InboxViewProps> = ({ logActivity }) => {
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-2 space-y-0.5 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
           {/* Main Links */}
           <NavItem
-            icon={<Inbox size={16} />}
+            icon={<Inbox size={18} />}
             label="Inbox"
             isActive={activeFolder === 'INBOX' || !activeFolder}
             onClick={() => setActiveFolder('INBOX')}
             count={mails.filter(m => m.isUnread).length || undefined}
           />
           <NavItem
-            icon={<Send size={16} />}
+            icon={<Send size={18} />}
             label="Sent"
             isActive={activeFolder === 'SENT'}
             onClick={() => setActiveFolder('SENT')}
           />
           <NavItem
-            icon={<Trash2 size={16} />}
+            icon={<Trash2 size={18} />}
             label="Trash"
             isActive={activeFolder === 'TRASH' || activeFolder === 'deleteditems'}
             onClick={() => setActiveFolder('TRASH')}
           />
 
-          <div className="pt-4 pb-2 px-3">
-            <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 dark:text-monday-dark-text-secondary uppercase tracking-wider mb-2">
-              {t('folders')} <PlusIcon />
-            </div>
+          <div className="pt-4 mt-4 border-t border-gray-200 dark:border-monday-dark-border">
+            <div className="px-3">
+              <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                {t('folders')} <PlusIcon />
+              </div>
 
-            <div className="space-y-0.5">
-              {folders
-                .filter(f => !['INBOX', 'SENT', 'TRASH', 'DRAFT', 'IMPORTANT', 'STARRED', 'deleteditems', 'junk', 'sentitems'].includes(f.id.toLowerCase()))
-                .map(folder => (
-                  <FolderItem
-                    key={folder.id}
-                    label={folder.name}
-                    onClick={() => setActiveFolder(folder.id)}
-                    isActive={activeFolder === folder.id}
-                  />
-                ))}
+              <div className="space-y-1">
+                {folders
+                  .filter(f => !['INBOX', 'SENT', 'TRASH', 'DRAFT', 'IMPORTANT', 'STARRED', 'deleteditems', 'junk', 'sentitems'].includes(f.id.toLowerCase()))
+                  .map(folder => (
+                    <FolderItem
+                      key={folder.id}
+                      label={folder.name}
+                      onClick={() => setActiveFolder(folder.id)}
+                      isActive={activeFolder === folder.id}
+                    />
+                  ))}
+              </div>
             </div>
           </div>
         </div>
@@ -646,6 +646,8 @@ export const InboxView: React.FC<InboxViewProps> = ({ logActivity }) => {
         </div>
       </div>
 
+      <ProductivitySidebar />
+
       {/* Modal Portal - Rendered at end */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
@@ -662,22 +664,41 @@ export const InboxView: React.FC<InboxViewProps> = ({ logActivity }) => {
 
 // Helper Components
 const NavItem = ({ icon, label, isActive, count, onClick }: { icon: React.ReactNode, label: string, isActive?: boolean, count?: number, onClick?: () => void }) => (
-  <div onClick={onClick} className={`flex items-center justify-between px-3 py-1.5 rounded-md cursor-pointer group ${isActive ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-monday-dark-hover'}`}>
-    <div className="flex items-center gap-2.5">
+  <div
+    onClick={onClick}
+    className={`
+      flex items-center justify-between px-3 py-2 rounded-md cursor-pointer group transition-colors text-sm font-medium
+      ${isActive
+        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
+        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-monday-dark-hover'
+      }
+    `}
+  >
+    <div className="flex items-center gap-3">
       <span className={isActive ? 'text-inherit' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200'}>{icon}</span>
-      <span className="text-[13px]">{label}</span>
+      <span>{label}</span>
+      {count && (
+        <span className={`text-[10px] font-semibold ${isActive ? 'text-monday-blue' : 'text-gray-500 dark:text-gray-400'}`}>{count}</span>
+      )}
     </div>
-    {count && (
-      <span className={`text-[10px] font-semibold ${isActive ? 'text-monday-blue' : 'text-gray-500 dark:text-gray-400'}`}>{count}</span>
-    )}
   </div>
 );
 
 const FolderItem = ({ label, hasChildren, indent, onClick, isActive }: { label: string, hasChildren?: boolean, indent?: boolean, onClick?: () => void, isActive?: boolean, key?: string | number }) => (
-  <div onClick={onClick} className={`flex items-center gap-2 px-3 py-1 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-monday-dark-hover text-gray-600 dark:text-gray-400 ${indent ? 'ps-8' : ''} ${isActive ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : ''}`}>
-    {hasChildren && <ChevronDown size={12} className="text-gray-400" />}
+  <div
+    onClick={onClick}
+    className={`
+      flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors text-sm
+      ${indent ? 'ps-8' : ''}
+      ${isActive
+        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10 font-medium'
+        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-monday-dark-hover'
+      }
+    `}
+  >
+    {hasChildren && <ChevronDown size={14} className="text-gray-400" />}
     {!hasChildren && <div className="w-3"></div>}
-    <span className="text-[13px]">{label}</span>
+    <span>{label}</span>
   </div>
 );
 
