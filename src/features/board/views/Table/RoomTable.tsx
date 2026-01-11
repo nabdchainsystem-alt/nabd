@@ -20,15 +20,11 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronDown,
-    ArrowUpDown,
     GripVertical,
     Trash2,
     X,
-    Layers,
     ListTree,
     Users,
-    Filter,
-    Search,
     Bell,
     Download,
     BarChart3,
@@ -38,13 +34,21 @@ import {
     UploadCloud,
     ExternalLink,
     CalendarRange,
-    EyeOff,
-    UserCircle,
-    MoreHorizontal,
-    Copy,
-    Archive,
-    Upload
+    MoreHorizontal
 } from 'lucide-react';
+import {
+    MagnifyingGlass,
+    UserCircle,
+    Funnel,
+    ArrowsDownUp,
+    EyeSlash,
+    Stack,
+    Copy,
+    Export,
+    Archive,
+    Trash,
+    CaretDown
+} from 'phosphor-react';
 import {
     DndContext,
     closestCenter,
@@ -101,6 +105,37 @@ export interface Row {
     [key: string]: any;
 }
 
+// --- TableGroup Interface for multiple table support ---
+export interface GroupColor {
+    bg: string;
+    text: string;
+}
+
+export interface TableGroup {
+    id: string;
+    name: string;
+    rows: Row[];
+    isCollapsed: boolean;
+    color: GroupColor; // Color accent for the group
+}
+
+// Color palette for table groups (similar to Monday.com)
+const GROUP_COLORS = [
+    { bg: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' },
+    { bg: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400' },
+    { bg: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
+    { bg: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+    { bg: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400' },
+    { bg: 'bg-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
+    { bg: 'bg-indigo-500', text: 'text-indigo-600 dark:text-indigo-400' },
+    { bg: 'bg-pink-500', text: 'text-pink-600 dark:text-pink-400' },
+    { bg: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400' },
+    { bg: 'bg-orange-500', text: 'text-orange-600 dark:text-orange-400' },
+];
+
+// Helper to get color object from index
+const getGroupColor = (index: number) => GROUP_COLORS[index % GROUP_COLORS.length];
+
 interface RoomTableProps {
     roomId: string;
     viewId: string;
@@ -119,6 +154,55 @@ interface RoomTableProps {
         setIsAIReportModalOpen: (open: boolean) => void;
     }) => React.ReactNode;
 }
+
+// --- Filter and Sort Types ---
+export interface FilterRule {
+    id: string;
+    column: string;
+    condition: string;
+    value: string;
+}
+
+export interface SortRule {
+    id: string;
+    column: string;
+    direction: 'asc' | 'desc';
+}
+
+// Condition options by column type
+const FILTER_CONDITIONS: Record<string, { value: string; label: string }[]> = {
+    text: [
+        { value: 'contains', label: 'Contains' },
+        { value: 'equals', label: 'Equals' },
+        { value: 'not_contains', label: 'Does not contain' },
+        { value: 'is_empty', label: 'Is empty' },
+        { value: 'is_not_empty', label: 'Is not empty' },
+    ],
+    date: [
+        { value: 'is', label: 'Is' },
+        { value: 'is_after', label: 'Is after' },
+        { value: 'is_before', label: 'Is before' },
+        { value: 'is_empty', label: 'Is empty' },
+    ],
+    status: [
+        { value: 'is', label: 'Is' },
+        { value: 'is_not', label: 'Is not' },
+        { value: 'is_empty', label: 'Is empty' },
+    ],
+    priority: [
+        { value: 'is', label: 'Is' },
+        { value: 'is_not', label: 'Is not' },
+        { value: 'is_empty', label: 'Is empty' },
+    ],
+    people: [
+        { value: 'is', label: 'Is' },
+        { value: 'is_not', label: 'Is not' },
+        { value: 'is_empty', label: 'Is empty' },
+    ],
+};
+
+// Helper to get conditions for a column type
+const getConditionsForType = (type: string) => FILTER_CONDITIONS[type] || FILTER_CONDITIONS.text;
 
 // --- Helpers ---
 const formatDate = (date: string | null): string => {
@@ -388,15 +472,66 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         }
     });
 
-    const [rows, setRows] = useState<Row[]>(() => {
-        if (externalTasks && externalTasks.length > 0) return externalTasks;
+    // TableGroups State (multiple groups with their own rows)
+    const storageKeyGroups = `room-table-groups-v1-${roomId}-${viewId}`;
+
+    const [tableGroups, setTableGroups] = useState<TableGroup[]>(() => {
+        // Try to load from new groups storage first
         try {
-            const saved = localStorage.getItem(storageKeyRows);
-            return saved ? JSON.parse(saved) : [];
-        } catch {
-            return [];
+            const savedGroups = localStorage.getItem(storageKeyGroups);
+            if (savedGroups) {
+                const parsed = JSON.parse(savedGroups);
+                if (parsed.length > 0) {
+                    // Migration: Add colors to groups that don't have them
+                    return parsed.map((g: TableGroup, idx: number) => ({
+                        ...g,
+                        color: g.color || getGroupColor(idx)
+                    }));
+                }
+            }
+        } catch { }
+
+        // Migration: If we have old rows data, convert to single group
+        let initialRows: Row[] = [];
+        if (externalTasks && externalTasks.length > 0) {
+            initialRows = externalTasks;
+        } else {
+            try {
+                const saved = localStorage.getItem(storageKeyRows);
+                if (saved) initialRows = JSON.parse(saved);
+            } catch { }
         }
+
+        // Get old table name for migration
+        let initialName = 'Group 1';
+        try {
+            const savedName = localStorage.getItem(storageKeyName);
+            if (savedName) initialName = savedName;
+        } catch { }
+
+        // Return initial group with migrated data
+        return [{
+            id: 'group-1',
+            name: initialName,
+            rows: initialRows,
+            isCollapsed: false,
+            color: GROUP_COLORS[0]
+        }];
     });
+
+    // Derived rows from all groups (for backward compatibility with filtering, sorting, reminders etc.)
+    const rows = useMemo(() => tableGroups.flatMap(g => g.rows), [tableGroups]);
+
+    // Wrapper setRows that updates the first group (for backward compatibility with some handlers)
+    const setRows: React.Dispatch<React.SetStateAction<Row[]>> = useCallback((action) => {
+        setTableGroups(prev => {
+            const newRows = typeof action === 'function' ? action(prev[0]?.rows || []) : action;
+            if (prev.length === 0) {
+                return [{ id: 'group-1', name: 'Group 1', rows: newRows, isCollapsed: false, color: GROUP_COLORS[0] }];
+            }
+            return prev.map((g, idx) => idx === 0 ? { ...g, rows: newRows } : g);
+        });
+    }, []);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -478,6 +613,20 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     // Toolbar State
     const [isBodyVisible, setIsBodyVisible] = useState(true);
 
+    // Toolbar Panel States
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isPersonFilterOpen, setIsPersonFilterOpen] = useState(false);
+    const [personFilter, setPersonFilter] = useState<string | null>(null);
+    const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+    const [filters, setFilters] = useState<FilterRule[]>([]);
+    const [isSortPanelOpen, setIsSortPanelOpen] = useState(false);
+    const [sortRules, setSortRules] = useState<SortRule[]>([]);
+    const [isHideColumnsOpen, setIsHideColumnsOpen] = useState(false);
+    const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+    const [columnSearchQuery, setColumnSearchQuery] = useState('');
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
     // Virtualization State
     const [scrollTop, setScrollTop] = useState(0);
     const tableBodyRef = useRef<HTMLDivElement>(null);
@@ -490,25 +639,85 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         }
     }, [columns, storageKeyColumns, externalColumns]);
 
+    // Persist tableGroups
     useEffect(() => {
         if (!externalTasks) {
-            localStorage.setItem(storageKeyRows, JSON.stringify(rows));
+            localStorage.setItem(storageKeyGroups, JSON.stringify(tableGroups));
         }
-    }, [rows, storageKeyRows, externalTasks]);
+    }, [tableGroups, storageKeyGroups, externalTasks]);
 
-    // Table Name State
-    const [tableName, setTableName] = useState<string>(() => {
-        try {
-            const saved = localStorage.getItem(storageKeyName);
-            return saved || initialName || 'Main Table';
-        } catch {
-            return initialName || 'Main Table';
-        }
-    });
+    // Handler to add a new table group
+    const handleAddTableGroup = useCallback(() => {
+        setTableGroups(prev => {
+            const newGroupId = `group-${Date.now()}`;
+            const colorIndex = prev.length % GROUP_COLORS.length;
+            const newGroup: TableGroup = {
+                id: newGroupId,
+                name: 'New Group',
+                rows: [],
+                isCollapsed: false,
+                color: GROUP_COLORS[colorIndex]
+            };
+            return [...prev, newGroup];
+        });
+    }, []);
 
-    useEffect(() => {
-        localStorage.setItem(storageKeyName, tableName);
-    }, [tableName, storageKeyName]);
+    // Handler to update a group's name
+    const handleUpdateGroupName = useCallback((groupId: string, newName: string) => {
+        setTableGroups(prev => prev.map(g =>
+            g.id === groupId ? { ...g, name: newName } : g
+        ));
+    }, []);
+
+    // Handler to toggle group collapse
+    const handleToggleGroupCollapse = useCallback((groupId: string) => {
+        setTableGroups(prev => prev.map(g =>
+            g.id === groupId ? { ...g, isCollapsed: !g.isCollapsed } : g
+        ));
+    }, []);
+
+    // Handler to add a row to a specific group
+    const handleAddRowToGroup = useCallback((groupId: string, rowName?: string) => {
+        const nameToAdd = rowName?.trim() || 'New Item';
+        const primaryCol = columns.find(c => c.id === 'name') || columns.find(c => c.id !== 'select') || { id: 'name' };
+
+        const newRow: Row = {
+            id: Date.now().toString(),
+            groupId: groupId,
+            [primaryCol.id]: nameToAdd,
+            status: 'To Do',
+            dueDate: null,
+            date: new Date().toISOString(),
+            priority: null
+        };
+
+        // Initialize other columns with null/empty
+        columns.forEach(col => {
+            if (col.id !== 'select' && !newRow.hasOwnProperty(col.id)) {
+                newRow[col.id] = null;
+            }
+        });
+
+        setTableGroups(prev => prev.map(g =>
+            g.id === groupId ? { ...g, rows: [...g.rows, newRow] } : g
+        ));
+    }, [columns]);
+
+    // Handler to update a row within groups
+    const handleUpdateRowInGroup = useCallback((rowId: string, updates: Partial<Row>) => {
+        setTableGroups(prev => prev.map(g => ({
+            ...g,
+            rows: g.rows.map(r => r.id === rowId ? { ...r, ...updates } : r)
+        })));
+    }, []);
+
+    // Handler to delete a row from groups
+    const handleDeleteRowFromGroup = useCallback((rowId: string) => {
+        setTableGroups(prev => prev.map(g => ({
+            ...g,
+            rows: g.rows.filter(r => r.id !== rowId)
+        })));
+    }, []);
 
     // Click Outside
     useEffect(() => {
@@ -661,7 +870,17 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
     const handleSaveVaultSuccess = (item: VaultItem) => {
         if (activeUploadCell) {
-            handleUpdateRow(activeUploadCell.rowId, { [activeUploadCell.colId]: item });
+            // Store only essential reference properties, not the full base64 content
+            // This prevents localStorage quota exceeded errors
+            const fileReference = {
+                id: item.id,
+                title: item.title,
+                type: item.type,
+                folderId: item.folderId,
+                metadata: item.metadata,
+                // Don't store previewUrl or content - they're too large for localStorage
+            };
+            handleUpdateRow(activeUploadCell.rowId, { [activeUploadCell.colId]: fileReference });
         }
         setIsUploadModalOpen(false);
         setActiveUploadCell(null);
@@ -1643,7 +1862,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     return (
                         <div
                             key={col.id}
-                            style={{ width: col.width, ...(isSticky && { left: leftPos, position: 'sticky' }) }}
+                            style={{
+                                width: col.width,
+                                ...(isSticky && { left: leftPos, position: 'sticky', transform: 'translateZ(0)' })
+                            }}
                             className={`h-full border-e border-transparent ${!isOverlay ? 'group-hover:border-stone-100 dark:group-hover:border-stone-800' : ''} ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? `z-10 ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}` : ''} ${index === 1 && !isOverlay ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
                         >
                             {col.id === 'select' ? (
@@ -1685,9 +1907,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         return (
             <div className="flex items-center h-10 border-b border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50 min-w-max">
                 {/* Spacer for Select - Sticky */}
-                <div style={{ width: columns[0].width, left: 0, position: 'sticky' }} className="h-full border-e border-transparent z-10 bg-stone-50/50 dark:bg-stone-900/50" />
+                <div style={{ width: columns[0].width, left: 0, position: 'sticky', transform: 'translateZ(0)' }} className="h-full border-e border-transparent z-10 bg-stone-50/50 dark:bg-stone-900/50" />
                 {/* Name Column Spacer - Sticky */}
-                <div style={{ width: columns[1].width, left: columns[0].width, position: 'sticky' }} className="h-full border-e border-transparent flex items-center px-3 z-10 bg-stone-50/50 dark:bg-stone-900/50 after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]">
+                <div style={{ width: columns[1].width, left: columns[0].width, position: 'sticky', transform: 'translateZ(0)' }} className="h-full border-e border-transparent flex items-center px-3 z-10 bg-stone-50/50 dark:bg-stone-900/50 after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]">
                     <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Summary</span>
                 </div>
 
@@ -1753,42 +1975,388 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
                 {/* Secondary Toolbar */}
                 <div className="flex items-center h-[52px] border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-[#1a1c22] pl-0 pr-4 shrink-0 transition-colors z-20 gap-4">
-                    {/* Left: New Item */}
+                    {/* Left: New Table */}
                     <div className="flex items-center group">
                         <button
-                            onClick={handleAddTask}
+                            onClick={handleAddTableGroup}
                             className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 px-0 py-1.5 text-[13px] font-semibold flex items-center gap-2 transition-colors scale-90 origin-left"
                         >
                             <Plus size={16} strokeWidth={3} />
-                            New item
+                            New Table
                         </button>
                     </div>
 
                     {/* Left: Action Icons */}
-                    <div className="flex items-center gap-5 text-stone-500 dark:text-stone-400">
-                        <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-500 transition-colors group">
-                            <Search size={16} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-[13px] font-medium">Search</span>
+                    <div className="flex items-center gap-3 text-stone-500 dark:text-stone-400 relative">
+                        {/* Search - Expandable */}
+                        <div className="relative flex items-center">
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer transition-all duration-300 ease-out ${isSearchOpen ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-md border border-blue-200 dark:border-blue-700' : 'hover:text-blue-500'}`}
+                                onClick={() => {
+                                    if (!isSearchOpen) {
+                                        setIsSearchOpen(true);
+                                        setTimeout(() => searchInputRef.current?.focus(), 100);
+                                    }
+                                }}
+                            >
+                                <MagnifyingGlass size={16} weight="regular" className="flex-shrink-0" />
+                                <div className={`overflow-hidden transition-all duration-300 ease-out ${isSearchOpen ? 'w-48' : 'w-auto'}`}>
+                                    {isSearchOpen ? (
+                                        <input
+                                            ref={searchInputRef}
+                                            type="text"
+                                            placeholder="Search this board"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Escape') {
+                                                    setIsSearchOpen(false);
+                                                    setSearchQuery('');
+                                                }
+                                            }}
+                                            className="w-full bg-transparent border-none outline-none text-[13px] text-stone-700 dark:text-stone-200 placeholder:text-stone-400"
+                                        />
+                                    ) : (
+                                        <span className="text-[13px] font-medium">Search</span>
+                                    )}
+                                </div>
+                                {isSearchOpen && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsSearchOpen(false);
+                                            setSearchQuery('');
+                                        }}
+                                        className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-500 transition-colors group">
-                            <UserCircle size={16} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-[13px] font-medium">Person</span>
+
+                        {/* Person Filter */}
+                        <div className="relative">
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer transition-colors group ${isPersonFilterOpen || personFilter ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2.5 py-1.5 rounded-md' : 'hover:text-blue-500'}`}
+                                onClick={() => setIsPersonFilterOpen(!isPersonFilterOpen)}
+                            >
+                                <UserCircle size={16} weight="regular" className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[13px] font-medium">Person</span>
+                            </div>
+                            {isPersonFilterOpen && (
+                                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-stone-800 rounded-lg shadow-xl border border-stone-200 dark:border-stone-700 p-4 z-50 min-w-[280px]">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200 flex items-center gap-1.5">
+                                            Filter this board by person
+                                            <span className="w-4 h-4 rounded-full border border-stone-300 text-[10px] flex items-center justify-center text-stone-400">?</span>
+                                        </span>
+                                        <button className="text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 border border-stone-200 dark:border-stone-600 px-2 py-1 rounded">
+                                            Save as new view
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {/* Get unique people from rows */}
+                                        {Array.from(new Set(rows.flatMap(r => r.people || []))).map((person: any) => (
+                                            <button
+                                                key={person?.id || person}
+                                                onClick={() => {
+                                                    setPersonFilter(personFilter === (person?.name || person) ? null : (person?.name || person));
+                                                }}
+                                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-colors ${personFilter === (person?.name || person)
+                                                        ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                                        : 'border-stone-200 dark:border-stone-600 hover:border-stone-300 text-stone-600 dark:text-stone-300'
+                                                    }`}
+                                            >
+                                                <UserCircle size={24} weight="regular" />
+                                            </button>
+                                        ))}
+                                        {rows.every(r => !r.people || r.people.length === 0) && (
+                                            <div className="w-10 h-10 rounded-full border-2 border-stone-200 dark:border-stone-600 flex items-center justify-center">
+                                                <UserCircle size={24} weight="regular" className="text-stone-400" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-500 transition-colors group">
-                            <Filter size={16} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-[13px] font-medium">Filter</span>
-                            <ChevronDown size={12} className="opacity-50" />
+
+                        {/* Filter Panel */}
+                        <div className="relative">
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer transition-colors group ${isFilterPanelOpen || filters.length > 0 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2.5 py-1.5 rounded-md' : 'hover:text-blue-500'}`}
+                                onClick={() => setIsFilterPanelOpen(!isFilterPanelOpen)}
+                            >
+                                <Funnel size={16} weight="regular" className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[13px] font-medium">Filter</span>
+                                <CaretDown size={12} weight="regular" className={`opacity-50 transition-transform ${isFilterPanelOpen ? 'rotate-180' : ''}`} />
+                            </div>
+                            {isFilterPanelOpen && (
+                                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-stone-800 rounded-lg shadow-xl border border-stone-200 dark:border-stone-700 p-4 z-50 min-w-[600px]">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">Advanced filters</span>
+                                            <span className="text-xs text-stone-400">Showing all of {rows.length} items</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {filters.length > 0 && (
+                                                <button
+                                                    onClick={() => setFilters([])}
+                                                    className="text-xs text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 flex items-center gap-1"
+                                                >
+                                                    Clear all
+                                                </button>
+                                            )}
+                                            <button className="text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 border border-stone-200 dark:border-stone-600 px-2 py-1 rounded">
+                                                Save as new view
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Filter Rules */}
+                                    <div className="space-y-2 mb-3">
+                                        {filters.map((filter, idx) => (
+                                            <div key={filter.id} className="flex items-center gap-2">
+                                                <span className="text-xs text-stone-500 w-12">{idx === 0 ? 'Where' : 'And'}</span>
+                                                <select
+                                                    value={filter.column}
+                                                    onChange={(e) => {
+                                                        setFilters(prev => prev.map(f => f.id === filter.id ? { ...f, column: e.target.value, condition: '', value: '' } : f));
+                                                    }}
+                                                    className="flex-1 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200"
+                                                >
+                                                    <option value="">Column</option>
+                                                    {columns.filter(c => c.id !== 'select').map(col => (
+                                                        <option key={col.id} value={col.id}>{col.label}</option>
+                                                    ))}
+                                                </select>
+                                                <select
+                                                    value={filter.condition}
+                                                    onChange={(e) => {
+                                                        setFilters(prev => prev.map(f => f.id === filter.id ? { ...f, condition: e.target.value } : f));
+                                                    }}
+                                                    className="w-40 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200"
+                                                >
+                                                    <option value="">Condition</option>
+                                                    {filter.column && getConditionsForType(columns.find(c => c.id === filter.column)?.type || 'text').map(cond => (
+                                                        <option key={cond.value} value={cond.value}>{cond.label}</option>
+                                                    ))}
+                                                </select>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Value"
+                                                    value={filter.value}
+                                                    onChange={(e) => {
+                                                        setFilters(prev => prev.map(f => f.id === filter.id ? { ...f, value: e.target.value } : f));
+                                                    }}
+                                                    className="flex-1 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200"
+                                                />
+                                                <button
+                                                    onClick={() => setFilters(prev => prev.filter(f => f.id !== filter.id))}
+                                                    className="text-stone-400 hover:text-red-500"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {filters.length === 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-stone-500 w-12">Where</span>
+                                                <select className="flex-1 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-400">
+                                                    <option>Column</option>
+                                                </select>
+                                                <select className="w-40 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-400">
+                                                    <option>Condition</option>
+                                                </select>
+                                                <input placeholder="Value" className="flex-1 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700" readOnly />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={() => setFilters(prev => [...prev, { id: `filter-${Date.now()}`, column: '', condition: '', value: '' }])}
+                                            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                        >
+                                            + New filter
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-500 transition-colors group">
-                            <ArrowUpDown size={16} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-[13px] font-medium">Sort</span>
+
+                        {/* Sort Panel */}
+                        <div className="relative">
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer transition-colors group ${isSortPanelOpen || sortRules.length > 0 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2.5 py-1.5 rounded-md' : 'hover:text-blue-500'}`}
+                                onClick={() => setIsSortPanelOpen(!isSortPanelOpen)}
+                            >
+                                <ArrowsDownUp size={16} weight="regular" className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[13px] font-medium">Sort</span>
+                            </div>
+                            {isSortPanelOpen && (
+                                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-stone-800 rounded-lg shadow-xl border border-stone-200 dark:border-stone-700 p-4 z-50 min-w-[400px]">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200 flex items-center gap-1.5">
+                                            Sort by
+                                            <span className="w-4 h-4 rounded-full border border-stone-300 text-[10px] flex items-center justify-center text-stone-400">?</span>
+                                        </span>
+                                        <button className="text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 border border-stone-200 dark:border-stone-600 px-2 py-1 rounded">
+                                            Save as new view
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2 mb-3">
+                                        {sortRules.map((rule) => (
+                                            <div key={rule.id} className="flex items-center gap-2">
+                                                <div className="text-stone-400 cursor-grab">⋮⋮</div>
+                                                <select
+                                                    value={rule.column}
+                                                    onChange={(e) => {
+                                                        setSortRules(prev => prev.map(r => r.id === rule.id ? { ...r, column: e.target.value } : r));
+                                                    }}
+                                                    className="flex-1 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200"
+                                                >
+                                                    <option value="">Choose column</option>
+                                                    {columns.filter(c => c.id !== 'select').map(col => (
+                                                        <option key={col.id} value={col.id}>{col.label}</option>
+                                                    ))}
+                                                </select>
+                                                <select
+                                                    value={rule.direction}
+                                                    onChange={(e) => {
+                                                        setSortRules(prev => prev.map(r => r.id === rule.id ? { ...r, direction: e.target.value as 'asc' | 'desc' } : r));
+                                                    }}
+                                                    className="w-36 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200"
+                                                >
+                                                    <option value="asc">↑ Ascending</option>
+                                                    <option value="desc">↓ Descending</option>
+                                                </select>
+                                                <button
+                                                    onClick={() => setSortRules(prev => prev.filter(r => r.id !== rule.id))}
+                                                    className="text-stone-400 hover:text-red-500"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {sortRules.length === 0 && (
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-stone-300">⋮⋮</div>
+                                                <select className="flex-1 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-400">
+                                                    <option>Choose column</option>
+                                                </select>
+                                                <select className="w-36 h-9 px-3 text-sm border border-stone-200 dark:border-stone-600 rounded-md bg-white dark:bg-stone-700 text-stone-400">
+                                                    <option>↑ Ascending</option>
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setSortRules(prev => [...prev, { id: `sort-${Date.now()}`, column: '', direction: 'asc' }])}
+                                        className="text-xs text-stone-400 hover:text-stone-600"
+                                    >
+                                        + New sort
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-500 transition-colors group">
-                            <EyeOff size={16} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-[13px] font-medium">Hide</span>
+
+                        {/* Hide Columns */}
+                        <div className="relative">
+                            <div
+                                className={`flex items-center gap-1.5 cursor-pointer transition-colors group ${isHideColumnsOpen || hiddenColumns.size > 0 ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2.5 py-1.5 rounded-md' : 'hover:text-blue-500'}`}
+                                onClick={() => setIsHideColumnsOpen(!isHideColumnsOpen)}
+                            >
+                                <EyeSlash size={16} weight="regular" className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[13px] font-medium">Hide</span>
+                            </div>
+                            {isHideColumnsOpen && (
+                                <div className="absolute top-full left-0 mt-2 bg-white dark:bg-stone-800 rounded-lg shadow-xl border border-stone-200 dark:border-stone-700 p-4 z-50 min-w-[280px]">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200">Display columns</span>
+                                        <button className="text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 border border-stone-200 dark:border-stone-600 px-2 py-1 rounded">
+                                            Save as new view
+                                        </button>
+                                    </div>
+
+                                    <div className="relative mb-3">
+                                        <MagnifyingGlass size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Find columns to show/hide"
+                                            value={columnSearchQuery}
+                                            onChange={(e) => setColumnSearchQuery(e.target.value)}
+                                            className="w-full h-9 pl-8 pr-3 text-sm border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        {/* All columns toggle */}
+                                        <label className="flex items-center gap-3 py-1.5 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={hiddenColumns.size === 0}
+                                                onChange={() => {
+                                                    if (hiddenColumns.size === 0) {
+                                                        setHiddenColumns(new Set(columns.filter(c => c.id !== 'select' && c.id !== 'name').map(c => c.id)));
+                                                    } else {
+                                                        setHiddenColumns(new Set());
+                                                    }
+                                                }}
+                                                className="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm font-medium text-stone-700 dark:text-stone-200">
+                                                All columns
+                                            </span>
+                                            <span className="text-xs text-stone-400 ml-auto">
+                                                {columns.filter(c => c.id !== 'select' && !hiddenColumns.has(c.id)).length} selected
+                                            </span>
+                                        </label>
+
+                                        {/* Individual columns */}
+                                        {columns
+                                            .filter(c => c.id !== 'select')
+                                            .filter(c => columnSearchQuery === '' || c.label.toLowerCase().includes(columnSearchQuery.toLowerCase()))
+                                            .map(col => (
+                                                <label key={col.id} className="flex items-center gap-3 py-1.5 pl-4 cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-700/50 rounded">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!hiddenColumns.has(col.id)}
+                                                        onChange={() => {
+                                                            setHiddenColumns(prev => {
+                                                                const newSet = new Set(prev);
+                                                                if (newSet.has(col.id)) {
+                                                                    newSet.delete(col.id);
+                                                                } else {
+                                                                    newSet.add(col.id);
+                                                                }
+                                                                return newSet;
+                                                            });
+                                                        }}
+                                                        disabled={col.id === 'name'} // Can't hide name column
+                                                        className="w-4 h-4 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <div className={`w-5 h-5 rounded flex items-center justify-center text-white text-xs ${col.type === 'people' ? 'bg-blue-500' :
+                                                            col.type === 'status' ? 'bg-emerald-500' :
+                                                                col.type === 'date' ? 'bg-amber-500' :
+                                                                    col.type === 'priority' ? 'bg-purple-500' :
+                                                                        'bg-stone-400'
+                                                        }`}>
+                                                        {col.type === 'people' ? '👤' : col.type === 'status' ? '▣' : col.type === 'date' ? '📅' : col.type === 'priority' ? '!' : '≡'}
+                                                    </div>
+                                                    <span className="text-sm text-stone-700 dark:text-stone-200">{col.label}</span>
+                                                </label>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Group by */}
                         <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-500 transition-colors group">
-                            <Layers size={16} className="group-hover:scale-110 transition-transform" />
+                            <Stack size={16} weight="regular" className="group-hover:scale-110 transition-transform" />
                             <span className="text-[13px] font-medium">Group by</span>
                         </div>
 
@@ -1803,7 +2371,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                     : 'cursor-default text-stone-300 dark:text-stone-700'
                                     }`}
                             >
-                                <Copy size={16} className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
+                                <Copy size={16} weight="regular" className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
                                 <span className="text-[13px] font-medium">Duplicate</span>
                             </button>
 
@@ -1814,7 +2382,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                     : 'cursor-default text-stone-300 dark:text-stone-700'
                                     }`}
                             >
-                                <Upload size={16} className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
+                                <Export size={16} weight="regular" className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
                                 <span className="text-[13px] font-medium">Export</span>
                             </button>
 
@@ -1825,7 +2393,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                     : 'cursor-default text-stone-300 dark:text-stone-700'
                                     }`}
                             >
-                                <Archive size={16} className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
+                                <Archive size={16} weight="regular" className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
                                 <span className="text-[13px] font-medium">Archive</span>
                             </button>
 
@@ -1859,7 +2427,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                     : 'cursor-default text-stone-300 dark:text-stone-700'
                                     }`}
                             >
-                                <Trash2 size={16} className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
+                                <Trash size={16} weight="regular" className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
                                 <span className="text-[13px] font-medium">Delete</span>
                             </button>
                         </div>
@@ -1880,224 +2448,212 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     </div>
                 </div>
 
-                {/* Group Header */}
-                <div className="flex items-center gap-2 px-4 py-3 shrink-0 bg-white dark:bg-[#1a1c22]">
-                    <button
-                        onClick={() => setIsBodyVisible(!isBodyVisible)}
-                        className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-md transition-colors text-stone-500 hover:text-stone-700"
-                    >
-                        {isBodyVisible ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </button>
-                    <EditableName name={tableName} onRename={setTableName} className="text-blue-600 dark:text-blue-400 text-[15px]" />
-                </div>
 
-
-                {/* Collapsed Summary View */}
-                {!isBodyVisible && priorityStats && (
-                    <div className="border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/80 p-4 flex items-center gap-8 animate-in slide-in-from-top-2 duration-200">
-                        <div className="text-sm font-medium text-stone-500">
-                            {priorityStats.total} Items
-                        </div>
-
-                        <div className="flex-1 flex max-w-md h-6 rounded-md overflow-hidden bg-stone-100 dark:bg-stone-800">
-                            {priorityStats.segments.map((seg, i) => (
-                                <div
-                                    key={seg.label}
-                                    className={`h-full ${seg.color} first:rounded-l-md last:rounded-r-md hover:opacity-90 transition-opacity relative group cursor-help`}
-                                    style={{ width: `${(seg.count / priorityStats.total) * 100}%` }}
-                                >
-                                    {/* Tooltip */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-stone-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                                        {seg.label}: {seg.count} ({Math.round((seg.count / priorityStats.total) * 100)}%)
-                                    </div>
-                                </div>
+                {/* Table Scrollable Area */}
+                <div
+                    ref={tableBodyRef}
+                    onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+                    className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-stone-900 relative overscroll-none"
+                    style={{
+                        WebkitOverflowScrolling: 'touch',
+                        transform: 'translateZ(0)',
+                        willChange: 'scroll-position'
+                    }}
+                >
+                    {/* Pinned Charts Section */}
+                    {pinnedCharts.length > 0 && (
+                        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-stone-50/50 dark:bg-stone-900/30 border-b border-stone-100 dark:border-stone-800">
+                            {pinnedCharts.map((config, idx) => (
+                                <AIChartCard
+                                    key={idx}
+                                    config={config}
+                                    columns={columns}
+                                    rows={rows}
+                                    onDelete={() => handleDeletePinnedChart(idx)}
+                                />
                             ))}
                         </div>
+                    )}
 
-                        <div className="flex gap-4 text-xs text-stone-500">
-                            {priorityStats.segments.map(seg => (
-                                <div key={seg.label} className="flex items-center gap-1.5">
-                                    <div className={`w-2 h-2 rounded-full ${seg.color}`} />
-                                    <span>{seg.label}</span>
+                    {/* Table Groups */}
+                    {tableGroups.map((group, groupIndex) => (
+                        <div key={group.id} className="mb-4">
+                            {/* Group Header - wrapper spans full width, content is sticky left */}
+                            <div className="shrink-0 bg-white dark:bg-[#1a1c22] border-b border-stone-100 dark:border-stone-800/50 min-w-max">
+                                <div className="flex items-center gap-2 px-4 py-3 sticky left-0 w-fit bg-white dark:bg-[#1a1c22]" style={{ transform: 'translateZ(0)' }}>
+                                    {/* Color accent bar */}
+                                    <div className={`w-1 h-6 rounded-full ${group.color.bg}`} />
+                                    <button
+                                        onClick={() => handleToggleGroupCollapse(group.id)}
+                                        className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-md transition-colors text-stone-500 hover:text-stone-700"
+                                    >
+                                        {group.isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                                    </button>
+                                    <EditableName
+                                        name={group.name}
+                                        onRename={(newName) => handleUpdateGroupName(group.id, newName)}
+                                        className={`${group.color.text} text-[15px]`}
+                                    />
+                                    <span className="text-xs text-stone-400 ml-2">
+                                        {group.rows.length} {group.rows.length === 1 ? 'item' : 'items'}
+                                    </span>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                            </div>
 
-                {/* Table Body & Footer Container */}
-                {isBodyVisible && (
-                    <div className="flex-1 flex flex-col min-h-0 relative">
-                        {/* Table Scrollable Area */}
-                        <div
-                            ref={tableBodyRef}
-                            onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-                            className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-stone-900 relative overscroll-y-contain"
-                        >
-                            {/* Pinned Charts Section */}
-                            {pinnedCharts.length > 0 && (
-                                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-stone-50/50 dark:bg-stone-900/30 border-b border-stone-100 dark:border-stone-800">
-                                    {pinnedCharts.map((config, idx) => (
-                                        <AIChartCard
-                                            key={idx}
-                                            config={config}
-                                            columns={columns}
-                                            rows={rows}
-                                            onDelete={() => handleDeletePinnedChart(idx)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Table Header */}
-                            <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/80 h-10 flex-shrink-0 sticky top-0 z-20 min-w-max">
-                                {columns.map((col, index) => {
-                                    const isSticky = index === 0 || index === 1;
-                                    const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
-                                    return (
-                                        <div
-                                            key={col.id}
-                                            style={{ width: col.width, ...(isSticky && { left: leftPos, position: 'sticky' }) }}
-                                            className={`
-                                              h-full flex items-center text-xs font-sans font-medium text-stone-500 dark:text-stone-400 shrink-0
-                                              ${col.id === 'select' ? 'justify-center px-0' : 'px-3'}
-                                              ${index !== columns.length - 1 ? 'border-e border-stone-200/50 dark:border-stone-800' : ''}
-                                              hover:bg-stone-100 dark:hover:bg-stone-800 ${col.id !== 'select' ? 'cursor-pointer' : 'cursor-default'} transition-colors select-none relative group
-                                              ${isSticky ? 'z-30 bg-stone-50 dark:bg-stone-900' : ''}
-                                              ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.1)]' : ''}
-                                            `}
-                                            onClick={() => col.id !== 'select' ? handleSort(col.id) : undefined}
-                                        >
-                                            {col.id === 'select' && (
-                                                <div className="w-3.5 h-3.5 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-800 hover:border-stone-400 transition-colors" />
-                                            )}
-                                            {col.id !== 'select' && (
-                                                <div className="flex items-center justify-between w-full px-2">
-                                                    <span className="truncate flex-1">{col.label}</span>
-                                                    {!['name', 'select'].includes(col.id) && (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
-                                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
-                                                            title="Delete Column"
-                                                        >
-                                                            <Trash2 size={12} />
-                                                        </button>
+                            {/* Group Body (Table Header + Rows + Input) */}
+                            {!group.isCollapsed && (
+                                <>
+                                    {/* Table Header - show for ALL groups */}
+                                    <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/80 h-10 flex-shrink-0 min-w-max">
+                                        {columns.map((col, index) => {
+                                            const isSticky = index === 0 || index === 1;
+                                            const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
+                                            return (
+                                                <div
+                                                    key={col.id}
+                                                    style={{ width: col.width, ...(isSticky && { left: leftPos, position: 'sticky', transform: 'translateZ(0)' }) }}
+                                                    className={`
+                                                          h-full flex items-center text-xs font-sans font-medium text-stone-500 dark:text-stone-400 shrink-0
+                                                          ${col.id === 'select' ? 'justify-center px-0' : 'px-3'}
+                                                          ${index !== columns.length - 1 ? 'border-e border-stone-200/50 dark:border-stone-800' : ''}
+                                                          hover:bg-stone-100 dark:hover:bg-stone-800 ${col.id !== 'select' ? 'cursor-pointer' : 'cursor-default'} transition-colors select-none relative group
+                                                          ${isSticky ? 'z-30 bg-stone-50 dark:bg-stone-900' : ''}
+                                                          ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.1)]' : ''}
+                                                        `}
+                                                    onClick={() => col.id !== 'select' ? handleSort(col.id) : undefined}
+                                                >
+                                                    {col.id === 'select' && (
+                                                        <div className="w-3.5 h-3.5 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-800 hover:border-stone-400 transition-colors" />
+                                                    )}
+                                                    {col.id !== 'select' && (
+                                                        <div className="flex items-center justify-between w-full px-2">
+                                                            <span className="truncate flex-1">{col.label}</span>
+                                                            {!['name', 'select'].includes(col.id) && (
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
+                                                                    title="Delete Column"
+                                                                >
+                                                                    <Trash2 size={12} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {col.resizable && (
+                                                        <div
+                                                            className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-stone-400/50 dark:hover:bg-stone-600/50 z-10"
+                                                            onMouseDown={(e) => startResize(e, col.id, col.width)}
+                                                        />
                                                     )}
                                                 </div>
-                                            )}
-                                            {col.resizable && (
-                                                <div
-                                                    className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-stone-400/50 dark:hover:bg-stone-600/50 z-10"
-                                                    onMouseDown={(e) => startResize(e, col.id, col.width)}
-                                                />
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                                {/* Add Column Button */}
-                                <div className="relative h-full flex flex-col justify-center shrink-0">
-                                    <button
-                                        onClick={(e) => {
-                                            const rect = e.currentTarget.getBoundingClientRect();
-                                            setActiveColumnMenu({ rect });
-                                        }}
-                                        className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-                                    >
-                                        <Plus size={14} />
-                                    </button>
-                                    {activeColumnMenu && createPortal(
-                                        <>
-                                            {/* Backdrop */}
-                                            <div
-                                                className="fixed inset-0 z-[90] bg-transparent"
-                                                onClick={() => setActiveColumnMenu(null)}
-                                            />
-                                            {/* Dropdown Menu */}
-                                            <div
-                                                className="fixed z-[100]"
-                                                style={{
-                                                    top: `${activeColumnMenu.rect.bottom + 8}px`,
-                                                    right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
+                                            );
+                                        })}
+                                        {/* Add Column Button */}
+                                        <div className="relative h-full flex flex-col justify-center shrink-0">
+                                            <button
+                                                onClick={(e) => {
+                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                    setActiveColumnMenu({ rect });
                                                 }}
+                                                className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                                             >
-                                                <ColumnMenu
-                                                    onClose={() => setActiveColumnMenu(null)}
-                                                    onSelect={(type, label, options) => handleAddColumn(type, label, options)}
-                                                />
-                                            </div>
-                                        </>,
-                                        document.body
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Spacer Top */}
-                            <div style={{ height: paddingTop }} />
-
-                            {/* Tasks */}
-                            <DndContext
-                                sensors={sensors}
-                                collisionDetection={closestCenter}
-                                onDragStart={handleDragStart}
-                                onDragEnd={handleDragEnd}
-                            >
-                                <SortableContext items={visibleRows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                                    {visibleRows.map((row) => (
-                                        <SortableRow
-                                            key={row.id}
-                                            row={row}
-                                            className={`
-                                            group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 
-                                            hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors relative min-w-max
-                                            ${activeDragId === row.id ? 'opacity-30' : ''}
-                                            ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}
-                                        `}
-                                        >
-                                            {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
-                                        </SortableRow>
-                                    ))}
-                                </SortableContext>
-
-                                <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
-                                    {activeDragId ? (
-                                        <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
-                                            {(() => {
-                                                const row = rows.find(r => r.id === activeDragId);
-                                                if (!row) return null;
-                                                return renderRowContent(row, null, true);
-                                            })()}
+                                                <Plus size={14} />
+                                            </button>
+                                            {activeColumnMenu && createPortal(
+                                                <>
+                                                    {/* Backdrop */}
+                                                    <div
+                                                        className="fixed inset-0 z-[90] bg-transparent"
+                                                        onClick={() => setActiveColumnMenu(null)}
+                                                    />
+                                                    {/* Dropdown Menu */}
+                                                    <div
+                                                        className="fixed z-[100]"
+                                                        style={{
+                                                            top: `${activeColumnMenu.rect.bottom + 8}px`,
+                                                            right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
+                                                        }}
+                                                    >
+                                                        <ColumnMenu
+                                                            onClose={() => setActiveColumnMenu(null)}
+                                                            onSelect={(type, label, options) => handleAddColumn(type, label, options)}
+                                                        />
+                                                    </div>
+                                                </>,
+                                                document.body
+                                            )}
                                         </div>
-                                    ) : null}
-                                </DragOverlay>
-                            </DndContext>
+                                    </div>
 
-                            {/* Spacer Bottom */}
-                            <div style={{ height: paddingBottom }} />
+                                    {/* Group Rows */}
+                                    <DndContext
+                                        sensors={sensors}
+                                        collisionDetection={closestCenter}
+                                        onDragStart={handleDragStart}
+                                        onDragEnd={handleDragEnd}
+                                    >
+                                        <SortableContext items={group.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                                            {group.rows.map((row) => (
+                                                <SortableRow
+                                                    key={row.id}
+                                                    row={row}
+                                                    className={`
+                                                    group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 
+                                                    hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors relative min-w-max
+                                                    ${activeDragId === row.id ? 'opacity-30' : ''}
+                                                    ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}
+                                                `}
+                                                >
+                                                    {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
+                                                </SortableRow>
+                                            ))}
+                                        </SortableContext>
 
-                            {/* Input Row */}
-                            <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors focus-within:bg-stone-50 dark:focus-within:bg-stone-800/50 min-w-max bg-white dark:bg-stone-900">
-                                <div style={{ width: columns[0].width, left: 0, position: 'sticky' }} className="h-full flex items-center justify-center border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 z-10 bg-white dark:bg-stone-900">
-                                    <Plus size={14} className="text-stone-300 dark:text-stone-600" />
-                                </div>
-                                <div style={{ width: columns[1].width, left: columns[0].width, position: 'sticky' }} className="h-full flex items-center px-3 border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 z-10 bg-white dark:bg-stone-900 after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]">
-                                    <input
-                                        type="text"
-                                        value={newTaskName}
-                                        onChange={(e) => setNewTaskName(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                                        placeholder="Start typing..."
-                                        className="w-full bg-transparent border-none outline-none text-sm font-serif placeholder:text-stone-400 text-stone-800 dark:text-stone-200 p-0"
-                                    />
-                                </div>
-                                {/* Empty cells for Input Row */}
-                                {columns.slice(2).map(col => (
-                                    <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800" />
-                                ))}
-                            </div>
+                                        <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
+                                            {activeDragId ? (
+                                                <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
+                                                    {(() => {
+                                                        const row = rows.find(r => r.id === activeDragId);
+                                                        if (!row) return null;
+                                                        return renderRowContent(row, null, true);
+                                                    })()}
+                                                </div>
+                                            ) : null}
+                                        </DragOverlay>
+                                    </DndContext>
 
+                                    {/* Input Row for this group */}
+                                    <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors focus-within:bg-stone-50 dark:focus-within:bg-stone-800/50 min-w-max bg-white dark:bg-stone-900">
+                                        <div style={{ width: columns[0].width, left: 0, position: 'sticky', transform: 'translateZ(0)' }} className="h-full flex items-center justify-center border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 z-10 bg-white dark:bg-stone-900">
+                                            <Plus size={14} className="text-stone-300 dark:text-stone-600" />
+                                        </div>
+                                        <div style={{ width: columns[1].width, left: columns[0].width, position: 'sticky', transform: 'translateZ(0)' }} className="h-full flex items-center px-3 border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 z-10 bg-white dark:bg-stone-900 after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]">
+                                            <input
+                                                type="text"
+                                                placeholder="Start typing..."
+                                                className="w-full bg-transparent border-none outline-none text-sm font-serif placeholder:text-stone-400 text-stone-800 dark:text-stone-200 p-0"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        const input = e.currentTarget;
+                                                        const value = input.value.trim();
+                                                        if (value) {
+                                                            handleAddRowToGroup(group.id, value);
+                                                            input.value = '';
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        {/* Empty cells for Input Row */}
+                                        {columns.slice(2).map(col => (
+                                            <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800" />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    </div>
-                )}
+                    ))}
+                </div>
 
                 {activeReminderTarget && (
                     <PortalPopup

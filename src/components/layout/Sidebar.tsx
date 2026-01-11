@@ -267,7 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                         `}
                     >
-                        <House size={17} weight="light" />
+                        <House size={17} weight="light" className="flex-shrink-0" />
                         <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('home')}</span>
                     </button>
                     {pageVisibility['flow_hub'] !== false && (
@@ -280,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                         >
-                            <Sparkle size={17} weight="light" />
+                            <Sparkle size={17} weight="light" className="flex-shrink-0" />
                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Flow Hub</span>
                         </button>
                     )}
@@ -294,7 +294,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                         >
-                            <Activity size={17} weight="light" />
+                            <Activity size={17} weight="light" className="flex-shrink-0" />
                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Process Map</span>
                         </button>
                     )}
@@ -308,7 +308,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                         >
-                            <SquaresFour size={17} weight="light" />
+                            <SquaresFour size={17} weight="light" className="flex-shrink-0" />
                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('my_work')}</span>
                         </button>
                     )}
@@ -324,7 +324,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                         >
-                            <Tray size={17} weight="light" />
+                            <Tray size={17} weight="light" className="flex-shrink-0" />
                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('inbox')}</span>
                         </button>
                     )}
@@ -338,7 +338,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                         >
-                            <ChatCircleText size={17} weight="light" />
+                            <ChatCircleText size={17} weight="light" className="flex-shrink-0" />
                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('talk')}</span>
                         </button>
                     )}
@@ -353,7 +353,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                         >
-                            <Users size={17} weight="light" />
+                            <Users size={17} weight="light" className="flex-shrink-0" />
                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('teams')}</span>
                         </button>
                     )}
@@ -367,7 +367,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                         >
-                            <Lock size={17} weight="light" />
+                            <Lock size={17} weight="light" className="flex-shrink-0" />
                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('vault')}</span>
                         </button>
                     )}
@@ -392,15 +392,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {/* Overview */}
                             <div className="mb-1">
                                 <div
-                                    className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                     onClick={() => !isCollapsed && toggleDepartment('mini_overview')}
                                     title="Overview"
                                 >
-                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
-                                        <Layout size={17} weight="light" className="text-gray-500" />
-                                        <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Overview</span>
-                                    </div>
-                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('mini_overview') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                    <Layout size={17} weight="light" className="flex-shrink-0" />
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Overview</span>
+                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_overview') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                 </div>
                                 {expandedDepartments.has('mini_overview') && !isCollapsed && (
                                     <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -417,15 +415,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {/* Operations */}
                             <div className="mb-1">
                                 <div
-                                    className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                     onClick={() => !isCollapsed && toggleDepartment('mini_operations')}
                                     title="Operations"
                                 >
-                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
-                                        <Factory size={17} weight="light" className="text-gray-500" />
-                                        <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Operations</span>
-                                    </div>
-                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('mini_operations') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                    <Factory size={17} weight="light" className="flex-shrink-0" />
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Operations</span>
+                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                 </div>
                                 {expandedDepartments.has('mini_operations') && !isCollapsed && (
                                     <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -445,15 +441,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {/* Finance */}
                             <div className="mb-1">
                                 <div
-                                    className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                     onClick={() => !isCollapsed && toggleDepartment('mini_finance')}
                                     title="Finance"
                                 >
-                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
-                                        <Money size={17} weight="light" className="text-gray-500" />
-                                        <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Finance</span>
-                                    </div>
-                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('mini_finance') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                    <Money size={17} weight="light" className="flex-shrink-0" />
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Finance</span>
+                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_finance') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                 </div>
                                 {expandedDepartments.has('mini_finance') && !isCollapsed && (
                                     <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -467,15 +461,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {/* People */}
                             <div className="mb-1">
                                 <div
-                                    className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                     onClick={() => !isCollapsed && toggleDepartment('mini_people')}
                                     title="People"
                                 >
-                                    <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
-                                        <UsersThree size={17} weight="light" className="text-gray-500" />
-                                        <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>People</span>
-                                    </div>
-                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('mini_people') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                    <UsersThree size={17} weight="light" className="flex-shrink-0" />
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>People</span>
+                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_people') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                 </div>
                                 {expandedDepartments.has('mini_people') && !isCollapsed && (
                                     <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -493,15 +485,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {pageVisibility['supply_chain'] !== false && (
                                 <div className="mb-1">
                                     <div
-                                        className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                         onClick={() => !isCollapsed && toggleDepartment('supply_chain')}
                                         title="Supply Chain"
                                     >
-                                        <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
-                                            <Package size={17} weight="light" className="text-gray-500" />
-                                            <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Supply Chain</span>
-                                        </div>
-                                        <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                        <Package size={17} weight="light" className="flex-shrink-0" />
+                                        <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Supply Chain</span>
+                                        <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                     </div>
                                     {expandedDepartments.has('supply_chain') && !isCollapsed && (
                                         <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -544,15 +534,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {pageVisibility['operations'] !== false && (
                                 <div className="mb-1">
                                     <div
-                                        className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                         onClick={() => !isCollapsed && toggleDepartment('operations')}
                                         title="Manufacturing"
                                     >
-                                        <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
-                                            <Factory size={17} weight="light" className="text-gray-500" />
-                                            <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Manufacturing</span>
-                                        </div>
-                                        <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                        <Factory size={17} weight="light" className="flex-shrink-0" />
+                                        <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Manufacturing</span>
+                                        <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                     </div>
                                     {expandedDepartments.has('operations') && !isCollapsed && (
                                         <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -580,15 +568,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {pageVisibility['business'] !== false && (
                                 <div className="mb-1">
                                     <div
-                                        className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                         onClick={() => !isCollapsed && toggleDepartment('business')}
                                         title="Business"
                                     >
-                                        <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
-                                            <Buildings size={17} weight="light" className="text-gray-500" />
-                                            <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Business</span>
-                                        </div>
-                                        <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('business') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                        <Buildings size={17} weight="light" className="flex-shrink-0" />
+                                        <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Business</span>
+                                        <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('business') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                     </div>
                                     {expandedDepartments.has('business') && !isCollapsed && (
                                         <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -611,15 +597,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {pageVisibility['business_support'] !== false && (
                                 <div className="mb-1">
                                     <div
-                                        className={`flex items-center ${!isCollapsed ? 'justify-between px-2' : 'justify-center px-0'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text`}
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                         onClick={() => !isCollapsed && toggleDepartment('business_support')}
                                         title="Business Support"
                                     >
-                                        <div className={`flex items-center ${!isCollapsed ? 'gap-2' : ''} truncate`}>
-                                            <Users size={18} className="text-gray-500" />
-                                            <span className={`text-[14px] font-medium ${textBase} ${textVisibility}`}>Support</span>
-                                        </div>
-                                        <CaretDown size={14} weight="light" className={`text-gray-400 transition-transform ${expandedDepartments.has('business_support') ? 'rotate-180' : ''} ${isCollapsed ? 'hidden' : 'opacity-100'}`} />
+                                        <Users size={17} weight="light" className="flex-shrink-0" />
+                                        <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Support</span>
+                                        <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('business_support') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                     </div>
                                     {expandedDepartments.has('business_support') && !isCollapsed && (
                                         <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
@@ -687,14 +671,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     e.stopPropagation();
                                     setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen);
                                 }}
-                                className={`relative border border-transparent hover:bg-white/40 dark:hover:bg-monday-dark-hover rounded-sm py-2 flex items-center cursor-pointer transition-all hover:shadow-sm hover:border-gray-200/50 dark:hover:border-monday-dark-border ${isCollapsed ? 'justify-between px-2' : 'justify-between p-2'}`}
+                                className={`relative border border-transparent hover:bg-white/40 dark:hover:bg-monday-dark-hover rounded-sm py-1.5 flex items-center cursor-pointer transition-all duration-300 hover:shadow-sm hover:border-gray-200/50 dark:hover:border-monday-dark-border ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'}`}
                             >
-                                <div className={`flex items-center ${!isCollapsed ? 'gap-2' : 'gap-0'} truncate transition-[gap] duration-300`}>
-                                    <div className={`w-6 h-6 rounded-sm bg-gradient-to-tr ${activeWorkspace.color} text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm`}>
-                                        {activeWorkspace.name.charAt(0)}
-                                    </div>
-                                    <span className={`text-[14px] font-medium text-gray-700 dark:text-monday-dark-text truncate min-w-0 flex-1 ${textBase} ${textVisibility}`}>{activeWorkspace.name}</span>
+                                <div className={`w-6 h-6 rounded-sm bg-gradient-to-tr ${activeWorkspace.color} text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-sm`}>
+                                    {activeWorkspace.name.charAt(0)}
                                 </div>
+                                <span className={`font-normal text-[14px] text-[#323338] dark:text-[#dcdde2] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{activeWorkspace.name}</span>
 
                                 {!isCollapsed && (
                                     <div className="flex items-center gap-1.5">
@@ -813,33 +795,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     return (
                                         <div key={board.id} className="relative">
                                             <div
-                                                className={`flex items-center px-3 py-1 rounded-sm cursor-pointer group transition-colors select-none
-                                                ${isActive ? 'bg-white/60 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-monday-dark-hover text-gray-700 dark:text-monday-dark-text'} 
-                                                ${isCollapsed ? 'justify-between px-3' : 'justify-between px-3'}
+                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} py-1.5 rounded-sm cursor-pointer group transition-all duration-300 select-none
+                                                ${isActive ? 'bg-white/60 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-white/40 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
                                                 ${isChild ? 'ml-3' : ''}
                                             `}
                                                 onClick={() => onNavigate('board', board.id)}
                                                 title={board.name}
                                             >
-                                                <div className={`flex items-center ${!isCollapsed ? 'gap-2' : 'gap-0'} truncate transition-[gap] duration-300`}>
-                                                    {/* Expand Arrow for parents */}
-                                                    {!isCollapsed && hasChildren ? (
-                                                        <div
-                                                            onClick={(e) => toggleExpand(board.id, e)}
-                                                            className="p-0.5 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 mr-1 transition-colors"
-                                                        >
-                                                            <CaretRight size={12} weight="light" className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
-                                                        </div>
-                                                    ) : !isCollapsed && (
-                                                        <div className="w-4 mr-1"></div>
-                                                    )}
+                                                {/* Expand Arrow for parents */}
+                                                {!isCollapsed && hasChildren ? (
+                                                    <div
+                                                        onClick={(e) => toggleExpand(board.id, e)}
+                                                        className="p-0.5 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 transition-colors flex-shrink-0"
+                                                    >
+                                                        <CaretRight size={12} weight="light" className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
+                                                    </div>
+                                                ) : !isCollapsed && (
+                                                    <div className="w-4 flex-shrink-0"></div>
+                                                )}
 
-                                                    {React.createElement(ICON_MAP[board.icon || 'Table'] || Table, {
-                                                        size: isChild ? 14 : 16,
-                                                        className: `${isActive ? 'text-monday-blue' : 'text-gray-500 dark:text-gray-400'} flex-shrink-0`
-                                                    })}
-                                                    <span className={`font-normal truncate min-w-0 flex-1 ${isChild ? 'text-xs' : 'text-[14px]'} ${textBase} ${textVisibility}`}>{board.name}</span>
-                                                </div>
+                                                {React.createElement(ICON_MAP[board.icon || 'Table'] || Table, {
+                                                    size: isChild ? 14 : 17,
+                                                    className: `${isActive ? 'text-monday-blue' : ''} flex-shrink-0`
+                                                })}
+                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{board.name}</span>
                                                 {!isCollapsed && (
                                                     <div className="flex items-center gap-1">
                                                         <div
