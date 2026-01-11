@@ -38,8 +38,7 @@ export const PortalPopup: React.FC<PortalPopupProps> = ({
 
             const triggerRect = triggerRef.current.getBoundingClientRect();
             const contentRect = contentRef.current.getBoundingClientRect();
-            const scrollY = window.scrollY;
-            const scrollX = window.scrollX;
+
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
 
@@ -47,59 +46,67 @@ export const PortalPopup: React.FC<PortalPopupProps> = ({
             let left = 0;
 
             const GAP = 4;
+            const VIEWPORT_PADDING = 12; // Increased from 10 for better visual spacing
 
-            // Initial Position Preference
+            // Initial Position (Viewport Relative)
             if (side === 'bottom') {
-                top = triggerRect.bottom + scrollY + GAP;
-                if (align === 'start') left = triggerRect.left + scrollX;
-                else if (align === 'end') left = triggerRect.right + scrollX - contentRect.width;
-                else left = triggerRect.left + scrollX + (triggerRect.width / 2) - (contentRect.width / 2);
+                top = triggerRect.bottom + GAP;
+                if (align === 'start') left = triggerRect.left;
+                else if (align === 'end') left = triggerRect.right - contentRect.width;
+                else left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
             } else if (side === 'top') {
-                top = triggerRect.top + scrollY - contentRect.height - GAP;
-                if (align === 'start') left = triggerRect.left + scrollX;
-                else if (align === 'end') left = triggerRect.right + scrollX - contentRect.width;
-                else left = triggerRect.left + scrollX + (triggerRect.width / 2) - (contentRect.width / 2);
+                top = triggerRect.top - contentRect.height - GAP;
+                if (align === 'start') left = triggerRect.left;
+                else if (align === 'end') left = triggerRect.right - contentRect.width;
+                else left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
             } else if (side === 'right') {
-                left = triggerRect.right + scrollX + GAP;
-                top = triggerRect.top + scrollY; // Start align top by default
+                left = triggerRect.right + GAP;
+                top = triggerRect.top;
             } else if (side === 'left') {
-                left = triggerRect.left + scrollX - contentRect.width - GAP;
-                top = triggerRect.top + scrollY;
+                left = triggerRect.left - contentRect.width - GAP;
+                top = triggerRect.top;
             }
 
-            // Viewport Collision Detection & Adjustment
+            // --- Viewport Constraints (Enhanced) ---
 
-            // 1. Horizontal Constraint
-            if (left + contentRect.width > viewportWidth + scrollX) {
-                // Determine new left: stick to right edge
-                left = viewportWidth + scrollX - contentRect.width - 10; // 10px padding
+            // 1. Horizontal - ensure content never extends beyond viewport
+            const maxLeft = viewportWidth - contentRect.width - VIEWPORT_PADDING;
+            const minLeft = VIEWPORT_PADDING;
+
+            if (left > maxLeft) {
+                left = maxLeft;
             }
-            if (left < scrollX) {
-                left = scrollX + 10;
+            if (left < minLeft) {
+                left = minLeft;
             }
 
-            // 2. Vertical Constraint
-            // If bottom goes off screen, flip to top (if side was bottom)
-            if (side === 'bottom' && (top + contentRect.height > viewportHeight + scrollY)) {
-                // Try flipping to top
-                const topSpace = triggerRect.top;
-                const bottomSpace = viewportHeight - triggerRect.bottom;
+            // 2. Vertical
+            const contentHeight = contentRect.height;
+            const fitsBelow = (top + contentHeight <= viewportHeight - VIEWPORT_PADDING);
 
-                // If top has more space or fits
-                if (topSpace > contentRect.height + GAP) {
-                    top = triggerRect.top + scrollY - contentRect.height - GAP;
-                } else if (topSpace > bottomSpace) {
-                    // If neither fits perfectly, put where more space is? 
-                    // Or just adjust to viewport bottom
-                    top = viewportHeight + scrollY - contentRect.height - 10;
+            // Check flip needed
+            if (side === 'bottom' && !fitsBelow) {
+                // Check if it fits above
+                const fitsAbove = triggerRect.top - contentHeight - GAP > VIEWPORT_PADDING;
+                if (fitsAbove) {
+                    top = triggerRect.top - contentHeight - GAP;
                 } else {
-                    // Stick to bottom viewport edge
-                    top = viewportHeight + scrollY - contentRect.height - 10;
+                    // Clamp to bottom
+                    top = viewportHeight - contentHeight - VIEWPORT_PADDING;
                 }
-            } else if (side === 'top' && top < scrollY) {
-                // Try flipping to bottom
-                top = triggerRect.bottom + scrollY + GAP;
+            } else if (side === 'top' && top < VIEWPORT_PADDING) {
+                // Check if fits below
+                if (triggerRect.bottom + contentHeight + GAP <= viewportHeight - VIEWPORT_PADDING) {
+                    top = triggerRect.bottom + GAP;
+                } else {
+                    top = VIEWPORT_PADDING; // Clamp to top
+                }
             }
+
+            // Final safety clamp for fixed positioning
+            const maxTop = viewportHeight - contentHeight - VIEWPORT_PADDING;
+            if (top > maxTop) top = maxTop;
+            if (top < VIEWPORT_PADDING) top = VIEWPORT_PADDING;
 
             setCoords({ top, left });
         };
@@ -129,11 +136,12 @@ export const PortalPopup: React.FC<PortalPopupProps> = ({
             <div className="fixed inset-0 z-[2147483640] w-screen h-screen bg-transparent" onClick={onClose} />
             <div
                 ref={contentRef}
-                className="absolute z-[2147483647]"
                 style={{
+                    position: 'fixed',
                     top: coords?.top ?? 0,
                     left: coords?.left ?? 0,
                     opacity: coords ? 1 : 0,
+                    zIndex: 2147483647
                 }}
                 onClick={(e) => e.stopPropagation()}
             >

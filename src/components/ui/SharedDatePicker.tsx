@@ -160,7 +160,7 @@ export const SharedDatePicker: React.FC<SharedDatePickerProps> = ({
     const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
     return (
-        <div className="bg-white dark:bg-stone-900 shadow-xl border border-stone-200 dark:border-stone-800 rounded-lg flex overflow-hidden w-[600px] max-w-[90vw] text-stone-800 dark:text-stone-200 font-sans">
+        <div className="bg-white dark:bg-stone-900 shadow-xl border border-stone-200 dark:border-stone-800 rounded-lg flex overflow-hidden w-[420px] max-w-[90vw] text-stone-800 dark:text-stone-200 font-sans">
             {/* Sidebar Shortcuts */}
             <div className="w-1/3 bg-stone-50 dark:bg-stone-900 border-e border-stone-100 dark:border-stone-800 py-2 flex flex-col">
                 {/* ... Keep existing shortcuts ... */}
@@ -257,7 +257,7 @@ export const SharedDatePicker: React.FC<SharedDatePickerProps> = ({
                     })}
                 </div>
 
-                <div className="mt-auto pt-2 flex items-center justify-between border-t border-stone-100 dark:border-stone-800 mt-2 pt-3">
+                <div className="mt-auto pt-3 flex items-center justify-between border-t border-stone-100 dark:border-stone-800">
                     <button
                         type="button"
                         onClick={() => {

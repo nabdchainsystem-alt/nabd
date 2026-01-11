@@ -171,7 +171,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ roomId, viewId }) =>
     });
 
     const [newTaskName, setNewTaskName] = useState('');
-    const [activeCell, setActiveCell] = useState<{ rowId: string, colId: string, rect?: DOMRect } | null>(null);
+    const [activeCell, setActiveCell] = useState<{ rowId: string, colId: string, element?: HTMLElement } | null>(null);
 
     // Drag & Drop State
     const dragItem = useRef<number | null>(null);
@@ -280,8 +280,7 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ roomId, viewId }) =>
         if (activeCell?.rowId === rowId && activeCell?.colId === colId) {
             setActiveCell(null);
         } else {
-            const rect = e.currentTarget.getBoundingClientRect();
-            setActiveCell({ rowId, colId, rect });
+            setActiveCell({ rowId, colId, element: e.currentTarget as HTMLElement });
         }
     };
 
@@ -524,11 +523,12 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ roomId, viewId }) =>
                                     {formatDate(task.dueDate) || 'Set Date'}
                                 </span>
                             </button>
-                            {activeCell?.rowId === task.id && activeCell?.colId === 'date' && activeCell.rect && (
+                            {activeCell?.rowId === task.id && activeCell?.colId === 'date' && activeCell.element && (
                                 <PortalPopup
-                                    triggerRef={{ current: { getBoundingClientRect: () => activeCell.rect! } } as any}
+                                    triggerRef={{ current: activeCell.element } as any}
                                     onClose={() => setActiveCell(null)}
                                     side="bottom"
+                                    align={activeCell.element.getBoundingClientRect().left > window.innerWidth / 2 ? "end" : "start"}
                                 >
                                     <SharedDatePicker
                                         selectedDate={task.dueDate ? task.dueDate.toISOString() : undefined}

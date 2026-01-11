@@ -388,7 +388,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const [sortConfig, setSortConfig] = useState<{ columnId: string; direction: 'asc' | 'desc' } | null>(null);
 
     const [newTaskName, setNewTaskName] = useState('');
-    const [activeCell, setActiveCell] = useState<{ rowId: string, colId: string, rect?: DOMRect } | null>(null);
+    const [activeCell, setActiveCell] = useState<{ rowId: string, colId: string, trigger?: HTMLElement } | null>(null);
     const [activeColumnMenu, setActiveColumnMenu] = useState<{ rect: DOMRect } | null>(null);
     const [isChartModalOpen, setIsChartModalOpen] = useState(false);
     const [isAIReportModalOpen, setIsAIReportModalOpen] = useState(false);
@@ -644,8 +644,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             // setActiveCell({ rowId, colId, rect });
             // Optimization: Defer rect calculation or use ref if flickering occurs during DnD
             // But for simple cell toggle it's fine.
-            const rect = e.currentTarget.getBoundingClientRect();
-            setActiveCell({ rowId, colId, rect });
+            // Store the element reference itself so gettingBoundingClientRect() is always live
+            setActiveCell({ rowId, colId, trigger: e.currentTarget as HTMLElement });
         }
     };
 
@@ -992,9 +992,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             {formatDate(value) || 'Set Date'}
                         </span>
                     </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
                         <PortalPopup
-                            triggerRef={{ current: { getBoundingClientRect: () => activeCell.rect! } } as any}
+                            triggerRef={{ current: activeCell.trigger } as any}
+                            align={columns.findIndex(c => c.id === col.id) > (columns.length / 2) ? 'end' : 'start'}
                             onClose={() => setActiveCell(null)}
                         >
                             <SharedDatePicker
@@ -1171,9 +1172,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             {label || 'Set Timeline'}
                         </span>
                     </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
                         <PortalPopup
-                            triggerRef={{ current: { getBoundingClientRect: () => activeCell.rect! } } as any}
+                            triggerRef={{ current: activeCell.trigger } as any}
+                            align={activeCell.trigger.getBoundingClientRect().left > window.innerWidth / 2 ? "end" : "start"}
                             onClose={() => setActiveCell(null)}
                         >
                             <SharedDatePicker
@@ -1215,9 +1217,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             <span className="text-xs text-stone-400 group-hover:text-stone-500 transition-colors">Set Range</span>
                         )}
                     </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
                         <PortalPopup
-                            triggerRef={{ current: { getBoundingClientRect: () => activeCell.rect! } } as any}
+                            triggerRef={{ current: activeCell.trigger } as any}
+                            align={activeCell.trigger.getBoundingClientRect().left > window.innerWidth / 2 ? "end" : "start"}
                             onClose={() => setActiveCell(null)}
                         >
                             <SharedDatePicker
@@ -1305,9 +1308,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             {formatDate(value) || 'Set Date'}
                         </span>
                     </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
                         <PortalPopup
-                            triggerRef={{ current: { getBoundingClientRect: () => activeCell.rect! } } as any}
+                            triggerRef={{ current: activeCell.trigger } as any}
+                            align={activeCell.trigger.getBoundingClientRect().left > window.innerWidth / 2 ? "end" : "start"}
                             onClose={() => setActiveCell(null)}
                         >
                             <SharedDatePicker
