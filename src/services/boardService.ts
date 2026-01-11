@@ -2,9 +2,12 @@ const API_URL = 'http://localhost:3001/api';
 
 export const boardService = {
     // Boards
-    async getAllBoards(token: string) {
+    async getAllBoards(token: string, workspaceId?: string) {
         try {
-            const response = await fetch(`${API_URL}/boards`, {
+            const url = new URL(`${API_URL}/boards`);
+            if (workspaceId) url.searchParams.append('workspaceId', workspaceId);
+
+            const response = await fetch(url.toString(), {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('Failed to fetch boards');

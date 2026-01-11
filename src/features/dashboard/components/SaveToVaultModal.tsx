@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { vaultService, VaultItem } from '../../../services/vaultService';
 import { useAuth } from '../../../auth-adapter';
 
@@ -6,9 +7,10 @@ interface SaveToVaultModalProps {
     isOpen: boolean;
     onClose: () => void;
     file: File | null;
+    onSuccess?: (item: VaultItem) => void;
 }
 
-export const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({ isOpen, onClose, file }) => {
+export const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({ isOpen, onClose, file, onSuccess }) => {
     const { getToken, userId } = useAuth();
     const [folders, setFolders] = useState<VaultItem[]>([]);
     const [selectedFolderId, setSelectedFolderId] = useState<string>('');
@@ -68,7 +70,7 @@ export const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({ isOpen, onCl
                     const base64Content = reader.result as string;
 
                     // Save file
-                    await vaultService.create(token, {
+                    const savedItem = await vaultService.create(token, {
                         title: file.name,
                         type: file.type.startsWith('image/') ? 'image' : 'document',
                         userId: userId, // Ensure userId is passed
@@ -85,6 +87,9 @@ export const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({ isOpen, onCl
 
                     setIsSaving(false);
                     onClose();
+
+                    if (onSuccess) onSuccess(savedItem);
+
                     // Force refresh events
                     window.dispatchEvent(new Event('vault-updated'));
                     window.dispatchEvent(new Event('dashboard-updated'));
@@ -112,7 +117,7 @@ export const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({ isOpen, onCl
 
     if (!isOpen || !file) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -221,6 +226,7 @@ export const SaveToVaultModal: React.FC<SaveToVaultModalProps> = ({ isOpen, onCl
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

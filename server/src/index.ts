@@ -146,6 +146,16 @@ app.post('/api/workspaces', requireAuth, async (req: any, res) => {
             }
         });
 
+        // Log Activity
+        await prisma.activity.create({
+            data: {
+                userId,
+                workspaceId: newWorkspace.id,
+                type: 'WORKSPACE_CREATED',
+                content: `Created workspace: ${newWorkspace.name}`,
+            }
+        });
+
         console.log(`[Workspaces] Workspace created: ${newWorkspace.id}`);
 
         // Update user's active workspace
@@ -192,6 +202,16 @@ app.delete('/api/workspaces/:id', requireAuth, async (req: any, res) => {
         if (!workspace || workspace.ownerId !== userId) {
             return res.status(403).json({ error: "Forbidden" });
         }
+
+        // Log Activity
+        await prisma.activity.create({
+            data: {
+                userId,
+                workspaceId: id, // Will be SetNull on delete, preserving the log properly
+                type: 'WORKSPACE_DELETED',
+                content: `Deleted workspace: ${workspace.name}`,
+            }
+        });
 
         await prisma.workspace.delete({ where: { id } });
 

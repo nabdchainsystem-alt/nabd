@@ -1,11 +1,13 @@
 import React from 'react';
-import { MoreHorizontal, Star, Copy, FileIcon, Key, CreditCard, StickyNote, Folder, Trash2, ExternalLink } from 'lucide-react';
+import { MoreHorizontal, Star, Copy, FileIcon, Key, CreditCard, StickyNote, Folder, Trash2, ExternalLink, Edit2 } from 'lucide-react';
 import { VaultItem } from '../types';
 
 interface VaultListProps {
     items: VaultItem[];
     onNavigate: (folderId: string) => void;
     onDelete: (itemId: string) => void;
+    onToggleFavorite: (item: VaultItem) => void;
+    onRename: (item: VaultItem) => void;
 }
 
 const getItemIcon = (type: string, title: string = '') => {
@@ -25,7 +27,7 @@ const getItemIcon = (type: string, title: string = '') => {
     }
 };
 
-export const VaultList: React.FC<VaultListProps> = ({ items, onNavigate, onDelete }) => {
+export const VaultList: React.FC<VaultListProps> = ({ items, onNavigate, onDelete, onToggleFavorite, onRename }) => {
 
     const handleItemClick = (item: VaultItem) => {
         // Placeholder selection
@@ -49,7 +51,7 @@ export const VaultList: React.FC<VaultListProps> = ({ items, onNavigate, onDelet
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
                         <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Modified</th>
-                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-10"></th>
+                        <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16"></th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-monday-dark-border">
@@ -87,7 +89,20 @@ export const VaultList: React.FC<VaultListProps> = ({ items, onNavigate, onDelet
                             </td>
                             <td className="py-3 px-4 text-right">
                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {item.isFavorite && <Star size={16} className="text-yellow-400 fill-current" />}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onToggleFavorite(item); }}
+                                        className={`p-1 rounded transition-colors ${item.isFavorite ? 'text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                        title={item.isFavorite ? "Unfavorite" : "Favorite"}
+                                    >
+                                        <Star size={16} className={item.isFavorite ? "fill-current" : ""} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onRename(item); }}
+                                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-500 hover:text-monday-blue"
+                                        title="Rename"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
                                         className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-gray-500 hover:text-red-500"

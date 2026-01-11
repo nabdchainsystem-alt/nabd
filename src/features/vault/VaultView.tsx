@@ -7,6 +7,7 @@ import { VaultEmptyState } from './components/VaultEmptyState';
 import { VaultItem } from './types';
 import { CreateFolderModal } from './components/CreateFolderModal';
 import { CreateLinkModal } from './components/CreateLinkModal';
+import { RenameItemModal } from './components/RenameItemModal';
 import { vaultService } from '../../services/vaultService';
 import { useAuth } from '../../auth-adapter';
 
@@ -24,22 +25,52 @@ export const VaultView: React.FC = () => {
     const [isCreateLinkModalOpen, setIsCreateLinkModalOpen] = useState(false);
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+    const [itemToRename, setItemToRename] = useState<VaultItem | null>(null);
     const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
     const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'type'>('date');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [groupBy, setGroupBy] = useState<'none' | 'type' | 'date'>('none');
 
-    // Initial Fetch
+    // Initial Fetch & URL Parsing
     useEffect(() => {
         if (isLoaded) {
             if (isSignedIn) {
-                loadItems();
+                // Parse URL params for deep linking
+                const params = new URLSearchParams(window.location.search);
+                const folderId = params.get('folder');
+                const highlightId = params.get('highlight');
+
+                if (folderId) setCurrentFolderId(folderId);
+                // If highlightId exists, we might want to scroll to it or select it
+                // We'll handle highlighting in the render phase or a separate effect once items are loaded
+
+                loadItems().then(() => {
+                    if (highlightId) {
+                        // Find item and select/highlight it
+                        // For now just console log, or finding it in items would require items to be loaded first
+                        // We will rely on items state update
+                    }
+                });
             } else {
                 setIsLoading(false);
                 setError("Please sign in to access your vault.");
             }
         }
     }, [isLoaded, isSignedIn]);
+
+    // Handle Highlighting after items load
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const highlightId = params.get('highlight');
+        if (highlightId && items.length > 0) {
+            const item = items.find(i => i.id === highlightId);
+            if (item) {
+                setSelectedItem(item);
+                // Optional: Scroll into view logic could go here
+            }
+        }
+    }, [items]);
 
     const loadItems = async () => {
         setIsLoading(true);
@@ -266,19 +297,53 @@ export const VaultView: React.FC = () => {
 
             await vaultService.delete(token, itemId);
 
-            // Optimistic update or refresh
+            // Optimistic update
             setItems(prev => prev.filter(i => i.id !== itemId));
 
-            // If we deleted the current folder, go up (this might need recursive check locally or refresh)
-            // Just refresh to be safe for cascading deletes
-            await loadItems();
-
-            // If we were INSIDE the deleted folder, go to root (simple approach) or parent
+            // If we deleted the current folder, go up
             if (itemId === currentFolderId) {
                 setCurrentFolderId(null);
             }
         } catch (e) {
             console.error("Failed to delete item", e);
+        }
+    };
+
+    const handleToggleFavorite = async (item: VaultItem) => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            const updated = await vaultService.update(token, item.id, {
+                isFavorite: !item.isFavorite
+            });
+
+            setItems(prev => prev.map(i => i.id === item.id ? { ...i, isFavorite: updated.isFavorite } : i));
+        } catch (e) {
+            console.error("Failed to toggle favorite", e);
+        }
+    };
+
+    const handleRenameRequest = (item: VaultItem) => {
+        setItemToRename(item);
+        setIsRenameModalOpen(true);
+    };
+
+    const handleRenameItem = async (newName: string) => {
+        if (!itemToRename) return;
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            const updated = await vaultService.update(token, itemToRename.id, {
+                title: newName
+            });
+
+            setItems(prev => prev.map(i => i.id === itemToRename.id ? { ...i, title: updated.title } : i));
+            setIsRenameModalOpen(false);
+            setItemToRename(null);
+        } catch (e) {
+            console.error("Failed to rename item", e);
         }
     };
 
@@ -591,9 +656,21 @@ export const VaultView: React.FC = () => {
 
                                 if (groupBy === 'none') {
                                     return viewMode === 'grid' ? (
-                                        <VaultGrid items={sortedItems} onNavigate={handleNavigate} onDelete={handleDeleteItem} />
+                                        <VaultGrid
+                                            items={sortedItems}
+                                            onNavigate={handleNavigate}
+                                            onDelete={handleDeleteItem}
+                                            onToggleFavorite={handleToggleFavorite}
+                                            onRename={handleRenameRequest}
+                                        />
                                     ) : (
-                                        <VaultList items={sortedItems} onNavigate={handleNavigate} onDelete={handleDeleteItem} />
+                                        <VaultList
+                                            items={sortedItems}
+                                            onNavigate={handleNavigate}
+                                            onDelete={handleDeleteItem}
+                                            onToggleFavorite={handleToggleFavorite}
+                                            onRename={handleRenameRequest}
+                                        />
                                     );
                                 }
 
@@ -609,13 +686,24 @@ export const VaultView: React.FC = () => {
                                                     <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
                                                 </div>
                                                 {viewMode === 'grid' ? (
-                                                    // Passing zero padding to grid/list because we handle padding in the parent container now
                                                     <div className="-m-6">
-                                                        <VaultGrid items={groupItems} onNavigate={handleNavigate} onDelete={handleDeleteItem} />
+                                                        <VaultGrid
+                                                            items={groupItems}
+                                                            onNavigate={handleNavigate}
+                                                            onDelete={handleDeleteItem}
+                                                            onToggleFavorite={handleToggleFavorite}
+                                                            onRename={handleRenameRequest}
+                                                        />
                                                     </div>
                                                 ) : (
                                                     <div className="-m-6">
-                                                        <VaultList items={groupItems} onNavigate={handleNavigate} onDelete={handleDeleteItem} />
+                                                        <VaultList
+                                                            items={groupItems}
+                                                            onNavigate={handleNavigate}
+                                                            onDelete={handleDeleteItem}
+                                                            onToggleFavorite={handleToggleFavorite}
+                                                            onRename={handleRenameRequest}
+                                                        />
                                                     </div>
                                                 )}
                                             </div>
@@ -639,6 +727,16 @@ export const VaultView: React.FC = () => {
                 onClose={() => setIsCreateLinkModalOpen(false)}
                 onCreate={handleCreateLink}
             />
+
+            {itemToRename && (
+                <RenameItemModal
+                    isOpen={isRenameModalOpen}
+                    onClose={() => { setIsRenameModalOpen(false); setItemToRename(null); }}
+                    onRename={handleRenameItem}
+                    currentName={itemToRename.title}
+                    type={itemToRename.type}
+                />
+            )}
         </div >
     );
 };

@@ -5,6 +5,10 @@ import { ChartBuilderModal } from '../../components/chart-builder/ChartBuilderMo
 import { AIReportModal } from '../../components/AIReportModal';
 import { SharedDatePicker } from '../../../../components/ui/SharedDatePicker';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
+import { PeoplePicker } from '../../components/cells/PeoplePicker';
+import { SaveToVaultModal } from '../../../dashboard/components/SaveToVaultModal';
+import { vaultService } from '../../../../services/vaultService';
+import { VaultItem } from '../../../vault/types';
 import {
     Plus,
     CircleDashed,
@@ -29,6 +33,10 @@ import {
     BarChart3,
     Sparkles,
     LayoutGrid,
+    FileText,
+    UploadCloud,
+    ExternalLink,
+    CalendarRange
 } from 'lucide-react';
 import {
     DndContext,
@@ -69,6 +77,17 @@ export interface Column {
     options?: { id: string; label: string; color: string }[]; // For status/priority/select
 }
 
+const DEFAULT_COLUMNS: Column[] = [
+    { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false },
+    { id: 'name', label: 'Name', type: 'text', width: 320, minWidth: 200, resizable: true },
+    { id: 'people', label: 'People', type: 'people', width: 120, minWidth: 100, resizable: true },
+    { id: 'status', label: 'Status', type: 'status', width: 140, minWidth: 100, resizable: true },
+    { id: 'priority', label: 'Priority', type: 'priority', width: 140, minWidth: 100, resizable: true },
+    { id: 'timeline', label: 'Timeline', type: 'timeline', width: 180, minWidth: 150, resizable: true },
+    { id: 'date', label: 'Date', type: 'date', width: 140, minWidth: 120, resizable: true },
+    { id: 'files', label: 'Files', type: 'files', width: 100, minWidth: 80, resizable: true },
+];
+
 export interface Row {
     id: string;
     [key: string]: any;
@@ -81,6 +100,7 @@ interface RoomTableProps {
     tasks?: any[];
     columns?: Column[];
     onUpdateTasks?: (tasks: any[]) => void;
+    onNavigate?: (view: string) => void;
     renderCustomActions?: (props: {
         setRows: React.Dispatch<React.SetStateAction<Row[]>>;
         setColumns: React.Dispatch<React.SetStateAction<Column[]>>;
@@ -125,7 +145,7 @@ const PriorityPicker: React.FC<{
     return (
         <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
+            className="fixed z-[9999] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 min-w-[180px]"
         >
             <div className="px-3 py-2 bg-stone-50 dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
                 <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Priority</span>
@@ -267,41 +287,10 @@ const SelectPicker: React.FC<{
     );
 };
 
-// --- Sortable Row Component ---
-interface SortableRowProps {
-    row: Row;
-    children: (dragListeners: any, isDragging: boolean) => React.ReactNode;
-    className?: string;
-    style?: React.CSSProperties;
-}
 
-const SortableRow = ({ row, children, className, style: propStyle }: SortableRowProps) => {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: row.id });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        position: 'relative' as 'relative',
-        zIndex: isDragging ? 50 : 'auto',
-        ...propStyle,
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} className={className} {...attributes}>
-            {children(listeners, isDragging)}
-        </div>
-    );
-};
 
 // --- Main RoomTable Component ---
-const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, columns: externalColumns, onUpdateTasks, renderCustomActions }) => {
+const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, columns: externalColumns, onUpdateTasks, renderCustomActions, onNavigate }) => {
     // Keys for persistence
     const storageKeyColumns = `room-table-columns-v4-${roomId}-${viewId}`;
     const storageKeyRows = `room-table-rows-v4-${roomId}-${viewId}`;
@@ -327,24 +316,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 const parsed = JSON.parse(saved);
                 if (parsed.length > 0) return parsed;
             }
-
-            return defaultColumns || [
-                { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false },
-                { id: 'name', label: 'Name', type: 'text', width: 320, minWidth: 200, resizable: true },
-                { id: 'status', label: 'Status', type: 'status', width: 140, minWidth: 100, resizable: true },
-                { id: 'date', label: 'Date', type: 'date', width: 140, minWidth: 100, resizable: true },
-                { id: 'dueDate', label: 'Due date', type: 'date', width: 140, minWidth: 100, resizable: true },
-                { id: 'priority', label: 'Priority', type: 'priority', width: 140, minWidth: 100, resizable: true, options: PRIORITY_LEVELS.map(p => ({ id: p.toLowerCase(), label: p, color: getPriorityDot(p) })) },
-            ];
+            return DEFAULT_COLUMNS;
         } catch {
-            return defaultColumns || [
-                { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false },
-                { id: 'name', label: 'Name', type: 'text', width: 320, minWidth: 200, resizable: true },
-                { id: 'status', label: 'Status', type: 'status', width: 140, minWidth: 100, resizable: true },
-                { id: 'date', label: 'Date', type: 'date', width: 140, minWidth: 100, resizable: true },
-                { id: 'dueDate', label: 'Due date', type: 'date', width: 140, minWidth: 100, resizable: true },
-                { id: 'priority', label: 'Priority', type: 'priority', width: 140, minWidth: 100, resizable: true, options: PRIORITY_LEVELS.map(p => ({ id: p.toLowerCase(), label: p, color: getPriorityDot(p) })) },
-            ];
+            return DEFAULT_COLUMNS;
         }
     });
 
@@ -420,6 +394,12 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const [isChartModalOpen, setIsChartModalOpen] = useState(false);
     const [isAIReportModalOpen, setIsAIReportModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // File Upload State
+    const [activeUploadCell, setActiveUploadCell] = useState<{ rowId: string, colId: string } | null>(null);
+    const [activeUploadFile, setActiveUploadFile] = useState<File | null>(null);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const hiddenFileInputRef = useRef<HTMLInputElement>(null);
 
     // Drag & Drop State
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -520,6 +500,80 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     };
 
     // --- Handlers ---
+    const handleCellAction = (action: string, rowId: string, colId: string, value?: any) => {
+        if (action === 'navigate') {
+            // Navigate to Vault with folder/highlight
+            const row = rows.find(r => r.id === rowId);
+            if (!row) return;
+            const fileData = row[colId];
+
+            const targetFolderId = fileData?.folderId || 'root';
+            const targetHighlightId = fileData?.id;
+
+            const params = new URLSearchParams();
+            if (targetFolderId) params.set('folder', targetFolderId);
+            if (targetHighlightId) params.set('highlight', targetHighlightId);
+
+            const url = `/vault?${params.toString()}`;
+
+            if (onNavigate) {
+                window.history.pushState({}, '', url);
+                onNavigate('vault');
+            } else {
+                window.location.href = url;
+            }
+        } else if (action === 'upload') {
+            const row = rows.find(r => r.id === rowId);
+            if (!row) return;
+            setActiveUploadCell({ rowId, colId });
+            setActiveUploadFile(null); // Reset
+            setIsUploadModalOpen(true);
+        }
+    };
+
+    const handleHiddenFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setActiveUploadFile(e.target.files[0]);
+            // If we had a modal, we would open it here. 
+            // The logic seems to be: 
+            // 1. User clicks upload -> handleCellAction('upload') -> sets activeUploadCell -> opens modal? 
+            // Actually usually picking a file is Step 2.
+            // Let's assume handleCellAction('upload') opens a modal or triggers this input.
+            // If the user clicked "Upload" in cell, we set active cell and open modal...
+            // Wait, usually we pick file first?
+
+            // Re-reading logic:
+            // handleCellAction 'upload' -> setIsUploadModalOpen(true).
+            // But SaveToVaultModal expects fileToSave?
+            // Actually the SaveToVaultModal might handle the file input internally OR we pass it.
+            // If the modal handles it, we don't need hidden input here.
+            // But the previous code had hiddenFileInputRef.
+
+            // Let's assume the flow is:
+            // 1. Cell "Upload" button -> triggers hidden input click? Or opens modal?
+            // In handleCellAction 'upload': setIsUploadModalOpen(true); setActiveUploadFile(null);
+            // It seems SaveToVaultModal allows picking a file?
+
+            // If we use hidden input here, maybe it's for a different flow?
+            // "handleHiddenFileChange" implies we use it.
+            // Let's keep it simple: simpler flow = Modal handles file selection? 
+            // OR checks:
+            // If we want to support drag/drop to cell later, we might need this.
+            // For now, let's implement the handler to simply set the file and ensure modal is open.
+            setIsUploadModalOpen(true);
+        }
+    };
+
+    const handleSaveVaultSuccess = (item: VaultItem) => {
+        if (activeUploadCell) {
+            handleUpdateRow(activeUploadCell.rowId, { [activeUploadCell.colId]: item });
+        }
+        setIsUploadModalOpen(false);
+        setActiveUploadCell(null);
+        setActiveUploadFile(null);
+    };
+
+
 
     // --- Handlers ---
     const handleAddTask = () => {
@@ -1020,6 +1074,329 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             );
         }
 
+        // --- RENDER CELL CONTENT ---
+        // This is the actual renderCellContent function that is used.
+        // The previous one was incomplete and followed by the misplaced handleCellAction.
+
+        if (col.type === 'people') {
+            return (
+                <div className="relative w-full h-full">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
+                    >
+                        {value ? (
+                            <div className="flex items-center gap-2 truncate">
+                                {value.avatar && <img src={value.avatar} alt={value.name} className="w-5 h-5 rounded-full object-cover bg-stone-200" />}
+                                <span className="text-sm font-sans text-stone-700 dark:text-stone-300 truncate">{value.name}</span>
+                            </div>
+                        ) : (
+                            <span className="text-xs text-stone-400 group-hover:text-stone-500 transition-colors">Assign</span>
+                        )}
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                        <div className="fixed z-[9999]" style={{ top: activeCell.rect.bottom + 4, left: activeCell.rect.left }}>
+                            <PeoplePicker
+                                current={value}
+                                onSelect={(person) => handleUpdateRow(row.id, { [col.id]: person })}
+                                onClose={() => setActiveCell(null)}
+                            />
+                            <div className="fixed inset-0 -z-10" onClick={() => setActiveCell(null)} />
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        if (col.type === 'files') {
+            const hasFile = !!value; // Value could be file metadata or just truthy
+            const fileName = value?.title || (hasFile ? 'File attached' : null);
+
+            return (
+                <div className="relative w-full h-full flex items-center justify-center">
+                    {hasFile ? (
+                        <div className="flex items-center gap-2 w-full px-2" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCellAction('navigate', row.id, col.id);
+                                }}
+                                className="flex-1 flex items-center gap-2 min-w-0 p-1 hover:bg-stone-100 dark:hover:bg-stone-800/50 rounded transition-colors text-start"
+                                title="View in Vault"
+                            >
+                                <FileText size={14} className="text-indigo-500 shrink-0" />
+                                <span className="text-xs truncate text-stone-600 dark:text-stone-300 underline decoration-stone-300 dark:decoration-stone-700 underline-offset-2">
+                                    {fileName}
+                                </span>
+                            </button>
+                            {/* Optional: Add clear/delete button here if needed */}
+                        </div>
+                    ) : (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleCellAction('upload', row.id, col.id);
+                            }}
+                            className="w-full h-full flex items-center justify-center text-stone-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors gap-1.5"
+                            title="Upload file"
+                        >
+                            <UploadCloud size={14} />
+                            <span className="text-[10px] uppercase font-semibold tracking-wide">Upload</span>
+                        </button>
+                    )}
+                </div>
+            )
+        }
+        if (col.type === 'timeline') {
+            // Value expected to be { start: string, end: string } or null
+            // Or maybe just a string? Previous requirements said Timeline is a date range.
+            // Value might be stored as object or JSON string? Let's assume object {start, end} for now or handles parsing
+            // Or if it's new, we define it.
+            // Standard: row[col.id] = { start: ISO, end: ISO } or null.
+            const val = row[col.id];
+            const startDate = val?.start ? new Date(val.start) : null;
+            const endDate = val?.end ? new Date(val.end) : null;
+
+            const label = startDate && endDate
+                ? `${startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                : (startDate ? startDate.toLocaleDateString() : null);
+
+            return (
+                <div className="relative w-full h-full">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
+                    >
+                        <CalendarRange size={14} className={`mr-2 shrink-0 ${val ? 'text-stone-500' : 'text-stone-300 group-hover:text-stone-400'}`} />
+                        <span className={`text-sm font-sans truncate ${val ? 'text-stone-600 dark:text-stone-300' : 'text-stone-400'}`}>
+                            {label || 'Set Timeline'}
+                        </span>
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                        <PortalPopup
+                            triggerRef={{ current: { getBoundingClientRect: () => activeCell.rect! } } as any}
+                            onClose={() => setActiveCell(null)}
+                        >
+                            <SharedDatePicker
+                                mode="range"
+                                startDate={startDate || undefined}
+                                endDate={endDate || undefined}
+                                onSelectRange={(start, end) => handleUpdateRow(row.id, {
+                                    [col.id]: { start: start?.toISOString(), end: end?.toISOString() }
+                                })}
+                                onClose={() => setActiveCell(null)}
+                            />
+                        </PortalPopup>
+                    )}
+                </div>
+            );
+        }
+
+        if (col.type === 'timeline') {
+            // Value expected to be { start: string, end: string } or null
+            const startDate = value?.start ? new Date(value.start) : null;
+            const endDate = value?.end ? new Date(value.end) : null;
+
+            const label = startDate && endDate
+                ? `${startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                : (startDate ? startDate.toLocaleDateString() : null);
+
+            return (
+                <div className="relative w-full h-full">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
+                    >
+                        {label ? (
+                            <div className="flex items-center gap-2 truncate">
+                                <CalendarRange size={13} className="text-indigo-500" />
+                                <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">{label}</span>
+                            </div>
+                        ) : (
+                            <span className="text-xs text-stone-400 group-hover:text-stone-500 transition-colors">Set Range</span>
+                        )}
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                        <PortalPopup
+                            triggerRef={{ current: { getBoundingClientRect: () => activeCell.rect! } } as any}
+                            onClose={() => setActiveCell(null)}
+                        >
+                            <SharedDatePicker
+                                mode="range"
+                                startDate={startDate}
+                                endDate={endDate}
+                                onSelectRange={(start, end) => {
+                                    handleUpdateRow(row.id, {
+                                        [col.id]: {
+                                            start: start?.toISOString(),
+                                            end: end?.toISOString()
+                                        }
+                                    });
+                                    // Only close if we have both? Or user clicks Done. The DatePicker handles calling onClose usually when done, 
+                                    // OR we just update state and let user close.
+                                    // The updated SharedDatePicker has "Done" button.
+                                }}
+                                onClose={() => setActiveCell(null)}
+                                onClear={() => handleUpdateRow(row.id, { [col.id]: null })}
+                            />
+                        </PortalPopup>
+                    )}
+                </div>
+            );
+        }
+
+        if (col.type === 'status') {
+            return (
+                <div className="relative w-full h-full">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
+                    >
+                        {value ? (
+                            <div className="flex items-center gap-2 truncate">
+                                {getStatusIcon(value)}
+                                <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">{value}</span>
+                            </div>
+                        ) : (
+                            <span className="text-xs text-stone-400">Set Status</span>
+                        )}
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                        <div className="fixed z-[9999]" style={{ top: activeCell.rect.bottom + 4, left: activeCell.rect.left }}>
+                            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden min-w-[200px]">
+                                {(col.options || []).length > 0 ? (
+                                    col.options!.map(opt => (
+                                        <button
+                                            key={opt.id}
+                                            onClick={() => { handleUpdateRow(row.id, { [col.id]: opt.label }); setActiveCell(null); }}
+                                            className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300"
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))
+                                ) : (
+                                    // Default Status Options if none provided
+                                    ['To Do', 'In Progress', 'Done'].map(s => (
+                                        <button
+                                            key={s}
+                                            onClick={() => { handleUpdateRow(row.id, { [col.id]: s }); setActiveCell(null); }}
+                                            className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 flex items-center gap-2"
+                                        >
+                                            {getStatusIcon(s)}
+                                            {s}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                            <div className="fixed inset-0 -z-10" onClick={() => setActiveCell(null)} />
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        if (col.type === 'date') {
+            return (
+                <div className="relative w-full h-full">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
+                    >
+                        <span className={`text-sm font-sans truncate ${value ? 'text-stone-600 dark:text-stone-300' : 'text-stone-400'}`}>
+                            {formatDate(value) || 'Set Date'}
+                        </span>
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                        <PortalPopup
+                            triggerRef={{ current: { getBoundingClientRect: () => activeCell.rect! } } as any}
+                            onClose={() => setActiveCell(null)}
+                        >
+                            <SharedDatePicker
+                                selectedDate={value}
+                                onSelectDate={(dueDate) => handleUpdateRow(row.id, { [col.id]: dueDate.toISOString() })}
+                                onClear={() => handleUpdateRow(row.id, { [col.id]: null })}
+                                onClose={() => setActiveCell(null)}
+                            />
+                        </PortalPopup>
+                    )}
+                </div>
+            );
+        }
+
+        if (col.type === 'number') {
+            const isEditing = activeCell?.rowId === row.id && activeCell?.colId === col.id;
+            if (isEditing) {
+                return (
+                    <div className="h-full w-full">
+                        <input
+                            type="number"
+                            autoFocus
+                            onBlur={() => setActiveCell(null)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') setActiveCell(null); }}
+                            value={value || ''}
+                            onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.value })}
+                            className="w-full h-full bg-stone-50 dark:bg-stone-800 border-none outline-none px-3 text-sm text-stone-700 dark:text-stone-300 placeholder:text-stone-400"
+                        />
+                    </div>
+                );
+            }
+
+            return (
+                <div className="relative w-full h-full">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
+                    >
+                        {value ? (
+                            <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">
+                                {Number(value).toLocaleString()}
+                            </span>
+                        ) : (
+                            <span className="text-xs text-stone-400">Add value</span>
+                        )}
+                    </button>
+                </div>
+            );
+        }
+
+        if (col.type === 'dropdown') {
+            const selectedOption = col.options?.find(o => o.label === value);
+            const bgColor = selectedOption?.color || 'bg-stone-500';
+
+            return (
+                <div className="relative w-full h-full p-1">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className={`w-full h-full rounded flex items-center justify-center px-2 hover:opacity-80 transition-opacity ${value ? bgColor : 'hover:bg-stone-100 dark:hover:bg-stone-800/50'}`}
+                    >
+                        {value ? (
+                            <span className="text-xs font-medium text-white truncate">{value}</span>
+                        ) : (
+                            <span className="text-xs text-stone-400">Select Option</span>
+                        )}
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.rect && (
+                        <div className="fixed z-[9999]" style={{ top: activeCell.rect.bottom + 4, left: activeCell.rect.left }}>
+                            {/* Simple inline dropdown for generic options */}
+                            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden min-w-[150px]">
+                                {(col.options || []).map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => { handleUpdateRow(row.id, { [col.id]: opt.label }); setActiveCell(null); }}
+                                        className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 flex items-center gap-2"
+                                    >
+                                        <span className={`w-2 h-2 rounded-full ${opt.color}`}></span>
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="fixed inset-0 -z-10" onClick={() => setActiveCell(null)} />
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         if (col.type === 'priority') {
             const normalized = formatPriorityLabel(value);
             const classes = getPriorityClasses(value);
@@ -1129,271 +1506,387 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         );
     };
 
+    const renderSummaryRow = () => {
+        return (
+            <div className="flex items-center h-10 border-b border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50 min-w-max">
+                {/* Spacer for Select */}
+                <div style={{ width: columns[0].width }} className="h-full border-e border-transparent" />
+                {/* Name Column Spacer */}
+                <div style={{ width: columns[1].width }} className="h-full border-e border-transparent flex items-center px-3" >
+                    <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Summary</span>
+                </div>
+
+                {columns.slice(2).map(col => {
+                    if (col.type === 'status' || col.type === 'priority') {
+                        // Calculate distribution
+                        const counts: Record<string, number> = {};
+                        let total = 0;
+                        rows.forEach(r => {
+                            const val = r[col.id];
+                            if (val) {
+                                const key = col.type === 'priority' ? formatPriorityLabel(val) || 'None' : val;
+                                counts[key] = (counts[key] || 0) + 1;
+                                total++;
+                            }
+                        });
+
+                        return (
+                            <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent px-2 flex items-center">
+                                {total > 0 ? (
+                                    <div className="flex w-full h-1.5 rounded-full overflow-hidden bg-stone-200 dark:bg-stone-800">
+                                        {Object.entries(counts).map(([key, count], idx) => {
+                                            const width = (count / total) * 100;
+                                            let color = 'bg-stone-400';
+                                            if (col.type === 'priority') {
+                                                const pClasses = getPriorityClasses(key);
+                                                // Extract bg color from classes if possible, or use hardcoded map. 
+                                                // getPriorityClasses returns text/dot/bg. dot usually has text color.
+                                                // Let's use a mapping based on key
+                                                if (key === 'Urgent') color = 'bg-rose-500';
+                                                else if (key === 'High') color = 'bg-amber-500';
+                                                else if (key === 'Medium') color = 'bg-blue-500';
+                                                else if (key === 'Low') color = 'bg-stone-500';
+                                            } else {
+                                                if (key === 'Done') color = 'bg-emerald-500';
+                                                else if (key === 'In Progress') color = 'bg-amber-500';
+                                                else if (key === 'To Do') color = 'bg-stone-400';
+                                            }
+
+                                            return (
+                                                <div key={key} style={{ width: `${width}%` }} className={`h-full ${color}`} title={`${key}: ${count}`} />
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <span className="text-[10px] text-stone-300">No data</span>
+                                )}
+                            </div>
+                        );
+                    }
+                    return <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent" />;
+                })}
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col w-full h-full bg-stone-50 dark:bg-stone-900/50 font-sans">
-            {/* Secondary Toolbar */}
-            <div className="flex items-center justify-end h-12 border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4">
-                <div className="flex items-center gap-2">
-                    {renderCustomActions && renderCustomActions({
-                        setRows,
-                        setColumns,
-                        setIsChartModalOpen,
-                        setIsAIReportModalOpen
-                    })}
-                </div>
-            </div>
+            {/* Header Actions - Optional if needed, currently empty/handled by parent view */}
 
-            {/* Table Body */}
-            <div
-                ref={tableBodyRef}
-                onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-                className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-stone-900 relative overscroll-y-contain"
-            >
-                {/* Pinned Charts Section */}
-                {pinnedCharts.length > 0 && (
-                    <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-stone-50/50 dark:bg-stone-900/30 border-b border-stone-100 dark:border-stone-800">
-                        {pinnedCharts.map((config, idx) => (
-                            <AIChartCard
-                                key={idx}
-                                config={config}
-                                columns={columns}
-                                rows={rows}
-                                onDelete={() => handleDeletePinnedChart(idx)}
-                            />
-                        ))}
+            {/* Scrollable Container */}
+            <div className="flex-1 flex flex-col min-h-0 relative">
+
+                {/* Secondary Toolbar */}
+                <div className="flex items-center justify-end h-12 border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 px-4">
+                    <div className="flex items-center gap-2">
+                        {renderCustomActions && renderCustomActions({
+                            setRows,
+                            setColumns,
+                            setIsChartModalOpen,
+                            setIsAIReportModalOpen
+                        })}
                     </div>
-                )}
+                </div>
 
-                {/* Table Header */}
-                <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/80 h-10 flex-shrink-0 sticky top-0 z-20 min-w-max">
-                    {columns.map((col, index) => (
-                        <div
-                            key={col.id}
-                            style={{ width: col.width }}
-                            className={`
+                {/* Table Body */}
+                <div
+                    ref={tableBodyRef}
+                    onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+                    className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-stone-900 relative overscroll-y-contain"
+                >
+                    {/* Pinned Charts Section */}
+                    {pinnedCharts.length > 0 && (
+                        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-stone-50/50 dark:bg-stone-900/30 border-b border-stone-100 dark:border-stone-800">
+                            {pinnedCharts.map((config, idx) => (
+                                <AIChartCard
+                                    key={idx}
+                                    config={config}
+                                    columns={columns}
+                                    rows={rows}
+                                    onDelete={() => handleDeletePinnedChart(idx)}
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Table Header */}
+                    <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/80 h-10 flex-shrink-0 sticky top-0 z-20 min-w-max">
+                        {columns.map((col, index) => (
+                            <div
+                                key={col.id}
+                                style={{ width: col.width }}
+                                className={`
               h-full flex items-center text-xs font-sans font-medium text-stone-500 dark:text-stone-400 shrink-0
               ${col.id === 'select' ? 'justify-center px-0' : 'px-3'}
               ${index !== columns.length - 1 ? 'border-e border-stone-200/50 dark:border-stone-800' : ''}
               hover:bg-stone-100 dark:hover:bg-stone-800 ${col.id === 'priority' ? 'cursor-pointer' : 'cursor-default'} transition-colors select-none relative group
             `}
-                            onClick={() => col.id === 'priority' ? handleSort(col.id) : undefined}
-                        >
-                            {col.id === 'select' && (
-                                <div className="w-3.5 h-3.5 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-800 hover:border-stone-400 transition-colors" />
-                            )}
-                            {col.id !== 'select' && (
-                                <div className="flex items-center justify-between w-full px-2">
-                                    <span className="truncate flex-1">{col.label}</span>
-                                    {col.id === 'priority' && (
-                                        <ArrowUpDown size={12} className={`${sortConfig?.columnId === col.id ? 'text-stone-600 dark:text-stone-200' : 'text-stone-400'}`} />
-                                    )}
-                                    {!['name', 'select'].includes(col.id) && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
-                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
-                                            title="Delete Column"
-                                        >
-                                            <Trash2 size={12} />
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                            {col.resizable && (
-                                <div
-                                    className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-stone-400/50 dark:hover:bg-stone-600/50 z-10"
-                                    onMouseDown={(e) => startResize(e, col.id, col.width)}
-                                />
+                                onClick={() => col.id === 'priority' ? handleSort(col.id) : undefined}
+                            >
+                                {col.id === 'select' && (
+                                    <div className="w-3.5 h-3.5 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-800 hover:border-stone-400 transition-colors" />
+                                )}
+                                {col.id !== 'select' && (
+                                    <div className="flex items-center justify-between w-full px-2">
+                                        <span className="truncate flex-1">{col.label}</span>
+                                        {col.id === 'priority' && (
+                                            <ArrowUpDown size={12} className={`${sortConfig?.columnId === col.id ? 'text-stone-600 dark:text-stone-200' : 'text-stone-400'}`} />
+                                        )}
+                                        {!['name', 'select'].includes(col.id) && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
+                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
+                                                title="Delete Column"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                                {col.resizable && (
+                                    <div
+                                        className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-stone-400/50 dark:hover:bg-stone-600/50 z-10"
+                                        onMouseDown={(e) => startResize(e, col.id, col.width)}
+                                    />
+                                )}
+                            </div>
+                        ))}
+                        {/* Add Column Button */}
+                        <div className="relative h-full flex flex-col justify-center shrink-0">
+                            <button
+                                onClick={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setActiveColumnMenu({ rect });
+                                }}
+                                className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                            >
+                                <Plus size={14} />
+                            </button>
+                            {activeColumnMenu && createPortal(
+                                <>
+                                    {/* Backdrop */}
+                                    <div
+                                        className="fixed inset-0 z-[90] bg-transparent"
+                                        onClick={() => setActiveColumnMenu(null)}
+                                    />
+                                    {/* Dropdown Menu */}
+                                    <div
+                                        className="fixed z-[100]"
+                                        style={{
+                                            top: `${activeColumnMenu.rect.bottom + 8}px`,
+                                            right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
+                                        }}
+                                    >
+                                        <ColumnMenu
+                                            onClose={() => setActiveColumnMenu(null)}
+                                            onSelect={(type, label, options) => handleAddColumn(type, label, options)}
+                                        />
+                                    </div>
+                                </>,
+                                document.body
                             )}
                         </div>
-                    ))}
-                    {/* Add Column Button */}
-                    <div className="relative h-full flex flex-col justify-center shrink-0">
-                        <button
-                            onClick={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                setActiveColumnMenu({ rect });
-                            }}
-                            className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-                        >
-                            <Plus size={14} />
-                        </button>
-                        {activeColumnMenu && createPortal(
-                            <>
-                                {/* Backdrop */}
-                                <div
-                                    className="fixed inset-0 z-[90] bg-transparent"
-                                    onClick={() => setActiveColumnMenu(null)}
-                                />
-                                {/* Dropdown Menu */}
-                                <div
-                                    className="fixed z-[100]"
-                                    style={{
-                                        top: `${activeColumnMenu.rect.bottom + 8}px`,
-                                        right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
-                                    }}
-                                >
-                                    <ColumnMenu
-                                        onClose={() => setActiveColumnMenu(null)}
-                                        onSelect={(type, label, options) => handleAddColumn(type, label, options)}
-                                    />
-                                </div>
-                            </>,
-                            document.body
-                        )}
                     </div>
-                </div>
 
-                {/* Spacer Top */}
-                <div style={{ height: paddingTop }} />
+                    {/* Spacer Top */}
+                    <div style={{ height: paddingTop }} />
 
-                {/* Tasks */}
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                >
-                    <SortableContext items={visibleRows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                        {visibleRows.map((row) => (
-                            <SortableRow
-                                key={row.id}
-                                row={row}
-                                className={`
+                    {/* Tasks */}
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext items={visibleRows.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                            {visibleRows.map((row) => (
+                                <SortableRow
+                                    key={row.id}
+                                    row={row}
+                                    className={`
                                     group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 
                                     hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors relative min-w-max bg-white dark:bg-stone-900
                                     ${activeDragId === row.id ? 'opacity-30' : ''}
                                 `}
-                            >
-                                {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
-                            </SortableRow>
+                                >
+                                    {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
+                                </SortableRow>
+                            ))}
+                        </SortableContext>
+
+                        <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
+                            {activeDragId ? (
+                                <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
+                                    {(() => {
+                                        const row = rows.find(r => r.id === activeDragId);
+                                        if (!row) return null;
+                                        return renderRowContent(row, null, true);
+                                    })()}
+                                </div>
+                            ) : null}
+                        </DragOverlay>
+                    </DndContext>
+
+                    {/* Spacer Bottom */}
+                    <div style={{ height: paddingBottom }} />
+
+                    {/* Input Row */}
+                    <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors focus-within:bg-stone-50 dark:focus-within:bg-stone-800/50 min-w-max">
+                        <div style={{ width: columns[0].width }} className="h-full flex items-center justify-center border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800">
+                            <Plus size={14} className="text-stone-300 dark:text-stone-600" />
+                        </div>
+                        <div style={{ width: columns[1].width }} className="h-full flex items-center px-3 border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800">
+                            <input
+                                type="text"
+                                value={newTaskName}
+                                onChange={(e) => setNewTaskName(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                                placeholder="Start typing..."
+                                className="w-full bg-transparent border-none outline-none text-sm font-serif placeholder:text-stone-400 text-stone-800 dark:text-stone-200 p-0"
+                            />
+                        </div>
+                        {/* Empty cells for Input Row */}
+                        {columns.slice(2).map(col => (
+                            <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800" />
                         ))}
-                    </SortableContext>
-
-                    <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
-                        {activeDragId ? (
-                            <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
-                                {(() => {
-                                    const row = rows.find(r => r.id === activeDragId);
-                                    if (!row) return null;
-                                    return renderRowContent(row, null, true);
-                                })()}
-                            </div>
-                        ) : null}
-                    </DragOverlay>
-                </DndContext>
-
-                {/* Spacer Bottom */}
-                <div style={{ height: paddingBottom }} />
-
-                {/* Input Row */}
-                <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors focus-within:bg-stone-50 dark:focus-within:bg-stone-800/50 min-w-max">
-                    <div style={{ width: columns[0].width }} className="h-full flex items-center justify-center border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800">
-                        <Plus size={14} className="text-stone-300 dark:text-stone-600" />
                     </div>
-                    <div style={{ width: columns[1].width }} className="h-full flex items-center px-3 border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800">
-                        <input
-                            type="text"
-                            value={newTaskName}
-                            onChange={(e) => setNewTaskName(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-                            placeholder="Start typing..."
-                            className="w-full bg-transparent border-none outline-none text-sm font-serif placeholder:text-stone-400 text-stone-800 dark:text-stone-200 p-0"
-                        />
+
+                    {renderSummaryRow()}
+
+                    <div className="h-12" />
+
+                </div >
+
+                {/* Pagination Footer */}
+                <div className="flex items-center justify-between p-4 border-t border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-sm z-30">
+                    <div className="flex items-center gap-2">
+                        <span className="text-stone-500 dark:text-stone-400">Rows per page:</span>
+                        <select
+                            value={rowsPerPage}
+                            onChange={(e) => {
+                                setRowsPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded px-2 py-1 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={50}>50</option>
+                            <option value={-1}>All</option>
+                        </select>
                     </div>
-                    {/* Empty cells for Input Row */}
-                    {columns.slice(2).map(col => (
-                        <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800" />
-                    ))}
-                    <div className="w-8 h-full border-s border-stone-100/50 dark:border-stone-800" />
-                    <div className="w-8 h-full border-s border-stone-100/50 dark:border-stone-800" />
+
+                    <div className="flex items-center gap-4 text-stone-600 dark:text-stone-400">
+                        <span>
+                            Page {currentPage} of {Math.max(1, totalPages)}
+                        </span>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage >= totalPages}
+                                className="p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-            </div >
-
-            {/* Pagination Footer */}
-            <div className="flex items-center justify-between p-4 border-t border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-sm">
-                <div className="flex items-center gap-2">
-                    <span className="text-stone-500 dark:text-stone-400">Rows per page:</span>
-                    <select
-                        value={rowsPerPage}
-                        onChange={(e) => {
-                            setRowsPerPage(Number(e.target.value));
-                            setCurrentPage(1);
-                        }}
-                        className="bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded px-2 py-1 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                {activeReminderTarget && (
+                    <PortalPopup
+                        triggerRef={{ current: { getBoundingClientRect: () => activeReminderTarget.rect } } as any}
+                        onClose={() => setActiveReminderTarget(null)}
+                        side="bottom"
                     >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={50}>50</option>
-                        <option value={-1}>All</option>
-                    </select>
-                </div>
+                        <ReminderPanel
+                            itemId={activeReminderTarget.rowId}
+                            itemTitle={activeReminderRow?.name}
+                            reminders={remindersByItem[activeReminderTarget.rowId] || []}
+                            onAdd={(remindAt, kind, label) => addReminder({
+                                itemId: activeReminderTarget.rowId,
+                                boardId: roomId,
+                                itemTitle: activeReminderRow?.name,
+                                remindAt,
+                                kind,
+                                relativeLabel: label
+                            })}
+                            onDelete={deleteReminder}
+                            onUpdateStatus={(id, status) => updateReminder(id, { status })}
+                        />
+                    </PortalPopup>
+                )}
 
-                <div className="flex items-center gap-4 text-stone-600 dark:text-stone-400">
-                    <span>
-                        Page {currentPage} of {Math.max(1, totalPages)}
-                    </span>
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={() => handlePageChange(currentPage - 1)}
-                            disabled={currentPage === 1}
-                            className="p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
-                        <button
-                            onClick={() => handlePageChange(currentPage + 1)}
-                            disabled={currentPage >= totalPages}
-                            className="p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                        >
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                </div>
+                <ChartBuilderModal
+                    isOpen={isChartModalOpen}
+                    onClose={() => setIsChartModalOpen(false)}
+                    columns={columns}
+                    rows={rows}
+                    onSave={(config) => {
+                        console.log('Chart Config Saved:', config);
+                        setIsChartModalOpen(false);
+                    }}
+                />
+
+                <AIReportModal
+                    isOpen={isAIReportModalOpen}
+                    onClose={() => setIsAIReportModalOpen(false)}
+                    columns={columns}
+                    rows={rows}
+                    onAddChart={handleAddPinnedChart}
+                />
+
+                <SaveToVaultModal
+                    isOpen={isUploadModalOpen}
+                    onClose={() => setIsUploadModalOpen(false)}
+                    fileToSave={activeUploadFile}
+                    onSuccess={handleSaveVaultSuccess}
+                />
+                <input
+                    type="file"
+                    ref={hiddenFileInputRef}
+                    className="hidden"
+                    onChange={handleHiddenFileChange}
+                />
             </div>
-            {activeReminderTarget && (
-                <PortalPopup
-                    triggerRef={{ current: { getBoundingClientRect: () => activeReminderTarget.rect } } as any}
-                    onClose={() => setActiveReminderTarget(null)}
-                    side="bottom"
-                >
-                    <ReminderPanel
-                        itemId={activeReminderTarget.rowId}
-                        itemTitle={activeReminderRow?.name}
-                        reminders={remindersByItem[activeReminderTarget.rowId] || []}
-                        onAdd={(remindAt, kind, label) => addReminder({
-                            itemId: activeReminderTarget.rowId,
-                            boardId: roomId,
-                            itemTitle: activeReminderRow?.name,
-                            remindAt,
-                            kind,
-                            relativeLabel: label
-                        })}
-                        onDelete={deleteReminder}
-                        onUpdateStatus={(id, status) => updateReminder(id, { status })}
-                    />
-                </PortalPopup>
-            )}
+        </div>
+    );
+};
 
-            <ChartBuilderModal
-                isOpen={isChartModalOpen}
-                onClose={() => setIsChartModalOpen(false)}
-                columns={columns}
-                rows={rows}
-                onSave={(config) => {
-                    console.log('Chart Config Saved:', config);
-                    setIsChartModalOpen(false);
-                }}
-            />
+// --- Sortable Row Wrapper ---
+interface SortableRowProps {
+    row: Row;
+    children: (dragListeners: any, isRowDragging: boolean) => React.ReactNode;
+    className: string;
+}
 
-            <AIReportModal
-                isOpen={isAIReportModalOpen}
-                onClose={() => setIsAIReportModalOpen(false)}
-                columns={columns}
-                rows={rows}
-                onAddChart={handleAddPinnedChart}
-            />
-        </div >
+const SortableRow: React.FC<SortableRowProps> = ({ row, children, className }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: row.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : 'auto',
+        opacity: isDragging ? 0 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className={className} {...attributes}>
+            {children(listeners, isDragging)}
+        </div>
     );
 };
 

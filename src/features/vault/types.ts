@@ -9,6 +9,7 @@ export interface FolderMetadata {
     accessLevel?: 'private' | 'team' | 'public';
     retentionPolicy?: 'none' | '1-year' | '5-years' | 'forever';
     notes?: string;
+    sharedWith?: string[]; // New: list of user IDs or emails
 }
 
 export interface LinkMetadata {

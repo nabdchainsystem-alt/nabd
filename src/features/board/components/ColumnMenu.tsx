@@ -25,8 +25,16 @@ import {
     Mail,
     Phone,
     Globe,
-    Tags
+    Tags,
+    Plus,
+    X
 } from 'lucide-react';
+
+const COLORS = [
+    'bg-rose-500', 'bg-purple-500', 'bg-indigo-500', 'bg-blue-500',
+    'bg-teal-500', 'bg-emerald-500', 'bg-amber-500', 'bg-orange-400',
+    'bg-stone-500', 'bg-pink-500'
+];
 
 interface ColumnMenuProps {
     onClose: () => void;
@@ -88,16 +96,61 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
     const hasUseful = filteredUseful.length > 0;
     const hasPowerUps = filteredPowerUps.length > 0;
 
-    const handleSelect = (type: any) => {
-        let options: any[] = [];
-        if (type.id === 'dropdown') {
-            options = [
-                { id: 'opt1', label: 'Option 1', color: 'bg-indigo-500' },
-                { id: 'opt2', label: 'Option 2', color: 'bg-pink-500' },
-                { id: 'opt3', label: 'Option 3', color: 'bg-teal-500' }
-            ];
+    const [view, setView] = useState<'list' | 'custom_name' | 'custom_dropdown'>('list');
+    const [customName, setCustomName] = useState('');
+    const [dropdownName, setDropdownName] = useState('');
+    const [dropdownOptions, setDropdownOptions] = useState<{ id: string, label: string, color: string }[]>([
+        { id: 'opt1', label: 'Option 1', color: 'bg-rose-500' },
+        { id: 'opt2', label: 'Option 2', color: 'bg-purple-500' }
+    ]);
+    const [newOptionName, setNewOptionName] = useState('');
+    const inputRef = useRef<HTMLInputElement>(null);
+    const dropdownInputRef = useRef<HTMLInputElement>(null);
+    const [activeColorPicker, setActiveColorPicker] = useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (view === 'custom_name' && inputRef.current) {
+            inputRef.current.focus();
+        } else if (view === 'custom_dropdown' && dropdownInputRef.current) {
+            dropdownInputRef.current.focus();
         }
+    }, [view]);
+
+    const handleSelect = (type: any) => {
+        if (type.id === 'custom') {
+            setView('custom_name');
+            return;
+        }
+        if (type.id === 'dropdown') {
+            setView('custom_dropdown');
+            return;
+        }
+
+        let options: any[] = [];
+        // if (type.id === 'dropdown') { ... } // Removed old static logic
         onSelect(type.id, type.label, options);
+    };
+
+    const handleCreateCustom = () => {
+        if (!customName.trim()) return;
+        onSelect('text', customName, []);
+    };
+
+    const handleAddOption = () => {
+        if (!newOptionName.trim()) return;
+        const colors = ['bg-rose-500', 'bg-purple-500', 'bg-indigo-500', 'bg-blue-500', 'bg-teal-500', 'bg-emerald-500', 'bg-amber-500', 'bg-orange-400'];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+        setDropdownOptions([
+            ...dropdownOptions,
+            { id: Date.now().toString(), label: newOptionName, color: randomColor }
+        ]);
+        setNewOptionName('');
+    };
+
+    const handleCreateDropdown = () => {
+        if (!dropdownName.trim()) return;
+        onSelect('dropdown', dropdownName, dropdownOptions);
     };
 
     const RenderItem: React.FC<{ type: ColumnType }> = ({ type }) => (
@@ -113,6 +166,176 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
             </span>
         </button>
     );
+
+    if (view === 'custom_name') {
+        return (
+            <div
+                className={`flex flex-col w-[340px] bg-white dark:bg-stone-900 shadow-2xl rounded-xl overflow-hidden border border-gray-200 dark:border-stone-800 ${darkMode ? 'dark' : ''}`}
+            >
+                <div className="p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                        <button
+                            onClick={() => setView('list')}
+                            className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded text-stone-500"
+                        >
+                            <ArrowUpRight className="rotate-[-135deg]" size={16} />
+                        </button>
+                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200">Name your column</span>
+                    </div>
+
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        placeholder="Column name"
+                        value={customName}
+                        onChange={(e) => setCustomName(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleCreateCustom();
+                            if (e.key === 'Escape') setView('list');
+                        }}
+                        className="w-full px-3 py-2 text-sm bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-stone-800 dark:text-stone-200 mb-4"
+                    />
+
+                    <div className="flex justify-end gap-2">
+                        <button
+                            onClick={() => setView('list')}
+                            className="px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded"
+                        >
+                            Back
+                        </button>
+                        <button
+                            onClick={handleCreateCustom}
+                            disabled={!customName.trim()}
+                            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Create Column
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+
+
+    if (view === 'custom_dropdown') {
+        return (
+            <div
+                className={`flex flex-col w-[340px] bg-white dark:bg-stone-900 shadow-2xl rounded-xl overflow-hidden border border-gray-200 dark:border-stone-800 ${darkMode ? 'dark' : ''}`}
+            >
+                <div className="p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                        <button
+                            onClick={() => setView('list')}
+                            className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded text-stone-500"
+                        >
+                            <ArrowUpRight className="rotate-[-135deg]" size={16} />
+                        </button>
+                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200">Configure Dropdown</span>
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-xs font-semibold text-stone-500 dark:text-stone-400 mb-1">Field name <span className="text-red-500">*</span></label>
+                        <input
+                            ref={dropdownInputRef}
+                            type="text"
+                            placeholder="Enter name..."
+                            value={dropdownName}
+                            onChange={(e) => setDropdownName(e.target.value)}
+                            className="w-full px-3 py-2 text-sm bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-stone-800 dark:text-stone-200"
+                        />
+                    </div>
+
+                    <div className="mb-4">
+                        <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-semibold text-stone-500 dark:text-stone-400">Dropdown options <span className="text-red-500">*</span></label>
+                        </div>
+
+                        <div className="space-y-2 mb-2 max-h-[200px] overflow-y-auto pr-1">
+                            {dropdownOptions.map(opt => (
+                                <div key={opt.id} className="mb-1">
+                                    <div className="relative flex items-center gap-2 p-1.5 rounded border border-stone-100 dark:border-stone-800 bg-white dark:bg-stone-900 group">
+                                        {/* Color Picker Trigger */}
+                                        <button
+                                            onClick={() => setActiveColorPicker(activeColorPicker === opt.id ? null : opt.id)}
+                                            className={`w-4 h-4 rounded-full ${opt.color} shrink-0 hover:scale-110 transition-transform`}
+                                        />
+
+                                        {/* Editable Label */}
+                                        <input
+                                            type="text"
+                                            value={opt.label}
+                                            onChange={(e) => setDropdownOptions(prev => prev.map(o => o.id === opt.id ? { ...o, label: e.target.value } : o))}
+                                            className="flex-1 text-sm bg-transparent border-none outline-none text-stone-700 dark:text-stone-300 placeholder:text-stone-400 min-w-0"
+                                        />
+
+                                        {/* Delete Button */}
+                                        <button
+                                            onClick={() => setDropdownOptions(prev => prev.filter(o => o.id !== opt.id))}
+                                            className="opacity-0 group-hover:opacity-100 p-1 text-stone-400 hover:text-red-500 transition-all"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+
+                                    {/* Inline Color Palette */}
+                                    {activeColorPicker === opt.id && (
+                                        <div className="mt-1 p-2 bg-stone-50 dark:bg-stone-800/50 rounded-lg border border-stone-100 dark:border-stone-700 grid grid-cols-5 gap-2 w-full">
+                                            {COLORS.map(c => (
+                                                <button
+                                                    key={c}
+                                                    className={`w-5 h-5 rounded-full ${c} hover:scale-110 transition-transform ${opt.color === c ? 'ring-2 ring-stone-900 dark:ring-white ring-offset-1 dark:ring-offset-stone-800' : ''}`}
+                                                    onClick={() => {
+                                                        setDropdownOptions(prev => prev.map(o => o.id === opt.id ? { ...o, color: c } : o));
+                                                        setActiveColorPicker(null);
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="relative mt-2">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500">
+                                <Plus size={14} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Type or paste options"
+                                value={newOptionName}
+                                onChange={(e) => setNewOptionName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleAddOption();
+                                }}
+                                className="w-full pl-8 pr-3 py-2 text-sm bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-stone-800 dark:text-stone-200"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <span className="text-xs text-stone-400">⏎</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-stone-100 dark:border-stone-800">
+                        <button
+                            onClick={() => setView('list')}
+                            className="px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 rounded"
+                        >
+                            Back
+                        </button>
+                        <button
+                            onClick={handleCreateDropdown}
+                            disabled={!dropdownName.trim() || dropdownOptions.length === 0}
+                            className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Create Column
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div

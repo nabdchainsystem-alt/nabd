@@ -149,9 +149,10 @@ interface BoardViewProps {
     onUpdateTasks?: (tasks: any[]) => void;
     renderCustomView?: (viewId: string) => React.ReactNode;
     dashboardSections?: any[];
+    onNavigate?: (view: string, boardId?: string) => void;
 }
 
-export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpdateBoard: initialOnUpdateBoard, onUpdateTasks: initialOnUpdateTasks, renderCustomView, dashboardSections }) => {
+export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpdateBoard: initialOnUpdateBoard, onUpdateTasks: initialOnUpdateTasks, renderCustomView, dashboardSections, onNavigate }) => {
     // Assuming useRoomBoardData is a custom hook that provides board data and task management functions
     // and that 'effectiveKey' is defined elsewhere or needs to be passed as a prop.
     // For this change, we'll assume 'effectiveKey' is available or can be derived from initialBoard.id
@@ -593,6 +594,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                         viewId="table-main"
                         tasks={tasks}
                         onUpdateTasks={onUpdateTasks}
+                        onNavigate={onNavigate}
                     />
                 );
             case 'datatable':

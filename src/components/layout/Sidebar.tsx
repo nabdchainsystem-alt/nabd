@@ -229,32 +229,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         } else {
             if (addButtonRef.current) {
                 const rect = addButtonRef.current.getBoundingClientRect();
-                const MENU_HEIGHT = 450; // Approximate height of the menu
-                const VIEWPORT_HEIGHT = window.innerHeight;
+                const MENU_HEIGHT = 100; // Approximate height of the menu
+                let top = rect.top; // Align with top of button
+                const left = rect.right + 10; // Position to the right of the button with some gap
 
-                // Default: Position below the button
-                let top = rect.bottom + 5;
-                let bottom = undefined;
-                let left = rect.left + 20; // Slight offset
-
-                // Check if it fits below
-                if (top + MENU_HEIGHT > VIEWPORT_HEIGHT) {
-                    // It doesn't fit below. Check if it fits above.
-                    const spaceAbove = rect.top;
-                    if (spaceAbove > MENU_HEIGHT) {
-                        // Position above: anchor to bottom of viewport relative to button top
-                        // CSS 'bottom' property is distance from bottom edge
-                        // Actually easier to just set 'top' to (rect.top - MENU_HEIGHT - 5)
-                        top = rect.top - MENU_HEIGHT - 5;
-                    } else {
-                        // Doesn't fit cleanly above OR below (screen too short). 
-                        // Force align to bottom edge of screen with some padding
-                        top = VIEWPORT_HEIGHT - MENU_HEIGHT - 10;
-                    }
+                // Adjust vertical position if it overflows the bottom
+                if (top + MENU_HEIGHT > window.innerHeight) {
+                    top = window.innerHeight - MENU_HEIGHT - 10;
                 }
-
-                // Ensure top is never negative
-                top = Math.max(10, top);
 
                 setAddMenuPos({ top, left });
             }
@@ -729,6 +711,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Add New Menu - Fixed Position (Right Side) */}
+                                {isAddMenuOpen && (
+                                    <div
+                                        ref={addMenuRef}
+                                        className="fixed bg-white dark:bg-monday-dark-surface shadow-xl rounded-sm border border-gray-200 dark:border-monday-dark-border z-[100] animate-in fade-in zoom-in-95 duration-100 w-48 overflow-hidden"
+                                        style={{
+                                            top: addMenuPos.top,
+                                            left: addMenuPos.left
+                                        }}
+                                    >
+                                        <div className="px-4 py-3 border-b border-gray-100 dark:border-monday-dark-border">
+                                            <span className="text-[14px] font-semibold text-gray-800 dark:text-monday-dark-text">{t('add_new')}</span>
+                                        </div>
+                                        <div className="py-2">
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsAddWorkspaceModalOpen(true);
+                                                    setIsAddMenuOpen(false);
+                                                }}
+                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group"
+                                            >
+                                                <Briefcase size={16} className="text-gray-500 dark:text-gray-400" />
+                                                <span>{t('workspace')}</span>
+                                            </div>
+
+                                            <div className="h-px bg-gray-100 dark:bg-monday-dark-border my-1"></div>
+
+                                            <div
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCreationStep('details');
+                                                    setSelectedTemplate(undefined);
+                                                    setParentBoardIdForCreation(undefined);
+                                                    setIsNewBoardModalOpen(true);
+                                                    setIsAddMenuOpen(false);
+                                                }}
+                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group"
+                                            >
+                                                <Table size={16} className="text-monday-blue" />
+                                                <span>{t('board')}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Workspace Dropdown */}
@@ -972,184 +1000,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 )}
 
-                {/* FIXED ADD NEW MENU - MOVED OUTSIDE SCROLL CONTAINER */}
-                {isAddMenuOpen && (
-                    <div
-                        ref={addMenuRef}
-                        className="fixed bg-white dark:bg-monday-dark-surface shadow-2xl rounded-sm border border-gray-200 dark:border-monday-dark-border z-[100] animate-in fade-in zoom-in-95 duration-100 w-64 overflow-visible"
-                        style={{
-                            top: addMenuPos.top,
-                            bottom: addMenuPos.bottom,
-                            left: addMenuPos.left
-                        }}
-                    >
-                        <div className="px-4 py-3 border-b border-gray-100 dark:border-monday-dark-border">
-                            <span className="text-[14px] font-semibold text-gray-800 dark:text-monday-dark-text">{t('add_new')}</span>
-                        </div>
-                        <div className="py-2">
-                            <div
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsAddWorkspaceModalOpen(true);
-                                    setIsAddMenuOpen(false);
-                                }}
-                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group"
-                            >
-                                <Briefcase size={16} className="text-gray-500 dark:text-gray-400" />
-                                <span>{t('workspace')}</span>
-                            </div>
-                            <div className="h-px bg-gray-100 dark:bg-monday-dark-border my-1"></div>
-                            <div className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <Briefcase size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                <span>{t('project')}</span>
-                            </div>
-                            <div className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <Folder size={16} className="text-gray-500 dark:text-gray-400" />
-                                <span>{t('portfolio')}</span>
-                            </div>
 
-                            <div className="h-px bg-gray-100 dark:bg-monday-dark-border my-1"></div>
-
-                            <div
-                                onMouseEnter={() => setIsBoardHovered(true)}
-                                onMouseLeave={() => setIsBoardHovered(false)}
-                                className="relative px-3 py-2 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <Table size={16} weight="light" className="text-monday-blue" />
-                                    <span>{t('board')}</span>
-                                </div>
-                                <CaretRight size={14} weight="light" className="text-gray-400 rtl:rotate-180" />
-
-                                {/* BOARD SUBMENU */}
-                                {isBoardHovered && (
-                                    <div className="absolute top-0 left-full rtl:right-full rtl:left-auto w-56 pl-1 rtl:pr-1 z-[110]">
-                                        <div className="bg-white dark:bg-monday-dark-surface shadow-xl rounded-sm border border-gray-200 dark:border-monday-dark-border py-2 w-full">
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setCreationStep('details');
-                                                    setSelectedTemplate(undefined);
-                                                    setParentBoardIdForCreation(undefined);
-                                                    setIsNewBoardModalOpen(true);
-                                                    setIsAddMenuOpen(false);
-                                                }}
-                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px]"
-                                            >
-                                                <Table size={16} className="text-monday-blue" />
-                                                <span>{t('new_board')}</span>
-                                            </div>
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setCreationStep('template');
-                                                    setSelectedTemplate(undefined);
-                                                    setParentBoardIdForCreation(undefined);
-                                                    setIsNewBoardModalOpen(true);
-                                                    setIsAddMenuOpen(false);
-                                                }}
-                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px]"
-                                            >
-                                                <Layout size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                                <span>{t('board_template')}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="px-3 py-2 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <div className="flex items-center gap-3">
-                                    <FileText size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                    <span>{t('doc')}</span>
-                                </div>
-                                <CaretRight size={14} weight="light" className="text-gray-400 rtl:rotate-180" />
-                            </div>
-                            <div
-                                onMouseEnter={() => setIsDashboardHovered(true)}
-                                onMouseLeave={() => setIsDashboardHovered(false)}
-                                className="relative px-3 py-2 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <SquaresFour size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                    <span>{t('dashboard')}</span>
-                                </div>
-                                <CaretRight size={14} weight="light" className="text-gray-400 rtl:rotate-180" />
-
-                                {/* DASHBOARD SUBMENU */}
-                                {isDashboardHovered && (
-                                    <div className="absolute top-0 left-full rtl:right-full rtl:left-auto w-56 pl-1 rtl:pr-1 z-[110]">
-                                        <div className="bg-white dark:bg-monday-dark-surface shadow-xl rounded-sm border border-gray-200 dark:border-monday-dark-border py-2 w-full">
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setCreationStep('details');
-                                                    setSelectedTemplate(undefined);
-                                                    setParentBoardIdForCreation(undefined);
-                                                    setIsNewBoardModalOpen(true);
-                                                    setIsAddMenuOpen(false);
-                                                }}
-                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px]"
-                                            >
-                                                <SquaresFour size={16} weight="light" className="text-monday-blue" />
-                                                <span>{t('dashboard')}</span>
-                                            </div>
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setCreationStep('template');
-                                                    setSelectedTemplate(undefined);
-                                                    setIsNewBoardModalOpen(true);
-                                                    setIsAddMenuOpen(false);
-                                                }}
-                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px]"
-                                            >
-                                                <Layout size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                                <span>{t('templates')}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="px-3 py-2 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <div className="flex items-center gap-3">
-                                    <Table size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                    <span>{t('form')}</span>
-                                </div>
-                                <CaretRight size={14} weight="light" className="text-gray-400 rtl:rotate-180" />
-                            </div>
-                            <div className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <GitMerge size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                <span>{t('workflow')}</span>
-                            </div>
-                            <div className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <Folder size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                <span>{t('folder')}</span>
-                            </div>
-
-                            <div className="h-px bg-gray-100 dark:bg-monday-dark-border my-1"></div>
-
-                            <div className="px-3 py-2 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <div className="flex items-center gap-3">
-                                    <PuzzlePiece size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                    <span>{t('installed_apps')}</span>
-                                </div>
-                                <CaretRight size={14} weight="light" className="text-gray-400 rtl:rotate-180" />
-                            </div>
-                            <div className="px-3 py-2 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <div className="flex items-center gap-3">
-                                    <DownloadSimple size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                    <span>{t('import_data')}</span>
-                                </div>
-                                <CaretRight size={14} weight="light" className="text-gray-400 rtl:rotate-180" />
-                            </div>
-                            <div className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group">
-                                <MagicWand size={16} weight="light" className="text-gray-500 dark:text-gray-400" />
-                                <span>{t('template_center')}</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Create Workspace Modal */}
                 {isAddWorkspaceModalOpen && (

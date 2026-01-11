@@ -131,7 +131,7 @@ const AppContent: React.FC = () => {
       try {
         const token = await getToken();
         if (token) {
-          const fetchedBoards = await boardService.getAllBoards(token);
+          const fetchedBoards = await boardService.getAllBoards(token, activeWorkspaceId);
           setBoards(fetchedBoards);
 
           // Sync activeWorkspaceId if it's still 'w1' or default and we have real boards
@@ -252,9 +252,9 @@ const AppContent: React.FC = () => {
         setActiveBoardId(createdBoard.id);
         setActiveView('board');
 
-        // Log activity
-        const ws = workspaces.find(w => w.id === createdBoard.workspaceId);
-        logActivity('BOARD_CREATED', `Created board: ${createdBoard.name}${ws ? ` in ${ws.name}` : ''}`, { boardId: createdBoard.id }, createdBoard.workspaceId, createdBoard.id);
+        // Log activity - MOVED TO BACKEND
+        // const ws = workspaces.find(w => w.id === createdBoard.workspaceId);
+        // logActivity('BOARD_CREATED', `Created board: ${createdBoard.name}${ws ? ` in ${ws.name}` : ''}`, { boardId: createdBoard.id }, createdBoard.workspaceId, createdBoard.id);
 
         // Ensure activeWorkspaceId stays in sync if user was on a mock one
         if (createdBoard.workspaceId && activeWorkspaceId !== createdBoard.workspaceId) {
@@ -482,23 +482,22 @@ const AppContent: React.FC = () => {
     const board = boards.find(b => b.id === boardId);
     if (!board) return;
 
-    if (window.confirm(`Delete board "${board.name}"?`)) {
-      setBoards(prev => prev.filter(b => b.id !== boardId));
-      if (activeBoardId === boardId) {
-        setActiveBoardId(null);
-        setActiveView('dashboard');
-      }
+    // Confirmation handled by UI components (Sidebar/Settings)
+    setBoards(prev => prev.filter(b => b.id !== boardId));
+    if (activeBoardId === boardId) {
+      setActiveBoardId(null);
+      setActiveView('dashboard');
+    }
 
-      try {
-        const token = await getToken();
-        if (token) {
-          await boardService.deleteBoard(token, boardId);
-          const ws = workspaces.find(w => w.id === board.workspaceId);
-          logActivity('BOARD_DELETED', `Deleted board: ${board.name}${ws ? ` from ${ws.name}` : ''}`, { boardId }, board.workspaceId);
-        }
-      } catch (e) {
-        console.error("Failed to delete board backend", e);
+    try {
+      const token = await getToken();
+      if (token) {
+        await boardService.deleteBoard(token, boardId);
+        // const ws = workspaces.find(w => w.id === board.workspaceId);
+        // logActivity('BOARD_DELETED', `Deleted board: ${board.name}${ws ? ` from ${ws.name}` : ''}`, { boardId }, board.workspaceId);
       }
+    } catch (e) {
+      console.error("Failed to delete board backend", e);
     }
   }, [activeBoardId, getToken, boards, workspaces, logActivity]);
 
@@ -719,6 +718,7 @@ const AppContent: React.FC = () => {
                 board={activeBoard}
                 onUpdateBoard={handleUpdateBoard}
                 onUpdateTasks={handleUpdateTasks}
+                onNavigate={handleNavigate}
               />
             ) : activeView === 'inbox' ? (
               <InboxView logActivity={logActivity} />

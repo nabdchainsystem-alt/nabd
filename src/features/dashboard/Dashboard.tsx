@@ -6,7 +6,7 @@ import {
   CheckCircle, Flag, WarningCircle, CalendarBlank, Folder,
   PencilSimple, ListPlus, UserPlus, MagnifyingGlass, SquaresFour,
   UploadSimple, Clock, Trash, ChatCircle, PaperPlaneRight,
-  EnvelopeSimple, Archive, NotePencil, Bell, Headset
+  EnvelopeSimple, Archive, NotePencil, Bell
 } from 'phosphor-react';
 import { NewTaskModal } from '../../components/ui/NewTaskModal';
 import { SaveToVaultModal } from './components/SaveToVaultModal';
@@ -142,9 +142,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
         const token = await getToken();
         if (token) {
           const url = new URL('http://localhost:3001/api/activities');
-          if (activeWorkspaceId) {
-            url.searchParams.append('workspaceId', activeWorkspaceId);
-          }
+
           const response = await fetch(url.toString(), {
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -654,7 +652,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
                 <div className="flow-root flex-1 overflow-y-auto pr-2 custom-scrollbar">
                   <ul className="-mb-8" role="list">
                     {activities.length > 0 ? (
-                      activities.map((activity, idx) => (
+                      activities.slice(0, 5).map((activity, idx) => (
                         <li key={activity.id}>
                           <div className="relative pb-8">
                             {idx !== activities.length - 1 && (
@@ -734,22 +732,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
               </div>
             </section>
 
-            {/* Help Card (Row 3, Col 3) */}
-            <section className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl shadow-md p-6 text-white relative overflow-hidden lg:col-span-1 lg:col-start-3">
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-white opacity-10 rounded-full"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                    <Headset size={24} weight="light" />
-                  </div>
-                </div>
-                <h3 className="font-bold text-lg mb-1">Need help?</h3>
-                <p className="text-blue-100 text-sm mb-4">Check our help details.</p>
-                <button className="w-full bg-white text-blue-700 font-semibold py-2 px-4 rounded-lg text-sm hover:bg-blue-50 transition-colors shadow-sm">
-                  Visit Help Center
-                </button>
-              </div>
-            </section>
+
 
           </div>
         </div>

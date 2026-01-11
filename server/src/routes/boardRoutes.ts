@@ -9,17 +9,40 @@ const prisma = new PrismaClient();
 router.get('/', requireAuth, async (req: any, res) => {
     try {
         const userId = req.auth.userId;
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            include: { workspace: true }
-        });
+        const { workspaceId } = req.query;
 
-        if (!user || !user.workspaceId) {
+        // If workspaceId is provided, verify access
+        let targetWorkspaceId = workspaceId as string;
+
+        if (!targetWorkspaceId) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: { workspace: true }
+            });
+            targetWorkspaceId = user?.workspaceId || '';
+        }
+
+        if (!targetWorkspaceId) {
             return res.json([]);
         }
 
+        // Verify user has access to this workspace
+        const hasAccess = await prisma.workspace.findFirst({
+            where: {
+                id: targetWorkspaceId,
+                OR: [
+                    { ownerId: userId },
+                    { users: { some: { id: userId } } }
+                ]
+            }
+        });
+
+        if (!hasAccess) {
+            return res.status(403).json({ error: "Access denied to this workspace" });
+        }
+
         const boards = await prisma.board.findMany({
-            where: { workspaceId: user.workspaceId },
+            where: { workspaceId: targetWorkspaceId },
             orderBy: { updatedAt: 'desc' }
         });
 
@@ -81,12 +104,23 @@ router.post('/', requireAuth, async (req: any, res) => {
                 icon,
                 description,
                 userId,
-                workspaceId: user.workspaceId, // Link to workspace!
+                workspaceId: req.body.workspaceId || user.workspaceId, // Use provided ID or fallback to user default
                 columns: columns ? JSON.stringify(columns) : null,
                 tasks: tasks ? JSON.stringify(tasks) : "[]",
                 defaultView: defaultView || 'table',
                 availableViews: availableViews ? JSON.stringify(availableViews) : '["table"]',
                 type: type || 'project'
+            }
+        });
+
+        // Log Activity
+        await prisma.activity.create({
+            data: {
+                userId,
+                workspaceId: user.workspaceId,
+                boardId: board.id,
+                type: 'BOARD_CREATED',
+                content: `Created board: ${board.name}`,
             }
         });
 
@@ -137,7 +171,25 @@ router.put('/:id', requireAuth, async (req: any, res) => {
 router.delete('/:id', requireAuth, async (req: any, res) => {
     try {
         const { id } = req.params;
-        await prisma.board.delete({ where: { id } });
+        const userId = req.auth.userId;
+
+        // Get board details before deleting for logging
+        const board = await prisma.board.findUnique({ where: { id } });
+
+        if (board) {
+            await prisma.board.delete({ where: { id } });
+
+            // Log Activity
+            await prisma.activity.create({
+                data: {
+                    userId,
+                    workspaceId: board.workspaceId,
+                    boardId: id, // ID is preserved in activity log even if board is gone? Content covers it.
+                    type: 'BOARD_DELETED',
+                    content: `Deleted board: ${board.name}`,
+                }
+            });
+        }
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: "Failed to delete board" });

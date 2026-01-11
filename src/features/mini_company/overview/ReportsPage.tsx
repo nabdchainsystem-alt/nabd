@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { BoardView } from '../board/BoardView';
-import { Board } from '../../types';
+import { BoardView } from '../../board/BoardView';
+import { Board } from '../../../types';
 
 const INITIAL_BOARD: Board = {
     id: 'dept-reports',

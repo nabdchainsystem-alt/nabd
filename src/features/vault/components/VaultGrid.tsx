@@ -1,15 +1,17 @@
-import { Folder, Image, FileText, Globe, MoreVertical, Trash2, ExternalLink, File } from 'lucide-react';
+import React, { useState } from 'react';
+import { Folder, Image, FileText, Globe, MoreVertical, Trash2, ExternalLink, File, Star, Edit2 } from 'lucide-react';
 import { VaultItem } from '../types';
-import { useState } from 'react';
 
 interface Props {
     items: VaultItem[];
     onNavigate: (folderId: string) => void;
     onDelete: (itemId: string) => void;
+    onToggleFavorite: (item: VaultItem) => void;
+    onRename: (item: VaultItem) => void;
     activeDragItem?: VaultItem | null;
 }
 
-export const VaultGrid: React.FC<Props> = ({ items, onNavigate, onDelete }) => {
+export const VaultGrid: React.FC<Props> = ({ items, onNavigate, onDelete, onToggleFavorite, onRename }) => {
     const [contextMenu, setContextMenu] = useState<{ id: string, x: number, y: number } | null>(null);
 
     const handleContextMenu = (e: React.MouseEvent, itemId: string) => {
@@ -62,20 +64,43 @@ export const VaultGrid: React.FC<Props> = ({ items, onNavigate, onDelete }) => {
                     {/* Context Menu */}
                     {contextMenu?.id === item.id && (
                         <div
-                            className="absolute top-10 right-4 z-50 bg-white dark:bg-[#1f2937] rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 w-32 animate-in fade-in zoom-in-95 duration-100"
+                            className="absolute top-10 right-4 z-50 bg-white dark:bg-[#1f2937] rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 w-40 animate-in fade-in zoom-in-95 duration-100"
                             style={{ position: 'absolute' }} // Simplified positioning for now
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleItemClick(item);
+                                    if (item.type === 'folder') onNavigate(item.id);
+                                    else if (item.previewUrl) window.open(item.previewUrl, '_blank');
                                     setContextMenu(null);
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
                             >
                                 <ExternalLink size={14} /> Open
                             </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRename(item);
+                                    setContextMenu(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                            >
+                                <Edit2 size={14} /> Rename
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleFavorite(item);
+                                    setContextMenu(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                            >
+                                <Star size={14} className={item.isFavorite ? 'fill-yellow-400 text-yellow-400' : ''} />
+                                {item.isFavorite ? 'Unfavorite' : 'Favorite'}
+                            </button>
+                            <div className="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -107,6 +132,12 @@ export const VaultGrid: React.FC<Props> = ({ items, onNavigate, onDelete }) => {
                         {item.type === 'weblink' && (
                             <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow-sm border border-gray-100 dark:border-gray-700">
                                 <Globe size={10} className="text-cyan-500" />
+                            </div>
+                        )}
+
+                        {item.isFavorite && (
+                            <div className="absolute -top-1 -left-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow-sm border border-gray-100 dark:border-gray-700">
+                                <Star size={10} className="text-yellow-400 fill-current" />
                             </div>
                         )}
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Globe, Link as LinkIcon, User, Key, Lock } from 'lucide-react';
 
 interface CreateLinkModalProps {
@@ -25,8 +26,8 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
         setPassword('');
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+    return createPortal(
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
             <div className="bg-white dark:bg-monday-dark-surface w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-monday-dark-border">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-monday-dark-border bg-gray-50/50 dark:bg-monday-dark-surface/50">
@@ -50,7 +51,7 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Title</label>
                         <input
                             required
                             type="text"
@@ -62,7 +63,7 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">URL</label>
                         <div className="relative">
                             <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                             <input
@@ -81,7 +82,7 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
 
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username / Email</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Username / Email</label>
                                 <div className="relative">
                                     <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                     <input
@@ -95,7 +96,7 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password</label>
                                 <div className="relative">
                                     <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                     <input
@@ -127,6 +128,7 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ isOpen, onClos
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
