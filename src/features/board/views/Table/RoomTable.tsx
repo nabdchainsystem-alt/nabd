@@ -83,9 +83,8 @@ const DEFAULT_COLUMNS: Column[] = [
     { id: 'people', label: 'People', type: 'people', width: 120, minWidth: 100, resizable: true },
     { id: 'status', label: 'Status', type: 'status', width: 140, minWidth: 100, resizable: true },
     { id: 'priority', label: 'Priority', type: 'priority', width: 140, minWidth: 100, resizable: true },
-    { id: 'timeline', label: 'Timeline', type: 'timeline', width: 180, minWidth: 150, resizable: true },
     { id: 'date', label: 'Date', type: 'date', width: 140, minWidth: 120, resizable: true },
-    { id: 'files', label: 'Files', type: 'files', width: 100, minWidth: 80, resizable: true },
+    { id: 'dueDate', label: 'Due Date', type: 'date', width: 140, minWidth: 120, resizable: true },
 ];
 
 export interface Row {
@@ -292,8 +291,8 @@ const SelectPicker: React.FC<{
 // --- Main RoomTable Component ---
 const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, columns: externalColumns, onUpdateTasks, renderCustomActions, onNavigate }) => {
     // Keys for persistence
-    const storageKeyColumns = `room-table-columns-v4-${roomId}-${viewId}`;
-    const storageKeyRows = `room-table-rows-v4-${roomId}-${viewId}`;
+    const storageKeyColumns = `room-table-columns-v7-${roomId}-${viewId}`;
+    const storageKeyRows = `room-table-rows-v7-${roomId}-${viewId}`;
 
     // --- DnD Sensors ---
     const sensors = useSensors(
@@ -1619,9 +1618,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
               h-full flex items-center text-xs font-sans font-medium text-stone-500 dark:text-stone-400 shrink-0
               ${col.id === 'select' ? 'justify-center px-0' : 'px-3'}
               ${index !== columns.length - 1 ? 'border-e border-stone-200/50 dark:border-stone-800' : ''}
-              hover:bg-stone-100 dark:hover:bg-stone-800 ${col.id === 'priority' ? 'cursor-pointer' : 'cursor-default'} transition-colors select-none relative group
+              hover:bg-stone-100 dark:hover:bg-stone-800 ${col.id !== 'select' ? 'cursor-pointer' : 'cursor-default'} transition-colors select-none relative group
             `}
-                                onClick={() => col.id === 'priority' ? handleSort(col.id) : undefined}
+                                onClick={() => col.id !== 'select' ? handleSort(col.id) : undefined}
                             >
                                 {col.id === 'select' && (
                                     <div className="w-3.5 h-3.5 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-800 hover:border-stone-400 transition-colors" />
@@ -1629,9 +1628,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                 {col.id !== 'select' && (
                                     <div className="flex items-center justify-between w-full px-2">
                                         <span className="truncate flex-1">{col.label}</span>
-                                        {col.id === 'priority' && (
-                                            <ArrowUpDown size={12} className={`${sortConfig?.columnId === col.id ? 'text-stone-600 dark:text-stone-200' : 'text-stone-400'}`} />
-                                        )}
                                         {!['name', 'select'].includes(col.id) && (
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
