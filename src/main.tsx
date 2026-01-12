@@ -19,10 +19,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <AuthProvider>
         <App />
-      </ErrorBoundary>
-    </AuthProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
