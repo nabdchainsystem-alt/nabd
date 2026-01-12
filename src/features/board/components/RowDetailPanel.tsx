@@ -1,0 +1,146 @@
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X, MessageSquare, FileText, Activity, Bold, Italic, Underline, Strikethrough, List, Link, Image, Smile, AtSign } from 'lucide-react';
+
+interface RowDetailPanelProps {
+    isOpen: boolean;
+    onClose: () => void;
+    row: any; // Using any for flexibility, expects { id, name, ... }
+}
+
+export const RowDetailPanel: React.FC<RowDetailPanelProps> = ({ isOpen, onClose, row }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const [activeTab, setActiveTab] = useState<'updates' | 'files' | 'activity'>('updates');
+    const [updateText, setUpdateText] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsVisible(true);
+        } else {
+            const timer = setTimeout(() => setIsVisible(false), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
+
+    if (!isVisible && !isOpen) return null;
+
+    const content = (
+        <div className="fixed inset-0 z-[999999] overflow-hidden">
+            {/* Backdrop */}
+            <div
+                className={`absolute inset-0 bg-stone-900/20 backdrop-blur-[1px] transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}
+                onClick={onClose}
+            />
+
+            {/* Panel */}
+            <div
+                className={`
+                    absolute top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-[#1a1c22] shadow-2xl border-l border-stone-200 dark:border-stone-800
+                    transform transition-transform duration-300 ease-in-out flex flex-col
+                    ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+                `}
+            >
+                {/* Header */}
+                <div className="flex-none px-6 py-4 border-b border-stone-100 dark:border-stone-800 flex items-start justify-between gap-4 bg-white dark:bg-[#1a1c22]">
+                    <div className="flex-1 mt-1">
+                        <h2 className="text-2xl font-semibold text-stone-800 dark:text-stone-100 leading-snug break-words">
+                            {row?.name || 'Untitled Item'}
+                        </h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex-none px-6 border-b border-stone-100 dark:border-stone-800 flex gap-6 bg-white dark:bg-[#1a1c22]">
+                    {[
+                        { id: 'updates', label: 'Updates', icon: MessageSquare },
+                        { id: 'files', label: 'Files', icon: FileText },
+                        { id: 'activity', label: 'Activity Log', icon: Activity },
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`
+                                py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors
+                                ${activeTab === tab.id
+                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200'}
+                            `}
+                        >
+                            <tab.icon size={16} />
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto bg-stone-50/50 dark:bg-[#111216] p-6">
+                    {activeTab === 'updates' && (
+                        <div className="space-y-8">
+                            {/* Write Update Box */}
+                            <div className="bg-white dark:bg-[#1a1c22] rounded-xl border border-stone-200 dark:border-stone-800 shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+                                <div className="p-4">
+                                    <textarea
+                                        value={updateText}
+                                        onChange={(e) => setUpdateText(e.target.value)}
+                                        placeholder="Write an update..."
+                                        className="w-full min-h-[100px] bg-transparent border-none outline-none text-stone-700 dark:text-stone-200 placeholder:text-stone-400 resize-none"
+                                    />
+                                </div>
+
+                                {/* Fake Toolbar */}
+                                <div className="px-3 py-2 border-t border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/50 flex items-center justify-between">
+                                    <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400">
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><Bold size={14} /></button>
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><Italic size={14} /></button>
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><Underline size={14} /></button>
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><Strikethrough size={14} /></button>
+                                        <div className="w-px h-4 bg-stone-300 dark:bg-stone-700 mx-1" />
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><List size={14} /></button>
+                                        <div className="w-px h-4 bg-stone-300 dark:bg-stone-700 mx-1" />
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><Link size={14} /></button>
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><Image size={14} /></button>
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><AtSign size={14} /></button>
+                                        <button className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded"><Smile size={14} /></button>
+                                    </div>
+                                    <button
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+                                        onClick={() => setUpdateText('')}
+                                    >
+                                        Update
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Empty State */}
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                                <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mb-4">
+                                    <img src="https://cdn.monday.com/images/pulse-page-empty-state.svg" alt="" className="w-16 h-16 opacity-50 grayscale" />
+                                    {/* Fallback SVG since specific URL might break */}
+                                    <MessageSquare size={40} className="text-blue-300 dark:text-blue-600/50" />
+                                </div>
+                                <h3 className="text-lg font-medium text-stone-900 dark:text-stone-100">No updates yet</h3>
+                                <p className="text-sm text-stone-500 dark:text-stone-400 mt-1 max-w-xs">
+                                    Share progress, mention a teammate, or upload a file to get things moving.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab !== 'updates' && (
+                        <div className="flex items-center justify-center h-full text-stone-400 text-sm">
+                            Coming soon
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+
+    return createPortal(content, document.body);
+};

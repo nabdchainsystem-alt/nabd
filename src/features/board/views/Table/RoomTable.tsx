@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import { ChartBuilderModal } from '../../components/chart-builder/ChartBuilderModal';
 import { AIReportModal } from '../../components/AIReportModal';
+import { DeleteConfirmationModal } from '../../components/DeleteConfirmationModal';
 import { SharedDatePicker } from '../../../../components/ui/SharedDatePicker';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import { PeoplePicker } from '../../components/cells/PeoplePicker';
@@ -34,8 +35,10 @@ import {
     UploadCloud,
     ExternalLink,
     CalendarRange,
-    MoreHorizontal
+    MoreHorizontal,
+    Maximize2
 } from 'lucide-react';
+import { RowDetailPanel } from '../../components/RowDetailPanel';
 import {
     MagnifyingGlass,
     UserCircle,
@@ -77,6 +80,7 @@ import { useReminders } from '../../../reminders/reminderStore';
 import { ReminderPanel } from '../../../reminders/ReminderPanel';
 import { ChartBuilderConfig } from '../../components/chart-builder/types';
 import { AIChartCard } from '../../components/AIChartCard';
+import { TextCellContextMenu } from './components/TextCellContextMenu';
 
 // --- Types ---
 export interface Column {
@@ -103,6 +107,7 @@ const DEFAULT_COLUMNS: Column[] = [
 export interface Row {
     id: string;
     groupId?: string;
+    _styles?: Record<string, { color?: string }>;
     [key: string]: any;
 }
 
@@ -249,43 +254,101 @@ const PriorityPicker: React.FC<{
     onSelect: (p: PriorityLevel | null) => void;
     onClose: () => void;
     current: string | null;
-}> = ({ onSelect, onClose, current }) => {
+    triggerRect?: DOMRect;
+}> = ({ onSelect, onClose, current, triggerRect }) => {
     const normalizedCurrent = formatPriorityLabel(current);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
+        if (triggerRect) {
+            const menuHeight = 250;
+            const spaceBelow = window.innerHeight - triggerRect.bottom;
+            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
 
-    return (
-        <div
-            onClick={(e) => e.stopPropagation()}
-            className="fixed z-[9999] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 min-w-[180px]"
-        >
-            <div className="px-3 py-2 bg-stone-50 dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
-                <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Priority</span>
+            if (openUp) {
+                return {
+                    bottom: window.innerHeight - triggerRect.top - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: triggerRect.top - 10
+                };
+            } else {
+                return {
+                    top: triggerRect.bottom - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: window.innerHeight - triggerRect.bottom - 10
+                };
+            }
+        }
+        return { display: 'none' };
+    });
+
+    useLayoutEffect(() => {
+        if (triggerRect) {
+            const menuHeight = 250;
+            const spaceBelow = window.innerHeight - triggerRect.bottom;
+            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
+
+            if (openUp) {
+                setPositionStyle({
+                    bottom: window.innerHeight - triggerRect.top - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: triggerRect.top - 10
+                });
+            } else {
+                setPositionStyle({
+                    top: triggerRect.bottom - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: window.innerHeight - triggerRect.bottom - 10
+                });
+            }
+        }
+    }, [triggerRect]);
+
+    const content = (
+        <>
+            {/* Backdrop */}
+            <div className="fixed inset-0 z-[99]" onClick={onClose} />
+            <div
+                ref={menuRef}
+                onClick={(e) => e.stopPropagation()}
+                className="fixed z-[9999] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 min-w-[180px]"
+                style={positionStyle}
+            >
+                <div className="px-3 py-2 bg-stone-50 dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
+                    <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Priority</span>
+                </div>
+                <div className="p-1">
+                    {PRIORITY_LEVELS.map((label) => {
+                        const colors = getPriorityClasses(label);
+                        const isActive = normalizedCurrent === label;
+                        return (
+                            <button
+                                key={label}
+                                onClick={() => { onSelect(label); onClose(); }}
+                                className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${isActive ? 'bg-stone-50 dark:bg-stone-800/50' : ''}`}
+                            >
+                                <Flag size={16} className={colors.text} fill="currentColor" fillOpacity={isActive ? 1 : 0.3} />
+                                <span className="text-stone-700 dark:text-stone-200">{label}</span>
+                            </button>
+                        );
+                    })}
+                    <div className="h-px bg-stone-100 dark:bg-stone-800 my-1"></div>
+                    <button
+                        onClick={() => { onSelect(null); onClose(); }}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                    >
+                        <Flag size={16} className="text-stone-400" />
+                        <span className="text-stone-700 dark:text-stone-200">No priority</span>
+                    </button>
+                </div>
             </div>
-            <div className="p-1">
-                {PRIORITY_LEVELS.map((label) => {
-                    const colors = getPriorityClasses(label);
-                    const isActive = normalizedCurrent === label;
-                    return (
-                        <button
-                            key={label}
-                            onClick={() => { onSelect(label); onClose(); }}
-                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${isActive ? 'bg-stone-50 dark:bg-stone-800/50' : ''}`}
-                        >
-                            <Flag size={16} className={colors.text} fill="currentColor" fillOpacity={isActive ? 1 : 0.3} />
-                            <span className="text-stone-700 dark:text-stone-200">{label}</span>
-                        </button>
-                    );
-                })}
-                <div className="h-px bg-stone-100 dark:bg-stone-800 my-1"></div>
-                <button
-                    onClick={() => { onSelect(null); onClose(); }}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-                >
-                    <Flag size={16} className="text-stone-400" />
-                    <span className="text-stone-700 dark:text-stone-200">No priority</span>
-                </button>
-            </div>
-        </div>
+        </>
     );
+
+    return createPortal(content, document.body);
 };
 
 const StatusPicker: React.FC<{
@@ -297,19 +360,52 @@ const StatusPicker: React.FC<{
     const [customStatus, setCustomStatus] = useState('');
     const [statuses, setStatuses] = useState(['To Do', 'In Progress', 'Done']);
     const menuRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState<{ top: number; left: number; openUp: boolean }>({ top: 0, left: 0, openUp: false });
-
-    useEffect(() => {
+    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
         if (triggerRect) {
-            const menuHeight = 250; // approximate height
+            const menuHeight = 250;
             const spaceBelow = window.innerHeight - triggerRect.bottom;
             const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
 
-            setPosition({
-                top: openUp ? triggerRect.top - menuHeight : triggerRect.bottom + 4,
-                left: triggerRect.left,
-                openUp
-            });
+            if (openUp) {
+                return {
+                    bottom: window.innerHeight - triggerRect.top - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: triggerRect.top - 10
+                };
+            } else {
+                return {
+                    top: triggerRect.bottom - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: window.innerHeight - triggerRect.bottom - 10
+                };
+            }
+        }
+        return { display: 'none' };
+    });
+
+    useLayoutEffect(() => {
+        if (triggerRect) {
+            const menuHeight = 250;
+            const spaceBelow = window.innerHeight - triggerRect.bottom;
+            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
+
+            if (openUp) {
+                setPositionStyle({
+                    bottom: window.innerHeight - triggerRect.top - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: triggerRect.top - 10
+                });
+            } else {
+                setPositionStyle({
+                    top: triggerRect.bottom - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: window.innerHeight - triggerRect.bottom - 10
+                });
+            }
         }
     }, [triggerRect]);
 
@@ -331,7 +427,7 @@ const StatusPicker: React.FC<{
                 ref={menuRef}
                 onClick={(e) => e.stopPropagation()}
                 className="fixed w-56 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl z-[100] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
-                style={{ top: position.top, left: position.left }}
+                style={positionStyle}
             >
                 <div className="px-3 py-2 bg-stone-50 dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
                     <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Status</span>
@@ -373,19 +469,52 @@ const SelectPicker: React.FC<{
 }> = ({ onSelect, onClose, current, options, triggerRect }) => {
     const [search, setSearch] = useState('');
     const menuRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState<{ top: number; left: number; openUp: boolean }>({ top: 0, left: 0, openUp: false });
-
-    useEffect(() => {
+    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
         if (triggerRect) {
             const menuHeight = 320; // approximate height with search and options
             const spaceBelow = window.innerHeight - triggerRect.bottom;
             const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
 
-            setPosition({
-                top: openUp ? triggerRect.top - menuHeight : triggerRect.bottom + 4,
-                left: triggerRect.left,
-                openUp
-            });
+            if (openUp) {
+                return {
+                    bottom: window.innerHeight - triggerRect.top - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: triggerRect.top - 10
+                };
+            } else {
+                return {
+                    top: triggerRect.bottom - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: window.innerHeight - triggerRect.bottom - 10
+                };
+            }
+        }
+        return { display: 'none' };
+    });
+
+    useLayoutEffect(() => {
+        if (triggerRect) {
+            const menuHeight = 320; // approximate height with search and options
+            const spaceBelow = window.innerHeight - triggerRect.bottom;
+            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
+
+            if (openUp) {
+                setPositionStyle({
+                    bottom: window.innerHeight - triggerRect.top - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: triggerRect.top - 10
+                });
+            } else {
+                setPositionStyle({
+                    top: triggerRect.bottom - 4,
+                    left: triggerRect.left,
+                    position: 'fixed',
+                    maxHeight: window.innerHeight - triggerRect.bottom - 10
+                });
+            }
         }
     }, [triggerRect]);
 
@@ -402,7 +531,7 @@ const SelectPicker: React.FC<{
                 ref={menuRef}
                 onClick={(e) => e.stopPropagation()}
                 className="fixed w-[220px] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl z-[100] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 p-2 gap-2"
-                style={{ top: position.top, left: position.left }}
+                style={positionStyle}
             >
                 {/* Search Input */}
                 <input
@@ -650,7 +779,11 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const [sortConfig, setSortConfig] = useState<{ columnId: string; direction: 'asc' | 'desc' } | null>(null);
 
     const [newTaskName, setNewTaskName] = useState('');
-    const [activeCell, setActiveCell] = useState<{ rowId: string, colId: string, trigger?: HTMLElement } | null>(null);
+
+    const [activeCell, setActiveCell] = useState<{ rowId: string, colId: string, trigger?: HTMLElement, rect?: DOMRect } | null>(null);
+    const [activeTextMenu, setActiveTextMenu] = useState<{ rowId: string; colId: string; position: { x: number; y: number } } | null>(null);
+    const [deleteConfig, setDeleteConfig] = useState<{ isOpen: boolean; title: string; description?: string; onConfirm: () => void } | null>(null);
+    const [activeRowDetail, setActiveRowDetail] = useState<Row | null>(null);
     const [activeColumnMenu, setActiveColumnMenu] = useState<{ rect: DOMRect } | null>(null);
     const [isChartModalOpen, setIsChartModalOpen] = useState(false);
     const [isAIReportModalOpen, setIsAIReportModalOpen] = useState(false);
@@ -772,17 +905,70 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             }
         });
 
-        // Clear sorting so new item appears at bottom (natural order)
+        // Clear sorting so new item appears at top (natural order)
         setSortRules([]);
         setSortConfig(null);
 
         setTableGroups(prev => prev.map(g =>
-            g.id === groupId ? { ...g, rows: [...g.rows, newRow] } : g
+            g.id === groupId ? { ...g, rows: [newRow, ...g.rows] } : g
         ));
     }, [columns]);
 
+    // --- Creation Row Logic ---
+    const CREATION_ROW_ID = 'creation-row-temp-id';
+    const [creationRow, setCreationRow] = useState<Partial<Row>>({});
+
+    const handleUpdateCreationRow = (updates: Partial<Row>) => {
+        setCreationRow(prev => ({ ...prev, ...updates }));
+    };
+
+    const handleCommitCreationRow = (groupId: string) => {
+        if (!creationRow.name && !Object.keys(creationRow).length) return; // Prevent empty commits if strictly empty
+
+        // Use the existing add logic, but merge our creationRow data
+        const primaryCol = columns.find(c => c.id === 'name') || columns.find(c => c.id !== 'select') || { id: 'name' };
+        const nameToUse = creationRow[primaryCol.id] || 'New Item';
+
+        // We need to pass the FULL creation row data, not just the name. 
+        // handleAddRowToGroup currently takes (groupId, rowName). We should update it or manually do it here.
+        // Let's refactor the adding logic slightly or just use the logic inline here to be safe and support all fields.
+
+        const newRow: Row = {
+            id: Date.now().toString(),
+            groupId: groupId,
+            status: 'To Do',
+            dueDate: null,
+            date: new Date().toISOString(),
+            priority: null,
+            ...creationRow, // Spread valid fields
+            [primaryCol.id]: nameToUse, // Ensure name is set
+        };
+
+        // Initialize missing columns
+        columns.forEach(col => {
+            if (col.id !== 'select' && !newRow.hasOwnProperty(col.id)) {
+                newRow[col.id] = null;
+            }
+        });
+
+        setSortRules([]);
+        setSortConfig(null);
+
+        setTableGroups(prev => prev.map(g =>
+            g.id === groupId ? { ...g, rows: [newRow, ...g.rows] } : g
+        ));
+
+        // Reset creation row
+        setCreationRow({});
+    };
+
     // Handler to update a row within groups
     const handleUpdateRowInGroup = useCallback((rowId: string, updates: Partial<Row>) => {
+        if (rowId === CREATION_ROW_ID) {
+            handleUpdateCreationRow(updates);
+            return;
+        }
+
         setTableGroups(prev => prev.map(g => ({
             ...g,
             rows: g.rows.map(r => r.id === rowId ? { ...r, ...updates } : r)
@@ -1232,6 +1418,11 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
 
     const handleUpdateRow = (id: string, updates: Partial<Row>) => {
+        if (id === CREATION_ROW_ID) {
+            handleUpdateCreationRow(updates);
+            return;
+        }
+
         // Clear any pending debounced updates to ensure we send the latest state immediately
         if (updateTimeoutRef.current) {
             clearTimeout(updateTimeoutRef.current);
@@ -1277,6 +1468,11 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleTextChange = (id: string, colId: string, value: string) => {
+        if (id === CREATION_ROW_ID) {
+            handleUpdateCreationRow({ [colId]: value });
+            return;
+        }
+
         // Update the row in the correct group
         setTableGroups(prevGroups => {
             return prevGroups.map(group => {
@@ -1348,11 +1544,13 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 });
 
                 // Delay setting activeCell to allow scroll animation to complete
+                // Delay setting activeCell to allow scroll animation to complete
                 setTimeout(() => {
-                    setActiveCell({ rowId, colId, trigger });
+                    const newRect = trigger.getBoundingClientRect(); // re-measure after scroll
+                    setActiveCell({ rowId, colId, trigger, rect: newRect });
                 }, 150);
             } else {
-                setActiveCell({ rowId, colId, trigger });
+                setActiveCell({ rowId, colId, trigger, rect: triggerRect });
             }
         }
     };
@@ -1706,6 +1904,21 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     }, [onMouseMove]);
 
     // --- Rendering Helpers ---
+    const handleTextColorChange = (rowId: string, colId: string, color: string) => {
+        const row = rows.find(r => r.id === rowId);
+        if (!row) return;
+
+        const currentStyles = row._styles || {};
+        const colStyles = currentStyles[colId] || {};
+
+        const newStyles = {
+            ...currentStyles,
+            [colId]: { ...colStyles, color }
+        };
+
+        handleUpdateRowInGroup(rowId, { _styles: newStyles });
+    };
+
     const renderCellContent = (col: Column, row: Row) => {
         const value = row[col.id];
 
@@ -1730,7 +1943,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             current={value}
                             onSelect={(s) => handleUpdateRow(row.id, { [col.id]: s })}
                             onClose={() => setActiveCell(null)}
-                            triggerRect={activeCell.trigger.getBoundingClientRect()}
+                            triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
                         />
                     )}
                 </div>
@@ -1824,7 +2037,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             current={value}
                             onSelect={(s) => handleUpdateRow(row.id, { [col.id]: s })}
                             onClose={() => setActiveCell(null)}
-                            triggerRect={activeCell.trigger.getBoundingClientRect()}
+                            triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
                         />
                     )}
                 </div>
@@ -1852,14 +2065,12 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         )}
                     </button>
                     {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
-                        <div className="fixed z-[9999]" style={{ top: activeCell.trigger.getBoundingClientRect().bottom + 4, left: activeCell.trigger.getBoundingClientRect().left }}>
-                            <PeoplePicker
-                                current={value}
-                                onSelect={(person) => handleUpdateRow(row.id, { [col.id]: person })}
-                                onClose={() => setActiveCell(null)}
-                            />
-                            <div className="fixed inset-0 -z-10" onClick={() => setActiveCell(null)} />
-                        </div>
+                        <PeoplePicker
+                            current={value}
+                            onSelect={(person) => handleUpdateRow(row.id, { [col.id]: person })}
+                            onClose={() => setActiveCell(null)}
+                            triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
+                        />
                     )}
                 </div>
             );
@@ -2204,11 +2415,12 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             <span className="text-xs text-stone-400">Set Priority</span>
                         )}
                     </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && (
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
                         <PriorityPicker
                             current={normalized}
                             onSelect={(p) => handleUpdateRow(row.id, { [col.id]: p || null })}
                             onClose={() => setActiveCell(null)}
+                            triggerRect={activeCell.trigger.getBoundingClientRect()}
                         />
                     )}
                 </div>
@@ -2217,14 +2429,33 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
         if (col.id === 'name') {
             return (
-                <div className="h-full flex items-center px-3 overflow-hidden gap-1.5 w-full">
+                <div className="group/name relative h-full flex items-center px-3 overflow-hidden gap-1.5 w-full">
                     {row.priority && <span className={`shrink-0 w-2 h-2 rounded-full mt-0.5 ${getPriorityDot(row.priority)}`} />}
                     <input
                         type="text"
                         value={value || ''}
                         onChange={(e) => handleTextChange(row.id, col.id, e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && row.id === CREATION_ROW_ID) {
+                                handleCommitCreationRow(row.groupId!);
+                            }
+                        }}
+                        placeholder={row.id === CREATION_ROW_ID ? "Start typing..." : ""}
                         className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm font-sans text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:bg-stone-50 dark:focus:bg-stone-800/50 transition-colors py-1"
                     />
+
+                    {/* Open Side Panel Button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveRowDetail(row);
+                        }}
+                        className="absolute right-2 opacity-0 group-hover/name:opacity-100 translate-x-2 group-hover/name:translate-x-0 transition-all duration-200 p-1 bg-white dark:bg-stone-800 shadow-sm border border-stone-200 dark:border-stone-700 rounded text-stone-500 hover:text-blue-600 z-10 flex items-center justify-center hover:scale-105"
+                        title="Open"
+                    >
+                        <Maximize2 size={14} />
+                    </button>
+
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -2245,12 +2476,23 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         }
 
         // Default Text Cell
+        const cellStyle = row._styles?.[col.id]?.color ? { color: row._styles[col.id].color } : undefined;
+
         return (
             <div className="h-full w-full">
                 <input
                     type="text"
                     value={value || ''}
                     onChange={(e) => handleTextChange(row.id, col.id, e.target.value)}
+                    onContextMenu={(e) => {
+                        e.preventDefault();
+                        setActiveTextMenu({
+                            rowId: row.id,
+                            colId: col.id,
+                            position: { x: e.clientX, y: e.clientY }
+                        });
+                    }}
+                    style={cellStyle}
                     className="w-full h-full bg-transparent border-none outline-none px-3 text-sm text-stone-700 dark:text-stone-300 placeholder:text-stone-400 focus:bg-stone-50 dark:focus:bg-stone-800/50 transition-colors"
                 />
             </div>
@@ -2824,26 +3066,31 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                 disabled={checkedRows.size === 0}
                                 onClick={() => {
                                     if (checkedRows.size === 0) return;
-                                    if (confirm(`Delete ${checkedRows.size} items?`)) {
-                                        const rowsToDelete = rows.filter(r => checkedRows.has(r.id));
+                                    setDeleteConfig({
+                                        isOpen: true,
+                                        title: `Delete ${checkedRows.size} items?`,
+                                        description: "This action cannot be undone.",
+                                        onConfirm: () => {
+                                            const rowsToDelete = rows.filter(r => checkedRows.has(r.id));
 
-                                        // Optimistic local update
-                                        setRows(prev => prev.filter(r => !checkedRows.has(r.id)));
+                                            // Optimistic local update
+                                            setRows(prev => prev.filter(r => !checkedRows.has(r.id)));
 
-                                        if (onDeleteTask) {
-                                            // Explicit deletion via hook
-                                            rowsToDelete.forEach(row => {
-                                                const groupId = row.groupId || row.status || 'To Do';
-                                                onDeleteTask(groupId, row.id);
-                                            });
-                                        } else {
-                                            // Fallback to sync update
-                                            const newRows = rows.filter(r => !checkedRows.has(r.id));
-                                            onUpdateTasks?.(newRows);
+                                            if (onDeleteTask) {
+                                                // Explicit deletion via hook
+                                                rowsToDelete.forEach(row => {
+                                                    const groupId = row.groupId || row.status || 'To Do';
+                                                    onDeleteTask(groupId, row.id);
+                                                });
+                                            } else {
+                                                // Fallback to sync update
+                                                const newRows = rows.filter(r => !checkedRows.has(r.id));
+                                                onUpdateTasks?.(newRows);
+                                            }
+
+                                            setCheckedRows(new Set());
                                         }
-
-                                        setCheckedRows(new Set());
-                                    }
+                                    });
                                 }}
                                 className={`flex items-center gap-2 transition-colors group ${checkedRows.size > 0
                                     ? 'cursor-pointer text-stone-600 dark:text-stone-300 hover:text-red-600'
@@ -2947,9 +3194,12 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if (confirm(`Delete "${group.name}" and all its items?`)) {
-                                                            handleDeleteGroup(group.id);
-                                                        }
+                                                        setDeleteConfig({
+                                                            isOpen: true,
+                                                            title: `Delete "${group.name}" and all its items?`,
+                                                            description: "This will permanently remove the group and all tasks within it.",
+                                                            onConfirm: () => handleDeleteGroup(group.id)
+                                                        });
                                                         const menu = e.currentTarget.parentElement;
                                                         if (menu) menu.classList.add('hidden');
                                                     }}
@@ -3011,7 +3261,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                     )}
                                                                     <div
                                                                         className="w-1 h-3/4 mx-1 cursor-col-resize hover:bg-stone-300 dark:hover:bg-stone-600 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2"
-                                                                        onMouseDown={(e) => startResize(e, col.id, col.width)}
+                                                                        onPointerDown={(e) => e.stopPropagation()}
+                                                                        onMouseDown={(e) => { e.stopPropagation(); startResize(e, col.id, col.width); }}
                                                                         onClick={(e) => e.stopPropagation()}
                                                                     />
                                                                 </div>
@@ -3066,6 +3317,53 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                             onDragStart={handleDragStart}
                                             onDragEnd={handleDragEnd}
                                         >
+                                            {/* Creation Row (Draft) at Top */}
+                                            {/* We manually render a row-like structure for the creation row */}
+                                            <div className="group flex items-center h-10 border-b border-indigo-100 dark:border-indigo-900/30 bg-indigo-50/30 dark:bg-indigo-900/10 min-w-max relative z-20">
+                                                {/* Simulate Row Data for Helpers */}
+                                                {(() => {
+                                                    const creationRowData: Row = {
+                                                        id: CREATION_ROW_ID,
+                                                        groupId: group.id,
+                                                        status: 'To Do',
+                                                        dueDate: null,
+                                                        date: new Date().toISOString(),
+                                                        priority: null,
+                                                        ...creationRow,
+                                                    } as Row; // Cast as partial row is handled
+
+                                                    return columns.map((col, index) => {
+                                                        const isSticky = index === 0 || index === 1;
+                                                        const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
+
+                                                        // Intercept rendering to use creation handlers
+                                                        // We can reuse renderCellContent but we need to ensure it uses the creation handlers
+                                                        // Actually, standard renderCellContent uses `handleUpdateRow` which calls `handleUpdateRowInGroup`.
+                                                        // We need `handleUpdateRow` to route to `handleUpdateCreationRow` if id is CREATION_ROW_ID.
+
+
+                                                        return (
+                                                            <div
+                                                                key={col.id}
+                                                                style={{
+                                                                    width: col.width,
+                                                                    ...(isSticky && { left: leftPos, position: 'sticky' })
+                                                                }}
+                                                                className={`h-full border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-indigo-50/30 dark:bg-[#1a1c22]' : ''} ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
+                                                            >
+                                                                {col.id === 'select' ? (
+                                                                    <div className="w-full h-full flex items-center justify-center px-2">
+                                                                        <Plus size={14} className="text-indigo-400" />
+                                                                    </div>
+                                                                ) : (
+                                                                    renderCellContent(col, creationRowData)
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
+
                                             <SortableContext items={group.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
                                                 {group.rows.map((row) => (
                                                     <SortableRow
@@ -3098,34 +3396,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                 document.body
                                             )}
                                         </DndContext>
-
-                                        {/* Input Row for this group */}
-                                        <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors focus-within:bg-stone-50 dark:focus-within:bg-stone-800/50 min-w-max bg-white dark:bg-stone-900">
-                                            <div style={{ width: columns[0].width, left: 0, position: 'sticky', transform: 'translateZ(0)' }} className="h-full flex items-center justify-center border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 z-10 bg-white dark:bg-stone-900">
-                                                <Plus size={14} className="text-stone-300 dark:text-stone-600" />
-                                            </div>
-                                            <div style={{ width: columns[1].width, left: columns[0].width, position: 'sticky', transform: 'translateZ(0)' }} className="h-full flex items-center px-3 border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 z-10 bg-white dark:bg-stone-900 after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Start typing..."
-                                                    className="w-full bg-transparent border-none outline-none text-sm font-serif placeholder:text-stone-400 text-stone-800 dark:text-stone-200 p-0"
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            const input = e.currentTarget;
-                                                            const value = input.value.trim();
-                                                            if (value) {
-                                                                handleAddRowToGroup(group.id, value);
-                                                                input.value = '';
-                                                            }
-                                                        }
-                                                    }}
-                                                />
-                                            </div>
-                                            {/* Empty cells for Input Row */}
-                                            {columns.slice(2).map(col => (
-                                                <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800" />
-                                            ))}
-                                        </div>
                                     </>
                                 )}
                             </div>
@@ -3155,29 +3425,31 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     <div className="h-32 shrink-0" />
                 </div>
 
-                {activeReminderTarget && (
-                    <PortalPopup
-                        triggerRef={{ current: { getBoundingClientRect: () => activeReminderTarget.rect } } as any}
-                        onClose={() => setActiveReminderTarget(null)}
-                        side="bottom"
-                    >
-                        <ReminderPanel
-                            itemId={activeReminderTarget.rowId}
-                            itemTitle={activeReminderRow?.name}
-                            reminders={remindersByItem[activeReminderTarget.rowId] || []}
-                            onAdd={(remindAt, kind, label) => addReminder({
-                                itemId: activeReminderTarget.rowId,
-                                boardId: roomId,
-                                itemTitle: activeReminderRow?.name,
-                                remindAt,
-                                kind,
-                                relativeLabel: label
-                            })}
-                            onDelete={deleteReminder}
-                            onUpdateStatus={(id, status) => updateReminder(id, { status })}
-                        />
-                    </PortalPopup>
-                )}
+                {
+                    activeReminderTarget && (
+                        <PortalPopup
+                            triggerRef={{ current: { getBoundingClientRect: () => activeReminderTarget.rect } } as any}
+                            onClose={() => setActiveReminderTarget(null)}
+                            side="bottom"
+                        >
+                            <ReminderPanel
+                                itemId={activeReminderTarget.rowId}
+                                itemTitle={activeReminderRow?.name}
+                                reminders={remindersByItem[activeReminderTarget.rowId] || []}
+                                onAdd={(remindAt, kind, label) => addReminder({
+                                    itemId: activeReminderTarget.rowId,
+                                    boardId: roomId,
+                                    itemTitle: activeReminderRow?.name,
+                                    remindAt,
+                                    kind,
+                                    relativeLabel: label
+                                })}
+                                onDelete={deleteReminder}
+                                onUpdateStatus={(id, status) => updateReminder(id, { status })}
+                            />
+                        </PortalPopup>
+                    )
+                }
 
                 <ChartBuilderModal
                     isOpen={isChartModalOpen}
@@ -3204,13 +3476,40 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     file={activeUploadFile}
                     onSuccess={handleSaveVaultSuccess}
                 />
+
+                {deleteConfig && (
+                    <DeleteConfirmationModal
+                        isOpen={deleteConfig.isOpen}
+                        onClose={() => setDeleteConfig(null)}
+                        onConfirm={deleteConfig.onConfirm}
+                        title={deleteConfig.title}
+                        description={deleteConfig.description}
+                    />
+                )}
+
+                <RowDetailPanel
+                    isOpen={!!activeRowDetail}
+                    onClose={() => setActiveRowDetail(null)}
+                    row={activeRowDetail}
+                />
                 <input
                     type="file"
                     ref={hiddenFileInputRef}
                     className="hidden"
                     onChange={handleHiddenFileChange}
                 />
-            </div>
+
+                {
+                    activeTextMenu && (
+                        <TextCellContextMenu
+                            onClose={() => setActiveTextMenu(null)}
+                            onColorSelect={(color) => handleTextColorChange(activeTextMenu.rowId, activeTextMenu.colId, color)}
+                            currentColor={rows.find(r => r.id === activeTextMenu.rowId)?._styles?.[activeTextMenu.colId]?.color}
+                            position={activeTextMenu.position}
+                        />
+                    )
+                }
+            </div >
         </div >
     );
 };
