@@ -36,7 +36,9 @@ import {
     ExternalLink,
     CalendarRange,
     MoreHorizontal,
-    Maximize2
+    Maximize2,
+    XCircle,
+    AlertCircle
 } from 'lucide-react';
 import { RowDetailPanel } from '../../components/RowDetailPanel';
 import {
@@ -245,6 +247,8 @@ const getStatusIcon = (status: string) => {
         case 'Done': return <CheckCircle2 size={14} className="text-emerald-600" />;
         case 'In Progress': return <Clock size={14} className="text-amber-600" />;
         case 'To Do': return <Circle size={14} className="text-stone-400" />;
+        case 'Rejected': return <XCircle size={14} className="text-red-500" />;
+        case 'Stuck': return <AlertCircle size={14} className="text-orange-500" />;
         default: return <CircleDashed size={14} className="text-stone-400" />;
     }
 };
@@ -358,7 +362,7 @@ const StatusPicker: React.FC<{
     triggerRect?: DOMRect;
 }> = ({ onSelect, onClose, current, triggerRect }) => {
     const [customStatus, setCustomStatus] = useState('');
-    const [statuses, setStatuses] = useState(['To Do', 'In Progress', 'Done']);
+    const [statuses, setStatuses] = useState(['To Do', 'In Progress', 'Done', 'Stuck', 'Rejected']);
     const menuRef = useRef<HTMLDivElement>(null);
     const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
         if (triggerRect) {
@@ -784,6 +788,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const [activeTextMenu, setActiveTextMenu] = useState<{ rowId: string; colId: string; position: { x: number; y: number } } | null>(null);
     const [deleteConfig, setDeleteConfig] = useState<{ isOpen: boolean; title: string; description?: string; onConfirm: () => void } | null>(null);
     const [activeRowDetail, setActiveRowDetail] = useState<Row | null>(null);
+    const [activeKpiFilter, setActiveKpiFilter] = useState<{ type: 'status' | 'priority', value: string } | null>(null);
     const [activeColumnMenu, setActiveColumnMenu] = useState<{ rect: DOMRect } | null>(null);
     const [isChartModalOpen, setIsChartModalOpen] = useState(false);
     const [isAIReportModalOpen, setIsAIReportModalOpen] = useState(false);
@@ -1143,6 +1148,16 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             if (!matchesPerson) return false;
         }
 
+        if (activeKpiFilter) {
+            if (activeKpiFilter.type === 'status') {
+                const rowStatus = row.status || 'To Do';
+                if (rowStatus !== activeKpiFilter.value) return false;
+            } else if (activeKpiFilter.type === 'priority') {
+                const rowPriority = formatPriorityLabel(row.priority) || 'No Priority';
+                if (rowPriority !== activeKpiFilter.value) return false;
+            }
+        }
+
         // Apply advanced filters
         if (filters.length > 0) {
             const matchesFilters = filters.every(filter => {
@@ -1180,11 +1195,11 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         }
 
         return true;
-    }, [searchQuery, personFilter, filters]);
+    }, [searchQuery, personFilter, filters, activeKpiFilter]);
 
     // Filtered table groups - applies filters to each group's rows
     const filteredTableGroups = useMemo(() => {
-        const hasActiveFilters = searchQuery.trim() || personFilter || filters.length > 0;
+        const hasActiveFilters = searchQuery.trim() || personFilter || filters.length > 0 || activeKpiFilter;
 
         if (!hasActiveFilters && sortRules.length === 0) {
             return tableGroups;
@@ -2450,7 +2465,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             e.stopPropagation();
                             setActiveRowDetail(row);
                         }}
-                        className="absolute right-2 opacity-0 group-hover/name:opacity-100 translate-x-2 group-hover/name:translate-x-0 transition-all duration-200 p-1 bg-white dark:bg-stone-800 shadow-sm border border-stone-200 dark:border-stone-700 rounded text-stone-500 hover:text-blue-600 z-10 flex items-center justify-center hover:scale-105"
+                        className="absolute right-9 opacity-0 group-hover/name:opacity-100 translate-x-2 group-hover/name:translate-x-0 transition-all duration-200 p-1 bg-white dark:bg-stone-800 shadow-sm border border-stone-200 dark:border-stone-700 rounded text-stone-500 hover:text-blue-600 z-10 flex items-center justify-center hover:scale-105"
                         title="Open"
                     >
                         <Maximize2 size={14} />
@@ -3210,6 +3225,96 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                 </button>
                                             </div>
                                         </div>
+
+                                        {/* Compact KPI Cards - dots with numbers only */}
+                                        {(() => {
+                                            const statusCounts = group.rows.reduce((acc, row) => {
+                                                const s = row.status || 'To Do';
+                                                acc[s] = (acc[s] || 0) + 1;
+                                                return acc;
+                                            }, {} as Record<string, number>);
+                                            const priorityCounts = group.rows.reduce((acc, row) => {
+                                                const p = formatPriorityLabel(row.priority) || 'No Priority';
+                                                acc[p] = (acc[p] || 0) + 1;
+                                                return acc;
+                                            }, {} as Record<string, number>);
+                                            const hasPriorities = !Object.keys(priorityCounts).every(k => k === 'No Priority');
+                                            const totalRows = group.rows.length;
+
+                                            if (totalRows === 0) return null;
+
+                                            return (
+
+                                                <div className="flex items-center gap-3 ml-4">
+                                                    {/* Status KPI */}
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-stone-50 dark:bg-stone-800/50 rounded border border-stone-200 dark:border-stone-700">
+                                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mr-2">S</span>
+                                                        <div className="h-3 w-[1px] bg-stone-200 dark:bg-stone-700 mr-1" />
+                                                        {(() => {
+                                                            const visibleStatuses = ['Done', 'In Progress', 'To Do', 'Stuck', 'Rejected'].filter(s => statusCounts[s]);
+                                                            const isCompact = visibleStatuses.length > 3;
+
+                                                            return visibleStatuses.map(s => {
+                                                                const colors: Record<string, string> = { 'Done': 'bg-green-500', 'In Progress': 'bg-blue-500', 'To Do': 'bg-stone-400', 'Stuck': 'bg-orange-500', 'Rejected': 'bg-red-500' };
+                                                                const isSelected = activeKpiFilter?.type === 'status' && activeKpiFilter?.value === s;
+
+                                                                return (
+                                                                    <button
+                                                                        key={s}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setActiveKpiFilter(isSelected ? null : { type: 'status', value: s });
+                                                                        }}
+                                                                        title={s}
+                                                                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded transition-all ${isSelected ? 'bg-white dark:bg-stone-700 shadow-sm ring-1 ring-stone-200 dark:ring-stone-600' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`}
+                                                                    >
+                                                                        <div className={`w-2 h-2 rounded-full ${colors[s]}`} />
+                                                                        <span className={`text-xs font-medium ${isSelected ? 'text-stone-900 dark:text-stone-100' : 'text-stone-600 dark:text-stone-400'}`}>
+                                                                            {isCompact ? statusCounts[s] : `${s} (${statusCounts[s]})`}
+                                                                        </span>
+                                                                    </button>
+                                                                );
+                                                            });
+                                                        })()}
+                                                    </div>
+
+                                                    {/* Priority KPI */}
+                                                    {hasPriorities && (
+                                                        <div className="flex items-center gap-1 px-2 py-1 bg-stone-50 dark:bg-stone-800/50 rounded border border-stone-200 dark:border-stone-700">
+                                                            <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mr-2">P</span>
+                                                            <div className="h-3 w-[1px] bg-stone-200 dark:bg-stone-700 mr-1" />
+                                                            {(() => {
+                                                                const visiblePriorities = ['Urgent', 'High', 'Medium', 'Low'].filter(p => priorityCounts[p]);
+                                                                const isCompact = false;
+
+                                                                return visiblePriorities.map(p => {
+                                                                    const colors: Record<string, string> = { 'Urgent': 'bg-red-500', 'High': 'bg-blue-500', 'Medium': 'bg-orange-500', 'Low': 'bg-green-500' };
+                                                                    const isSelected = activeKpiFilter?.type === 'priority' && activeKpiFilter?.value === p;
+
+                                                                    return (
+                                                                        <button
+                                                                            key={p}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setActiveKpiFilter(isSelected ? null : { type: 'priority', value: p });
+                                                                            }}
+                                                                            title={p}
+                                                                            className={`flex items-center gap-1.5 px-2 py-0.5 rounded transition-all ${isSelected ? 'bg-white dark:bg-stone-700 shadow-sm ring-1 ring-stone-200 dark:ring-stone-600' : 'hover:bg-stone-100 dark:hover:bg-stone-800'}`}
+                                                                        >
+                                                                            <div className={`w-2 h-2 rounded-full ${colors[p]}`} />
+                                                                            <span className={`text-xs font-medium ${isSelected ? 'text-stone-900 dark:text-stone-100' : 'text-stone-600 dark:text-stone-400'}`}>
+                                                                                {isCompact ? priorityCounts[p] : `${p} (${priorityCounts[p]})`}
+                                                                            </span>
+                                                                        </button>
+                                                                    );
+                                                                });
+                                                            })()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+
+                                        })()}
                                     </div>
                                 </div>
 

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     ChevronDown,
-    MessageCircle,
-    UserCircle,
+
     MoreHorizontal,
     Table,
     Kanban,
@@ -768,10 +767,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
                     {/* Right: Actions */}
                     <div className="flex items-center gap-1 md:gap-3">
-
-                        <button className="hover:bg-gray-100 p-2 rounded text-gray-500"><MessageCircle size={18} /></button>
-                        <button className="hover:bg-gray-100 p-2 rounded text-gray-500"><UserCircle size={26} /></button>
-                        <button className="hover:bg-gray-100 p-2 rounded text-gray-500"><MoreHorizontal size={18} /></button>
+                        {/* Icons removed as requested */}
                     </div>
                 </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MessageSquare, FileText, Activity, Bold, Italic, Underline, Strikethrough, List, Link, Image, Smile, AtSign } from 'lucide-react';
+import { X, MessageSquare, FileText, Activity, Bold, Italic, Underline, Strikethrough, List, Link, Image, Smile, AtSign, Trash2 } from 'lucide-react';
 
 interface RowDetailPanelProps {
     isOpen: boolean;
@@ -12,6 +12,22 @@ export const RowDetailPanel: React.FC<RowDetailPanelProps> = ({ isOpen, onClose,
     const [isVisible, setIsVisible] = useState(false);
     const [activeTab, setActiveTab] = useState<'updates' | 'files' | 'activity'>('updates');
     const [updateText, setUpdateText] = useState('');
+    const [updates, setUpdates] = useState<{ id: string; text: string; createdAt: Date }[]>([]);
+
+    const handleSaveUpdate = () => {
+        if (!updateText.trim()) return;
+        const newUpdate = {
+            id: Date.now().toString(),
+            text: updateText,
+            createdAt: new Date()
+        };
+        setUpdates(prev => [newUpdate, ...prev]);
+        setUpdateText('');
+    };
+
+    const handleDeleteUpdate = (id: string) => {
+        setUpdates(prev => prev.filter(u => u.id !== id));
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -110,25 +126,53 @@ export const RowDetailPanel: React.FC<RowDetailPanelProps> = ({ isOpen, onClose,
                                     </div>
                                     <button
                                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
-                                        onClick={() => setUpdateText('')}
+                                        onClick={handleSaveUpdate}
                                     >
-                                        Update
+                                        Save
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Empty State */}
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                                <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mb-4">
-                                    <img src="https://cdn.monday.com/images/pulse-page-empty-state.svg" alt="" className="w-16 h-16 opacity-50 grayscale" />
-                                    {/* Fallback SVG since specific URL might break */}
-                                    <MessageSquare size={40} className="text-blue-300 dark:text-blue-600/50" />
+                            {/* Updates List */}
+                            {updates.length > 0 && (
+                                <div className="space-y-4">
+                                    {updates.map(update => (
+                                        <div key={update.id} className="bg-white dark:bg-[#1a1c22] border border-stone-200 dark:border-stone-800 rounded-xl p-4 shadow-sm group">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="prose dark:prose-invert prose-sm max-w-none text-stone-700 dark:text-stone-300 whitespace-pre-wrap">
+                                                    {update.text}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteUpdate(update.id)}
+                                                    className="p-1.5 text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                                    title="Delete update"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                            <div className="mt-2 flex items-center gap-2 text-xs text-stone-400">
+                                                <span>You</span>
+                                                <span>•</span>
+                                                <span>{update.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <h3 className="text-lg font-medium text-stone-900 dark:text-stone-100">No updates yet</h3>
-                                <p className="text-sm text-stone-500 dark:text-stone-400 mt-1 max-w-xs">
-                                    Share progress, mention a teammate, or upload a file to get things moving.
-                                </p>
-                            </div>
+                            )}
+
+                            {/* Empty State */}
+                            {updates.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mb-4">
+                                        <img src="https://cdn.monday.com/images/pulse-page-empty-state.svg" alt="" className="w-16 h-16 opacity-50 grayscale" />
+                                        <MessageSquare size={40} className="text-blue-300 dark:text-blue-600/50" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-stone-900 dark:text-stone-100">No updates yet</h3>
+                                    <p className="text-sm text-stone-500 dark:text-stone-400 mt-1 max-w-xs">
+                                        Share progress, mention a teammate, or upload a file to get things moving.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
 
