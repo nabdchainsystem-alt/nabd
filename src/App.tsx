@@ -20,7 +20,7 @@ import { Board, Workspace, ViewState, BoardViewType, BoardColumn, RecentlyVisite
 import { BoardTemplate } from './features/board/data/templates';
 import { AppProvider } from './contexts/AppContext';
 import { LanguageProvider } from './contexts/LanguageContext';
-import { UIProvider } from './contexts/UIContext';
+import { UIProvider, useUI } from './contexts/UIContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import TeamsPage from './features/teams/TeamsPage';
 import { FocusProvider } from './contexts/FocusContext';
@@ -72,6 +72,7 @@ const AppContent: React.FC = () => {
   // --- Persistent State Initialization ---
 
   const { getToken, isSignedIn } = useAuth();
+  const { isSidebarCollapsed, setIsSidebarCollapsed } = useUI();
 
   const [activeView, setActiveView] = useState<ViewState | string>(() => {
     const saved = localStorage.getItem('app-active-view');
@@ -171,10 +172,7 @@ const AppContent: React.FC = () => {
     const saved = localStorage.getItem('app-sidebar-width');
     return saved ? parseInt(saved, 10) : 260;
   });
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
-    const saved = localStorage.getItem('app-sidebar-collapsed');
-    return saved ? saved === 'true' : false;
-  });
+  // isSidebarCollapsed state moved to UIContext
 
   const activeBoard = boards.find(b => b.id === activeBoardId) || boards[0];
 
@@ -194,9 +192,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem('app-sidebar-width', sidebarWidth.toString());
   }, [sidebarWidth]);
 
-  useEffect(() => {
-    localStorage.setItem('app-sidebar-collapsed', isSidebarCollapsed ? 'true' : 'false');
-  }, [isSidebarCollapsed]);
+  // Sidebar persistence handled in UIContext
 
   useEffect(() => {
     localStorage.setItem('app-active-view', activeView);
@@ -780,7 +776,7 @@ const AppContent: React.FC = () => {
           onDeleteBoard={handleDeleteBoard}
           onToggleFavorite={handleToggleFavorite}
           isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+          onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
           onAddBoard={(name, icon, template, defaultView, parentId) => handleQuickAddBoard(name, icon, template, defaultView as any, parentId)}
           pageVisibility={pageVisibility}
         />

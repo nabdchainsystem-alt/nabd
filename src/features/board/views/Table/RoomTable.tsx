@@ -370,9 +370,13 @@ const StatusPicker: React.FC<{
     onClose: () => void;
     current: string;
     triggerRect?: DOMRect;
-}> = ({ onSelect, onClose, current, triggerRect }) => {
+    options?: string[];
+    onAdd?: (s: string) => void;
+    onDelete?: (s: string) => void;
+}> = ({ onSelect, onClose, current, triggerRect, options, onAdd, onDelete }) => {
     const [customStatus, setCustomStatus] = useState('');
-    const [statuses, setStatuses] = useState(['To Do', 'In Progress', 'Done', 'Stuck', 'Rejected']);
+    const defaultStatuses = ['To Do', 'In Progress', 'Done', 'Stuck', 'Rejected'];
+    const displayStatuses = Array.from(new Set([...defaultStatuses, ...(options || [])]));
     const menuRef = useRef<HTMLDivElement>(null);
     const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
         if (triggerRect) {
@@ -426,7 +430,9 @@ const StatusPicker: React.FC<{
     const handleAddStatus = (e: React.FormEvent) => {
         e.preventDefault();
         if (customStatus.trim()) {
-            setStatuses([...statuses, customStatus.trim()]);
+            if (onAdd) {
+                onAdd(customStatus.trim());
+            }
             onSelect(customStatus.trim());
             setCustomStatus('');
             onClose();
@@ -447,14 +453,26 @@ const StatusPicker: React.FC<{
                     <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Status</span>
                 </div>
                 <div className="p-1 max-h-48 overflow-y-auto">
-                    {statuses.map((s) => (
+                    {displayStatuses.map((s) => (
                         <button
                             key={s}
                             onClick={() => { onSelect(s); onClose(); }}
                             className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${current === s ? 'bg-stone-50 dark:bg-stone-800/50' : ''}`}
                         >
                             {getStatusIcon(s)}
-                            <span className="text-stone-700 dark:text-stone-200">{s}</span>
+                            <span className="text-stone-700 dark:text-stone-200 flex-1 truncate">{s}</span>
+                            {!defaultStatuses.includes(s) && onDelete && (
+                                <div
+                                    role="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDelete(s);
+                                    }}
+                                    className="p-1 text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                >
+                                    <Trash size={12} />
+                                </div>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -463,7 +481,7 @@ const StatusPicker: React.FC<{
                         type="text"
                         value={customStatus}
                         onChange={(e) => setCustomStatus(e.target.value)}
-                        placeholder="New status..."
+                        placeholder="Add new status..."
                         className="w-full px-2 py-1 text-xs bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded focus:outline-none focus:ring-1 focus:ring-stone-400"
                     />
                 </form>
@@ -727,7 +745,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         })
     );
 
-    const [activeColorMenu, setActiveColorMenu] = useState<{ rect: DOMRect; colId?: string } | null>(null);
+    const [activeColorMenu, setActiveColorMenu] = useState<{ rect: DOMRect; colId?: string; rowId?: string } | null>(null);
     const [activeHeaderMenu, setActiveHeaderMenu] = useState<{ colId: string; position: { x: number; y: number } } | null>(null);
 
     // --- State ---
@@ -964,9 +982,42 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const [isHideColumnsOpen, setIsHideColumnsOpen] = useState(false);
     const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
     const [columnSearchQuery, setColumnSearchQuery] = useState('');
+
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    // Virtualization State
+    // Custom Statuses State
+    const [customStatuses, setCustomStatuses] = useState<string[]>([]);
+    const storageKeyStatuses = `room-statuses-${roomId}`;
+
+    // Load custom statuses on mount
+    useEffect(() => {
+        const saved = localStorage.getItem(storageKeyStatuses);
+        if (saved) {
+            try {
+                setCustomStatuses(JSON.parse(saved));
+            } catch (e) {
+                console.error("Failed to parse custom statuses", e);
+            }
+        }
+    }, [storageKeyStatuses]);
+
+    // Handler to add custom status
+    const handleAddCustomStatus = useCallback((newStatus: string) => {
+        setCustomStatuses(prev => {
+            const updated = [...prev, newStatus];
+            localStorage.setItem(storageKeyStatuses, JSON.stringify(updated));
+            return updated;
+        });
+    }, [storageKeyStatuses]);
+
+    // Handler to delete custom status
+    const handleDeleteCustomStatus = useCallback((statusToDelete: string) => {
+        setCustomStatuses(prev => {
+            const updated = prev.filter(s => s !== statusToDelete);
+            localStorage.setItem(storageKeyStatuses, JSON.stringify(updated));
+            return updated;
+        });
+    }, [storageKeyStatuses]);
     const [scrollTop, setScrollTop] = useState(0);
     const tableBodyRef = useRef<HTMLDivElement>(null);
     const ROW_HEIGHT = 40; // h-10 = 40px
@@ -984,13 +1035,15 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     }, [tableGroups, storageKeyGroups]);
 
     // Handler to add a new table group
-    const handleAddTableGroup = useCallback(() => {
+    const handleAddTableGroup = useCallback((param?: string | React.MouseEvent) => {
+        const nameToUse = typeof param === 'string' ? param : 'New Group';
+
         setTableGroups(prev => {
             const newGroupId = `group-${Date.now()}`;
             const colorIndex = prev.length % GROUP_COLORS.length;
             const newGroup: TableGroup = {
                 id: newGroupId,
-                name: 'New Group',
+                name: nameToUse,
                 rows: [],
                 isCollapsed: false,
                 color: GROUP_COLORS[colorIndex]
@@ -2123,6 +2176,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             onSelect={(s) => handleUpdateRow(row.id, { [col.id]: s })}
                             onClose={() => setActiveCell(null)}
                             triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
+                            options={customStatuses}
+                            onAdd={handleAddCustomStatus}
+                            onDelete={handleDeleteCustomStatus}
                         />
                     )}
                 </div>
@@ -2265,10 +2321,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="relative w-full h-full">
                     <button
                         onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
+                        className="w-full h-full flex items-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
                     >
                         {value ? (
-                            <div className="flex items-center justify-center gap-2 truncate">
+                            <div className="flex items-center gap-2 truncate">
                                 {value.avatar && <img src={value.avatar} alt={value.name} className="w-5 h-5 rounded-full object-cover bg-stone-200" />}
                                 <span className="text-sm font-sans text-stone-700 dark:text-stone-300 truncate">{value.name}</span>
                             </div>
@@ -2804,14 +2860,15 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         // BUT, for now let's just use the `activeColorMenu` for the *select* column?
                         // No, the user wants to color THIS checkbox column.
                         // So I need to update the `activeColorMenu` state to include `colId`.
-                        setActiveColorMenu({ rect: e.currentTarget.getBoundingClientRect(), colId: col.id });
+                        // So I need to update the `activeColorMenu` state to include `colId`.
+                        setActiveColorMenu({ rect: e.currentTarget.getBoundingClientRect(), colId: col.id, rowId: row.id });
                     }}
                 >
                     <input
                         type="checkbox"
                         checked={!!value}
                         onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.checked })}
-                        style={{ accentColor: col.color || DEFAULT_CHECKBOX_COLOR }}
+                        style={{ accentColor: row._styles?.[col.id]?.color || col.color || DEFAULT_CHECKBOX_COLOR }}
                         className="rounded border-stone-300 dark:border-stone-600 cursor-pointer w-4 h-4"
                     />
                 </div>
@@ -3584,7 +3641,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                             {/* Table Header - show for ALL groups */}
                                             {/* Table Header - show for ALL groups */}
                                             <SortableContext items={columns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
-                                                <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky top-[48px] z-[35]">
+                                                <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky top-[57px] z-[35]">
                                                     {columns.map((col, index) => {
                                                         const uniqueId = `${group.id}__${col.id}`;
                                                         const isSticky = index === 0 || index === 1;
@@ -3911,12 +3968,18 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             onClose={() => setActiveColorMenu(null)}
                             onSelect={(color) => {
                                 const colId = activeColorMenu.colId || 'select';
-                                const newCols = columns.map(c => c.id === colId ? { ...c, color } : c);
-                                setColumns(newCols);
+                                if (activeColorMenu.rowId) {
+                                    handleTextColorChange(activeColorMenu.rowId, colId, color);
+                                } else {
+                                    const newCols = columns.map(c => c.id === colId ? { ...c, color } : c);
+                                    setColumns(newCols);
+                                }
                                 setActiveColorMenu(null);
                             }}
                             current={
-                                columns.find(c => c.id === (activeColorMenu.colId || 'select'))?.color || DEFAULT_CHECKBOX_COLOR
+                                activeColorMenu.rowId
+                                    ? (rows.find(r => r.id === activeColorMenu.rowId)?._styles?.[activeColorMenu.colId || 'select']?.color || DEFAULT_CHECKBOX_COLOR)
+                                    : (columns.find(c => c.id === (activeColorMenu.colId || 'select'))?.color || DEFAULT_CHECKBOX_COLOR)
                             }
                             triggerRect={activeColorMenu.rect}
                         />
