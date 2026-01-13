@@ -100,6 +100,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const [selectedTemplate, setSelectedTemplate] = useState<BoardTemplate | undefined>(undefined);
     const [selectedLayout, setSelectedLayout] = useState<'table' | 'data_table' | 'datatable' | 'kanban' | 'list'>('table');
     const [parentBoardIdForCreation, setParentBoardIdForCreation] = useState<string | undefined>(undefined);
+    // Quick add menu that appears inline on the + button
+    const [quickAddMenu, setQuickAddMenu] = useState<{ x: number; y: number; parentId: string } | null>(null);
     const [expandedBoards, setExpandedBoards] = useState<Set<string>>(() => {
         const saved = localStorage.getItem('expandedBoards');
         return saved ? new Set(JSON.parse(saved)) : new Set();
@@ -848,36 +850,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                                     className: `${isActive ? 'text-monday-blue' : ''} flex-shrink-0`
                                                 })}
                                                 <span className={`font-normal text-[13px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{board.name}</span>
+
+                                                {/* Action buttons - absolutely positioned on right */}
                                                 {!isCollapsed && (
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-0.5">
                                                         <div
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                setParentBoardIdForCreation(board.id);
-                                                                setCreationStep('details');
-                                                                setSelectedTemplate(undefined);
-                                                                setIsNewBoardModalOpen(true);
+                                                                const rect = (e.target as HTMLElement).getBoundingClientRect();
+                                                                setQuickAddMenu({ x: rect.right + 4, y: rect.top, parentId: board.id });
                                                             }}
-                                                            className={`p-1 rounded-sm hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-monday-dark-border invisible group-hover:visible`}
+                                                            className={`p-1 rounded-sm hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-monday-dark-border text-gray-400 invisible group-hover:visible`}
                                                             title="Add sub-board"
                                                         >
-                                                            <Plus size={isChild ? 12 : 14} weight="light" className="" />
-                                                        </div>
-                                                        <div
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setBoardToDelete(board.id);
-                                                            }}
-                                                            className={`p-1 rounded-sm hover:bg-red-50 hover:text-red-600 dark:hover:bg-monday-dark-border invisible group-hover:visible`}
-                                                            title="Delete board"
-                                                        >
-                                                            <Trash size={isChild ? 12 : 14} weight="light" className="" />
+                                                            <Plus size={14} weight="light" />
                                                         </div>
                                                         <div
                                                             onClick={(e) => handleContextMenu(e, board.id)}
-                                                            className={`p-1 rounded-sm hover:bg-white/50 dark:hover:bg-monday-dark-border ${isActive ? 'visible' : 'invisible group-hover:visible'}`}
+                                                            className={`p-1 rounded-sm hover:bg-gray-100 dark:hover:bg-monday-dark-border text-gray-400 ${isActive ? 'visible' : 'invisible group-hover:visible'}`}
+                                                            title="More options"
                                                         >
-                                                            <DotsThree size={isChild ? 12 : 14} weight="light" className="text-gray-500 dark:text-gray-400" />
+                                                            <DotsThree size={14} weight="bold" />
                                                         </div>
                                                     </div>
                                                 )}
@@ -979,6 +972,91 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             )
             }
+
+            {/* Quick Add Board Menu - Small dropdown from + button */}
+            {quickAddMenu && (
+                <div
+                    className="fixed bg-white dark:bg-monday-dark-surface rounded-lg shadow-lg border border-gray-200 dark:border-monday-dark-border w-60 z-[70]"
+                    style={{ top: quickAddMenu.y, left: quickAddMenu.x }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            if (newBoardName.trim()) {
+                                const iconMap: Record<string, string> = { table: 'Table', datatable: 'Database', kanban: 'Kanban' };
+                                onAddBoard(newBoardName.trim(), iconMap[selectedLayout] || 'Table', undefined, selectedLayout as any, quickAddMenu.parentId);
+                                setNewBoardName('');
+                                setSelectedLayout('table');
+                                setQuickAddMenu(null);
+                            }
+                        }}
+                        className="p-3"
+                    >
+                        <input
+                            type="text"
+                            autoFocus
+                            value={newBoardName}
+                            onChange={(e) => setNewBoardName(e.target.value)}
+                            placeholder="Board name..."
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-monday-dark-border rounded-md bg-gray-50 dark:bg-monday-dark-bg focus:outline-none focus:ring-1 focus:ring-monday-blue focus:border-monday-blue"
+                        />
+
+                        {/* Layout Type Selection */}
+                        <div className="flex gap-1 mt-3">
+                            {[
+                                { id: 'table', label: 'Table', icon: Table },
+                                { id: 'datatable', label: 'Data', icon: Database },
+                                { id: 'kanban', label: 'Kanban', icon: Kanban }
+                            ].map((layout) => (
+                                <button
+                                    key={layout.id}
+                                    type="button"
+                                    onClick={() => setSelectedLayout(layout.id as any)}
+                                    className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-md text-xs transition-all ${selectedLayout === layout.id
+                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
+                                        : 'bg-gray-100 dark:bg-monday-dark-hover text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                                        }`}
+                                >
+                                    <layout.icon size={16} />
+                                    <span>{layout.label}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex gap-2 mt-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setQuickAddMenu(null);
+                                    setNewBoardName('');
+                                    setSelectedLayout('table');
+                                }}
+                                className="flex-1 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded-md"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!newBoardName.trim()}
+                                className="flex-1 px-3 py-1.5 text-xs bg-monday-blue text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
+                            >
+                                Create
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+            {/* Click outside to close quick add menu */}
+            {quickAddMenu && (
+                <div
+                    className="fixed inset-0 z-[65]"
+                    onClick={() => {
+                        setQuickAddMenu(null);
+                        setNewBoardName('');
+                    }}
+                />
+            )}
 
             {/* Workspace Context Menu */}
             {
@@ -1129,7 +1207,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Create Board Modal */}
             {
                 isNewBoardModalOpen && (
-                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[70] backdrop-blur-sm">
+                    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[70]">
                         <div className={`bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl transition-all duration-300 flex flex-col ${creationStep === 'template' ? 'w-[90vw] max-w-5xl h-[80vh]' : 'w-96 max-h-[90vh]'}`}>
                             {/* Header */}
                             <div className="p-5 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center bg-white dark:bg-monday-dark-surface rounded-t-xl flex-shrink-0">
@@ -1206,7 +1284,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                                 {[
                                                     { id: 'table', label: 'Table', icon: Table, description: 'Spreadsheet view' },
                                                     { id: 'kanban', label: 'Kanban', icon: Kanban, description: 'Visual workflow' },
-                                                    { id: 'list', label: 'List', icon: List, description: 'Simple task list' },
                                                     { id: 'datatable', label: 'Data Table', icon: Database, description: 'High performance' }
                                                 ].map((tool) => (
                                                     <button

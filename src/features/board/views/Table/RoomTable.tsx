@@ -2831,10 +2831,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             e.stopPropagation();
                             setActiveRowDetail(row);
                         }}
-                        className="absolute right-9 opacity-0 group-hover/name:opacity-100 translate-x-2 group-hover/name:translate-x-0 transition-all duration-200 p-1 bg-white dark:bg-stone-800 shadow-sm border border-stone-200 dark:border-stone-700 rounded text-stone-500 hover:text-blue-600 z-10 flex items-center justify-center hover:scale-105"
+                        className="absolute right-9 opacity-0 group-hover/name:opacity-100 translate-x-2 group-hover/name:translate-x-0 transition-all duration-200 p-1 text-stone-400 hover:text-blue-600 z-10 flex items-center justify-center"
                         title="Open"
                     >
-                        <Maximize2 size={14} />
+                        <Maximize2 size={15} />
                     </button>
 
                     <button
@@ -2842,11 +2842,11 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             e.stopPropagation();
                             setActiveReminderTarget({ rowId: row.id, rect: e.currentTarget.getBoundingClientRect() });
                         }}
-                        className={`shrink-0 p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${remindersByItem[row.id]?.length ? 'text-amber-600' : 'text-stone-300'}`}
+                        className={`absolute right-2 z-10 p-1 flex items-center justify-center transition-all duration-200 ${remindersByItem[row.id]?.length ? 'text-amber-600 opacity-100' : 'text-stone-400 opacity-0 group-hover/name:opacity-100 translate-x-2 group-hover/name:translate-x-0 hover:text-amber-600'}`}
                         title={remindersByItem[row.id]?.length ? 'Manage reminders' : 'Add reminder'}
                     >
                         <div className="relative flex items-center">
-                            <Bell size={13} />
+                            <Bell size={13.5} />
                             {remindersByItem[row.id]?.length ? (
                                 <span className={`absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full ${remindersByItem[row.id].some(r => r.status === 'triggered') ? 'bg-rose-500' : 'bg-amber-500'}`} />
                             ) : null}
@@ -3173,14 +3173,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     {/* Left: Action Icons */}
                     <div className="flex items-center gap-3 text-stone-500 dark:text-stone-400 relative">
                         {/* Export Button */}
-                        <button
-                            onClick={handleExportTable}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white dark:bg-[#1a1c22] border border-stone-200 dark:border-stone-700 rounded-md hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 transition-colors shadow-sm"
-                            title="Export to Excel"
-                        >
-                            <Download size={14} className="text-stone-500" />
-                            Export
-                        </button>
+
 
                         {/* Search - Expandable */}
                         <div className="relative flex items-center">
@@ -3574,10 +3567,14 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             </button>
 
                             <button
+                                disabled={checkedRows.size === 0}
                                 onClick={handleExportTable}
-                                className="flex items-center gap-2 transition-colors group cursor-pointer text-stone-600 dark:text-stone-300 hover:text-blue-600"
+                                className={`flex items-center gap-2 transition-colors group ${checkedRows.size > 0
+                                    ? 'cursor-pointer text-stone-600 dark:text-stone-300 hover:text-blue-600'
+                                    : 'cursor-default text-stone-300 dark:text-stone-700'
+                                    }`}
                             >
-                                <Export size={16} weight="regular" className="group-hover:scale-110 transition-transform" />
+                                <Export size={16} weight="regular" className={checkedRows.size > 0 ? "group-hover:scale-110 transition-transform" : ""} />
                                 <span className="text-[13px] font-medium">Export</span>
                             </button>
 

@@ -925,7 +925,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                         side="bottom"
                                         align="start"
                                     >
-                                        <div className="bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl w-80 py-3 animate-in fade-in zoom-in-95 duration-150">
+                                        <div className="bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl w-[450px] py-3 animate-in fade-in zoom-in-95 duration-150">
                                             <div className="px-4 pb-3 border-b border-gray-100 dark:border-gray-800">
                                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Add View</h3>
                                             </div>
@@ -935,7 +935,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Simple Tools</span>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-1 px-2 pb-2">
-                                                    {VIEW_OPTIONS.filter(opt => !['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet'].includes(opt.id)).map((option) => (
+                                                    {VIEW_OPTIONS.filter(opt => !['list', 'gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet'].includes(opt.id)).map((option) => (
                                                         <button
                                                             key={option.id}
                                                             onClick={() => {
