@@ -1,34 +1,34 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     ChevronDown,
-
     MoreHorizontal,
-    Table,
-    Kanban,
-    List,
-    FileText,
-    CheckSquare,
-    Settings2,
-    Target,
-    UserCheck,
     Plus as PlusIcon,
-    GanttChart,
-    Calendar,
-    Image as ImageIcon,
-    FileEdit,
-    Search,
-    Filter,
-    Layout,
-    ArrowLeftToLine,
-    Pin,
     Pencil,
+    Pin,
     Copy,
     Share2,
     Unlock,
     Trash2,
-    ArrowUpDown,
-    RotateCw
+    ArrowLeftToLine
 } from 'lucide-react';
+import {
+    Table as PhTable,
+    Kanban as PhKanban,
+    List as PhList,
+    FileText as PhFileText,
+    CalendarBlank as PhCalendar,
+    ChartLineUp as PhGantt,
+    SquaresFour as PhOverview,
+    UsersThree as PhWorkload,
+    Table as PhSpreadsheet,
+    CheckSquare as PhCheckSquare,
+    Notepad as PhNotepad,
+    Lightning as PhAutomation,
+    Target as PhTarget,
+    ArrowsClockwise as PhRecurring,
+    Cube as PhWarehouse,
+    Layout as PhLayout
+} from 'phosphor-react';
 import {
     DndContext,
     closestCenter,
@@ -527,22 +527,22 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
     };
 
     const VIEW_OPTIONS = [
-        { label: 'Overview', icon: Layout, id: 'overview', description: 'Board overview' },
-        { label: 'Table', icon: Table, id: 'table', description: 'Manage project workflows' },
-        { label: 'Data Table', icon: Table, id: 'datatable', description: 'High performance data grid' },
-        { label: 'Kanban', icon: Kanban, id: 'kanban', description: 'Visualize your work' },
-        { label: 'List', icon: List, id: 'list', description: 'Simple list view' },
-        { label: 'Calendar', icon: Calendar, id: 'calendar', description: 'Schedule tasks' },
-        { label: 'Doc', icon: FileText, id: 'doc', description: 'Collaborate on docs' },
-        { label: 'Gantt', icon: GanttChart, id: 'gantt', description: 'Visual timeline' },
-        ...(isWarehouseBoard ? [{ label: 'Capacity Map', icon: Layout, id: 'warehouse_capacity_map', description: 'Visual warehouse capacity map' }] : []),
-        { label: 'Workload View', icon: UserCheck, id: 'workload', description: 'Balance assignments' },
-        { label: 'Smart Sheet', icon: Table, id: 'spreadsheet', description: 'Spreadsheet workspace' },
-        { label: 'GTD System', icon: CheckSquare, id: 'gtd', description: 'Getting Things Done' },
-        { label: 'Cornell Notes', icon: FileText, id: 'cornell', description: 'Effective note-taking' },
-        { label: 'Automation Rules', icon: Settings2, id: 'automation_rules', description: 'Simple trigger → action' },
-        { label: 'Goals & OKRs', icon: Target, id: 'goals_okrs', description: 'Align work to outcomes' },
-        { label: 'Recurring Logic', icon: RotateCw, id: 'recurring', description: 'Repeat work patterns' },
+        { label: 'Overview', icon: PhOverview, id: 'overview', description: 'Board overview' },
+        { label: 'Table', icon: PhTable, id: 'table', description: 'Manage project workflows' },
+        { label: 'Data Table', icon: PhTable, id: 'datatable', description: 'High performance data grid' },
+        { label: 'Kanban', icon: PhKanban, id: 'kanban', description: 'Visualize your work' },
+        { label: 'List', icon: PhList, id: 'list', description: 'Simple list view' },
+        { label: 'Calendar', icon: PhCalendar, id: 'calendar', description: 'Schedule tasks' },
+        { label: 'Doc', icon: PhFileText, id: 'doc', description: 'Collaborate on docs' },
+        { label: 'Gantt', icon: PhGantt, id: 'gantt', description: 'Visual timeline' },
+        ...(isWarehouseBoard ? [{ label: 'Capacity Map', icon: PhWarehouse, id: 'warehouse_capacity_map', description: 'Visual warehouse capacity map' }] : []),
+        { label: 'Workload View', icon: PhWorkload, id: 'workload', description: 'Balance assignments' },
+        { label: 'Smart Sheet', icon: PhSpreadsheet, id: 'spreadsheet', description: 'Spreadsheet workspace' },
+        { label: 'GTD System', icon: PhCheckSquare, id: 'gtd', description: 'Getting Things Done' },
+        { label: 'Cornell Notes', icon: PhNotepad, id: 'cornell', description: 'Effective note-taking' },
+        { label: 'Automation Rules', icon: PhAutomation, id: 'automation_rules', description: 'Simple trigger → action' },
+        { label: 'Goals & OKRs', icon: PhTarget, id: 'goals_okrs', description: 'Align work to outcomes' },
+        { label: 'Recurring Logic', icon: PhRecurring, id: 'recurring', description: 'Repeat work patterns' },
     ];
 
     // --- Merge dashboardSections into VIEW_OPTIONS ---
@@ -556,7 +556,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                             label: opt.label,
                             id: opt.id,
                             description: opt.description,
-                            icon: opt.icon || Layout // Default icon
+                            icon: opt.icon || PhLayout // Default icon
                         });
                     }
                 });
@@ -719,51 +719,68 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
                         {/* Board Info / Rename Popover */}
                         {showInfoMenu && (
-                            <div className="absolute top-full left-0 mt-2 w-80 bg-white/90 dark:bg-[#1a1d24]/90 backdrop-blur-xl border border-blue-500/20 dark:border-blue-400/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-50 p-5 animate-in fade-in zoom-in-95 duration-200">
-                                <div className="space-y-5">
-                                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Board Settings</span>
-                                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1.5">
-                                                <Pencil size={12} className="text-blue-500" />
-                                                <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Name</label>
-                                            </div>
-                                            <input
-                                                type="text"
-                                                value={editName}
-                                                onChange={(e) => setEditName(e.target.value)}
-                                                onBlur={handleSave}
-                                                className="w-full px-3 py-2 text-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg bg-white/50 dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
-                                                placeholder="Board Name"
-                                            />
+                            <>
+                                {/* Backdrop to cancel and close when clicking anywhere on page */}
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Reset to original values (cancel)
+                                        setEditName(board.name);
+                                        setEditDescription(board.description || '');
+                                        setShowInfoMenu(false);
+                                    }}
+                                />
+                                <div className="absolute top-full left-0 mt-2 w-80 bg-white/90 dark:bg-[#1a1d24]/90 backdrop-blur-xl border border-blue-500/20 dark:border-blue-400/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-50 p-5 animate-in fade-in zoom-in-95 duration-200">
+                                    <div className="space-y-5">
+                                        <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Board Settings</span>
+                                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1.5">
-                                                <FileText size={12} className="text-blue-500" />
-                                                <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Description</label>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                    <Pencil size={12} className="text-blue-500" />
+                                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Name</label>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={(e) => setEditName(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleSave();
+                                                            setShowInfoMenu(false);
+                                                        }
+                                                    }}
+                                                    className="w-full px-3 py-2 text-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg bg-white/50 dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                                                    placeholder="Board Name"
+                                                />
                                             </div>
-                                            <textarea
-                                                value={editDescription}
-                                                onChange={(e) => setEditDescription(e.target.value)}
-                                                onBlur={handleSave}
-                                                className="w-full px-3 py-2 text-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg bg-white/50 dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 min-h-[100px] transition-all"
-                                                placeholder="Add a detailed description..."
-                                            />
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1.5">
+                                                    <PhFileText size={12} className="text-blue-500" />
+                                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Description</label>
+                                                </div>
+                                                <textarea
+                                                    value={editDescription}
+                                                    onChange={(e) => setEditDescription(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            handleSave();
+                                                            setShowInfoMenu(false);
+                                                        }
+                                                    }}
+                                                    className="w-full px-3 py-2 text-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg bg-white/50 dark:bg-black/20 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 min-h-[100px] transition-all"
+                                                    placeholder="Add a detailed description..."
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                    {/* Backdrop to close when clicking outside */}
-                                    <div
-                                        className="fixed inset-0 z-[-1]"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setShowInfoMenu(false);
-                                        }}
-                                    />
                                 </div>
-                            </div>
+                            </>
                         )}
                     </div>
 
@@ -874,75 +891,83 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                 triggerRef={addViewRef}
                                 onClose={() => setShowAddViewMenu(false)}
                                 side="bottom"
-                                align="end"
+                                align="start"
                             >
-                                <div className="bg-white/98 dark:bg-[#0d0d0e]/98 backdrop-blur-3xl border border-stone-200 dark:border-stone-800 rounded-3xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.25)] w-[880px] flex overflow-hidden animate-in fade-in zoom-in-95 duration-500 relative">
-                                    <div className="w-full h-full overflow-y-auto no-scrollbar relative z-10">
-                                        <div className="p-8 space-y-10">
-                                            {/* Compact Header */}
-                                            <div className="flex flex-col gap-1 border-b border-stone-100 dark:border-stone-800 pb-5">
-                                                <h2 className="text-xl font-medium tracking-tight text-stone-900 dark:text-stone-100">Add View</h2>
-                                                <p className="text-[12px] text-stone-400 dark:text-stone-500 font-medium">Equip your workspace with specialized tools.</p>
+                                <div className="bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl w-80 py-3 animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="px-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Add View</h3>
+                                    </div>
+                                    <div className="max-h-[450px] overflow-y-auto">
+                                        {/* Simple Tools */}
+                                        <div className="px-4 pt-3 pb-1">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Simple Tools</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-1 px-2 pb-2">
+                                            {VIEW_OPTIONS.filter(opt => !['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet'].includes(opt.id)).map((option) => (
+                                                <button
+                                                    key={option.id}
+                                                    onClick={() => {
+                                                        setShowAddViewMenu(false);
+                                                        const viewId = option.id as BoardViewType;
+                                                        if (onUpdateBoard) {
+                                                            const currentAvailable = board.availableViews && board.availableViews.length > 0
+                                                                ? board.availableViews
+                                                                : DEFAULT_VIEWS;
+                                                            if (!currentAvailable.includes(viewId)) {
+                                                                onUpdateBoard(board.id, { availableViews: [...currentAvailable, viewId] });
+                                                            }
+                                                        }
+                                                        setActiveView(viewId);
+                                                    }}
+                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
+                                                >
+                                                    <option.icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                                                    <span className="text-[13px] text-gray-700 dark:text-gray-200">{option.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Advanced Tools */}
+                                        <div className="border-t border-gray-100 dark:border-gray-800">
+                                            <div className="px-4 pt-3 pb-1">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Advanced Tools</span>
                                             </div>
+                                            <div className="grid grid-cols-2 gap-1 px-2 pb-2">
+                                                {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet'].includes(opt.id)).map((option) => (
+                                                    <button
+                                                        key={option.id}
+                                                        onClick={() => {
+                                                            setShowAddViewMenu(false);
+                                                            const viewId = option.id as BoardViewType;
+                                                            if (onUpdateBoard) {
+                                                                const currentAvailable = board.availableViews && board.availableViews.length > 0
+                                                                    ? board.availableViews
+                                                                    : DEFAULT_VIEWS;
+                                                                if (!currentAvailable.includes(viewId)) {
+                                                                    onUpdateBoard(board.id, { availableViews: [...currentAvailable, viewId] });
+                                                                }
+                                                            }
+                                                            setActiveView(viewId);
+                                                        }}
+                                                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
+                                                    >
+                                                        <option.icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                                                        <span className="text-[13px] text-gray-700 dark:text-gray-200">{option.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
 
-                                            {/* Sections */}
-                                            <div className="space-y-12">
-                                                {/* Basic Tools */}
-                                                <section>
-                                                    <div className="flex items-center gap-4 mb-6">
-                                                        <h3 className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest whitespace-nowrap">Basic Tools</h3>
-                                                        <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {VIEW_OPTIONS.filter(opt => !['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'warehouse_capacity_map'].includes(opt.id)).map((option) => (
-                                                            <button
-                                                                key={option.id}
-                                                                onClick={() => {
-                                                                    setShowAddViewMenu(false);
-                                                                    const viewId = option.id as BoardViewType;
-                                                                    console.log('[BoardView] Attempting to add view:', viewId);
-                                                                    console.log('[BoardView] Current board.availableViews:', board.availableViews);
-
-                                                                    if (onUpdateBoard) {
-                                                                        const currentAvailable = board.availableViews && board.availableViews.length > 0
-                                                                            ? board.availableViews
-                                                                            : DEFAULT_VIEWS;
-
-                                                                        console.log('[BoardView] Effective currentAvailable:', currentAvailable);
-
-                                                                        if (!currentAvailable.includes(viewId)) {
-                                                                            const newViews = [...currentAvailable, viewId];
-                                                                            console.log('[BoardView] Updating board with new views:', newViews);
-                                                                            onUpdateBoard(board.id, { availableViews: newViews });
-                                                                        } else {
-                                                                            console.log('[BoardView] View already exists in list, skipping update');
-                                                                        }
-                                                                    } else {
-                                                                        console.warn('[BoardView] onUpdateBoard is undefined!');
-                                                                    }
-                                                                    setActiveView(viewId);
-                                                                }}
-                                                                className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-stone-100 dark:hover:border-stone-800/50 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group"
-                                                            >
-                                                                <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 group-hover:bg-black dark:group-hover:bg-stone-100 group-hover:text-white dark:group-hover:text-black transition-all">
-                                                                    <option.icon size={16} strokeWidth={1.5} />
-                                                                </div>
-                                                                <div className="text-left">
-                                                                    <div className="text-[13px] font-semibold text-stone-900 dark:text-stone-200 group-hover:translate-x-0.5 transition-transform">{option.label}</div>
-                                                                    <div className="text-[10px] text-stone-400 dark:text-stone-500 line-clamp-1 truncate">{option.description}</div>
-                                                                </div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </section>
-                                                {/* Advanced Tools */}
-                                                <section>
-                                                    <div className="flex items-center gap-4 mb-6">
-                                                        <h3 className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest whitespace-nowrap">Advanced Tools</h3>
-                                                        <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
-                                                    </div>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'warehouse_capacity_map'].includes(opt.id)).map((option) => (
+                                        {/* Dashboard Sections */}
+                                        {dashboardSections?.map((section: any, idx: number) => (
+                                            <div key={idx} className="border-t border-gray-100 dark:border-gray-800">
+                                                <div className="px-4 pt-3 pb-1">
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{section.title}</span>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-1 px-2 pb-2">
+                                                    {section.options.map((option: any) => {
+                                                        const Icon = option.icon || PhLayout;
+                                                        return (
                                                             <button
                                                                 key={option.id}
                                                                 onClick={() => {
@@ -952,75 +977,22 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                                                         const currentAvailable = board.availableViews && board.availableViews.length > 0
                                                                             ? board.availableViews
                                                                             : DEFAULT_VIEWS;
-
                                                                         if (!currentAvailable.includes(viewId)) {
                                                                             onUpdateBoard(board.id, { availableViews: [...currentAvailable, viewId] });
                                                                         }
                                                                     }
                                                                     setActiveView(viewId);
                                                                 }}
-                                                                className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-stone-100 dark:hover:border-stone-800/50 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group"
+                                                                className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
                                                             >
-                                                                <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 group-hover:bg-black dark:group-hover:bg-stone-100 group-hover:text-white dark:group-hover:text-black transition-all">
-                                                                    <option.icon size={16} strokeWidth={1.5} />
-                                                                </div>
-                                                                <div className="text-left">
-                                                                    <div className="text-[13px] font-semibold text-stone-900 dark:text-stone-200 group-hover:translate-x-0.5 transition-transform">{option.label}</div>
-                                                                    <div className="text-[10px] text-stone-400 dark:text-stone-500 line-clamp-1 truncate">{option.description}</div>
-                                                                </div>
+                                                                <Icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                                                                <span className="text-[13px] text-gray-700 dark:text-gray-200">{option.label}</span>
                                                             </button>
-                                                        ))}
-                                                    </div>
-                                                </section>
-                                                {dashboardSections?.map((section: any, idx: number) => (
-                                                    <section key={idx}>
-                                                        <div className="flex items-center gap-4 mb-6">
-                                                            <h3 className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest whitespace-nowrap">{section.title}</h3>
-                                                            <div className="h-px w-full bg-stone-100 dark:bg-stone-800/50" />
-                                                        </div>
-                                                        <div className="grid grid-cols-3 gap-2">
-                                                            {section.options.map((option: any) => {
-                                                                // Fallback icon if not provided in dynamic options
-                                                                const Icon = option.icon || Layout;
-                                                                return (
-                                                                    <button
-                                                                        key={option.id}
-                                                                        onClick={() => {
-                                                                            setShowAddViewMenu(false);
-                                                                            const viewId = option.id as BoardViewType;
-                                                                            if (onUpdateBoard) {
-                                                                                const currentAvailable = board.availableViews && board.availableViews.length > 0
-                                                                                    ? board.availableViews
-                                                                                    : DEFAULT_VIEWS;
-
-                                                                                if (!currentAvailable.includes(viewId)) {
-                                                                                    onUpdateBoard(board.id, { availableViews: [...currentAvailable, viewId] });
-                                                                                }
-                                                                            }
-                                                                            setActiveView(viewId);
-                                                                        }}
-                                                                        className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-stone-100 dark:hover:border-stone-800/50 hover:bg-stone-50/50 dark:hover:bg-stone-900/50 transition-all group"
-                                                                    >
-                                                                        <div className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 group-hover:bg-black dark:group-hover:bg-stone-100 group-hover:text-white dark:group-hover:text-black transition-all">
-                                                                            <Icon size={16} strokeWidth={1.5} />
-                                                                        </div>
-                                                                        <div className="text-left">
-                                                                            <div className="text-[13px] font-semibold text-stone-900 dark:text-stone-200 group-hover:translate-x-0.5 transition-transform">{option.label}</div>
-                                                                            <div className="text-[10px] text-stone-400 dark:text-stone-500 line-clamp-1 truncate">{option.description}</div>
-                                                                        </div>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </section>
-                                                ))}
-
-
-
-
-
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
                             </PortalPopup>

@@ -6,7 +6,9 @@ import { useClickOutside } from '../../../../../hooks/useClickOutside';
 interface TextCellContextMenuProps {
     onClose: () => void;
     onColorSelect: (color: string) => void;
+    onColumnColorSelect?: (color: string) => void;
     currentColor?: string;
+    currentColumnColor?: string;
     position: { x: number; y: number };
 }
 
@@ -21,7 +23,7 @@ const COLORS = [
     { label: 'Pink', value: '#ec4899', class: 'text-pink-500' },
 ];
 
-export const TextCellContextMenu: React.FC<TextCellContextMenuProps> = ({ onClose, onColorSelect, currentColor, position }) => {
+export const TextCellContextMenu: React.FC<TextCellContextMenuProps> = ({ onClose, onColorSelect, onColumnColorSelect, currentColor, currentColumnColor, position }) => {
     const menuRef = useRef<HTMLDivElement>(null);
     useClickOutside(menuRef, onClose);
 
@@ -67,7 +69,7 @@ export const TextCellContextMenu: React.FC<TextCellContextMenuProps> = ({ onClos
             style={menuStyle}
         >
             <div className="px-3 py-2 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 mb-1">
-                <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Text Color</span>
+                <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Cell Color</span>
             </div>
 
             {COLORS.map((color) => (
@@ -90,6 +92,34 @@ export const TextCellContextMenu: React.FC<TextCellContextMenuProps> = ({ onClos
                     )}
                 </button>
             ))}
+
+            {onColumnColorSelect && (
+                <>
+                    <div className="px-3 py-2 bg-stone-50 dark:bg-stone-800/50 border-y border-stone-100 dark:border-stone-800 my-1">
+                        <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Column Color</span>
+                    </div>
+                    {COLORS.map((color) => (
+                        <button
+                            key={`col-${color.label}`}
+                            onClick={() => {
+                                onColumnColorSelect(color.value);
+                                onClose();
+                            }}
+                            className="w-full text-left px-3 py-1.5 text-sm hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors flex items-center justify-between group"
+                        >
+                            <div className="flex items-center gap-2">
+                                <div className={`w-3 h-3 rounded-full border border-stone-200 dark:border-stone-700 ${color.value ? '' : 'bg-stone-800 dark:bg-stone-200'}`} style={{ backgroundColor: color.value }} />
+                                <span className={`text-stone-700 dark:text-stone-200 group-hover:text-stone-900 dark:group-hover:text-stone-100`}>
+                                    {color.label}
+                                </span>
+                            </div>
+                            {(currentColumnColor === color.value || (!currentColumnColor && !color.value)) && (
+                                <Check size={14} className="text-blue-500" />
+                            )}
+                        </button>
+                    ))}
+                </>
+            )}
         </div>,
         document.body
     );

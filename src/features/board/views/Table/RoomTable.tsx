@@ -7,6 +7,8 @@ import { DeleteConfirmationModal } from '../../components/DeleteConfirmationModa
 import { SharedDatePicker } from '../../../../components/ui/SharedDatePicker';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import { PeoplePicker } from '../../components/cells/PeoplePicker';
+import { UrlPicker } from '../../components/cells/UrlPicker'; // Import UrlPicker
+import { DocPicker } from '../../components/cells/DocPicker'; // Import DocPicker
 import { SaveToVaultModal } from '../../../dashboard/components/SaveToVaultModal';
 import { vaultService } from '../../../../services/vaultService';
 import { VaultItem } from '../../../vault/types';
@@ -16,6 +18,8 @@ import {
     Flag,
     Calendar as CalendarIcon,
     Clock,
+    Link2, // Import Link2
+    MapPin,
     CheckCircle2,
     Circle,
     ChevronLeft,
@@ -83,6 +87,7 @@ import { ReminderPanel } from '../../../reminders/ReminderPanel';
 import { ChartBuilderConfig } from '../../components/chart-builder/types';
 import { AIChartCard } from '../../components/AIChartCard';
 import { TextCellContextMenu } from './components/TextCellContextMenu';
+import { HeaderContextMenu } from './components/HeaderContextMenu';
 
 // --- Types ---
 export interface Column {
@@ -94,6 +99,9 @@ export interface Column {
     resizable: boolean;
     pinned?: boolean;
     options?: { id: string; label: string; color: string }[]; // For status/priority/select
+    color?: string; // For checkbox color (or legacy text color fallback)
+    headerColor?: string; // Background color for the header
+    backgroundColor?: string; // Background color for the entire column (cells)
 }
 
 const DEFAULT_COLUMNS: Column[] = [
@@ -140,6 +148,8 @@ const GROUP_COLORS = [
     { bg: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400' },
     { bg: 'bg-orange-500', text: 'text-orange-600 dark:text-orange-400' },
 ];
+
+const DEFAULT_CHECKBOX_COLOR = '#2563eb'; // blue-600
 
 // Helper to get color object from index
 const getGroupColor = (index: number) => GROUP_COLORS[index % GROUP_COLORS.length];
@@ -581,6 +591,68 @@ const SelectPicker: React.FC<{
 };
 
 
+const CheckboxColorPicker: React.FC<{
+    onSelect: (color: string) => void;
+    onClose: () => void;
+    current?: string;
+    triggerRect?: DOMRect;
+}> = ({ onSelect, onClose, current, triggerRect }) => {
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
+        if (triggerRect) {
+            const menuHeight = 100;
+            const spaceBelow = window.innerHeight - triggerRect.bottom;
+            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
+            if (openUp) {
+                return { bottom: window.innerHeight - triggerRect.top - 4, left: triggerRect.left, position: 'fixed' };
+            } else {
+                return { top: triggerRect.bottom - 4, left: triggerRect.left, position: 'fixed' };
+            }
+        }
+        return { display: 'none' };
+    });
+
+    useLayoutEffect(() => {
+        if (triggerRect) {
+            const menuHeight = 100;
+            const spaceBelow = window.innerHeight - triggerRect.bottom;
+            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
+            if (openUp) {
+                setPositionStyle({ bottom: window.innerHeight - triggerRect.top - 4, left: triggerRect.left, position: 'fixed' });
+            } else {
+                setPositionStyle({ top: triggerRect.bottom - 4, left: triggerRect.left, position: 'fixed' });
+            }
+        }
+    }, [triggerRect]);
+
+    const COLORS = [
+        '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#78716c'
+    ];
+
+    const content = (
+        <>
+            <div className="fixed inset-0 z-[99]" onClick={onClose} />
+            <div
+                ref={menuRef}
+                onClick={(e) => e.stopPropagation()}
+                className="fixed z-[100] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl p-2 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-100"
+                style={positionStyle}
+            >
+                {COLORS.map(c => (
+                    <button
+                        key={c}
+                        onClick={() => { onSelect(c); onClose(); }}
+                        className={`w-6 h-6 rounded-full hover:scale-110 transition-transform ${current === c ? 'ring-2 ring-stone-900 dark:ring-white ring-offset-1 dark:ring-offset-stone-800' : ''}`}
+                        style={{ backgroundColor: c }}
+                    />
+                ))}
+            </div>
+        </>
+    );
+    return createPortal(content, document.body);
+};
+
+
 // --- Helper for Editable Name ---
 const EditableName: React.FC<{ name: string; onRename?: (name: string) => void; className?: string }> = ({ name, onRename, className }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -654,6 +726,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             coordinateGetter: sortableKeyboardCoordinates,
         })
     );
+
+    const [activeColorMenu, setActiveColorMenu] = useState<{ rect: DOMRect; colId?: string } | null>(null);
+    const [activeHeaderMenu, setActiveHeaderMenu] = useState<{ colId: string; position: { x: number; y: number } } | null>(null);
 
     // --- State ---
     const [columns, setColumns] = useState<Column[]>(() => {
@@ -2148,6 +2223,39 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             );
         }
 
+        if (col.type === 'doc') {
+            return (
+                <div className="relative w-full h-full p-1">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full rounded flex items-center px-2 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors group"
+                    >
+                        {value ? (
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <div className="p-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
+                                    <FileText size={12} />
+                                </div>
+                                <span className="text-sm text-stone-700 dark:text-stone-300 truncate hover:underline hover:text-blue-600 dark:hover:text-blue-400">
+                                    {value.name}
+                                </span>
+                            </div>
+                        ) : (
+                            <span className="text-xs text-stone-400 group-hover:text-stone-500 transition-colors">Select Doc</span>
+                        )}
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
+                        <DocPicker
+                            current={value}
+                            currentBoardId={roomId}
+                            onSelect={(doc) => handleUpdateRow(row.id, { [col.id]: doc })}
+                            onClose={() => setActiveCell(null)}
+                            triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
+                        />
+                    )}
+                </div>
+            );
+        }
+
         // --- RENDER CELL CONTENT ---
         // This is the actual renderCellContent function that is used.
         // The previous one was incomplete and followed by the misplaced handleCellAction.
@@ -2157,10 +2265,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="relative w-full h-full">
                     <button
                         onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
                     >
                         {value ? (
-                            <div className="flex items-center gap-2 truncate">
+                            <div className="flex items-center justify-center gap-2 truncate">
                                 {value.avatar && <img src={value.avatar} alt={value.name} className="w-5 h-5 rounded-full object-cover bg-stone-200" />}
                                 <span className="text-sm font-sans text-stone-700 dark:text-stone-300 truncate">{value.name}</span>
                             </div>
@@ -2266,7 +2374,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="relative w-full h-full">
                     <button
                         onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
                     >
                         <CalendarRange size={14} className={`mr-2 shrink-0 ${val ? 'text-stone-500' : 'text-stone-300 group-hover:text-stone-400'}`} />
                         <span className={`text-sm font-sans truncate ${val ? 'text-stone-600 dark:text-stone-300' : 'text-stone-400'}`}>
@@ -2307,10 +2415,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="relative w-full h-full">
                     <button
                         onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
                     >
                         {label ? (
-                            <div className="flex items-center gap-2 truncate">
+                            <div className="flex items-center justify-center gap-2 truncate">
                                 <CalendarRange size={13} className="text-indigo-500" />
                                 <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">{label}</span>
                             </div>
@@ -2353,10 +2461,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="relative w-full h-full">
                     <button
                         onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
                     >
                         {value ? (
-                            <div className="flex items-center gap-2 truncate">
+                            <div className="flex items-center justify-center gap-2 truncate">
                                 {getStatusIcon(value)}
                                 <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">{value}</span>
                             </div>
@@ -2403,7 +2511,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="relative w-full h-full">
                     <button
                         onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
                     >
                         <span className={`text-sm font-sans truncate ${value ? 'text-stone-600 dark:text-stone-300' : 'text-stone-400'}`}>
                             {formatDate(value) || 'Set Date'}
@@ -2447,7 +2555,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             onKeyDown={(e) => { if (e.key === 'Enter') setActiveCell(null); }}
                             value={value || ''}
                             onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.value })}
-                            className="w-full h-full bg-stone-50 dark:bg-stone-800 border-none outline-none px-3 text-sm text-stone-700 dark:text-stone-300 placeholder:text-stone-400"
+                            className="w-full h-full bg-stone-50 dark:bg-stone-800 border-none outline-none px-3 text-sm text-center text-stone-700 dark:text-stone-300 placeholder:text-stone-400"
                         />
                     </div>
                 );
@@ -2457,7 +2565,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="relative w-full h-full">
                     <button
                         onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
                     >
                         {value ? (
                             <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">
@@ -2516,10 +2624,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="relative w-full h-full">
                     <button
                         onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center px-3 text-start hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
                     >
                         {normalized ? (
-                            <div className="flex items-center gap-2 truncate">
+                            <div className="flex items-center justify-center gap-2 truncate">
                                 <span className={`w-2 h-2 rounded-full ${classes.dot}`} />
                                 <span className={`text-sm font-sans truncate ${classes.text}`}>{normalized}</span>
                             </div>
@@ -2587,8 +2695,137 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             )
         }
 
+        if (col.type === 'url') {
+            const urlData = value as { url: string; text?: string } | null;
+            const displayText = urlData?.text || urlData?.url;
+
+            return (
+                <div className="relative w-full h-full">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group/url"
+                    >
+                        {displayText ? (
+                            <div className="flex items-center gap-2 truncate text-blue-600 dark:text-blue-400">
+                                <Link2 size={14} className="shrink-0" />
+                                <a
+                                    href={urlData?.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="truncate hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    {displayText}
+                                </a>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-stone-400">
+                                <Link2 size={14} />
+                                <span className={`${row.id === CREATION_ROW_ID ? 'text-[11px]' : 'text-xs'}`}>URL</span>
+                            </div>
+                        )}
+                        <div className="absolute right-2 opacity-0 group-hover/url:opacity-100 transition-opacity">
+                            <div className="w-5 h-5 rounded hover:bg-stone-200 dark:hover:bg-stone-700 flex items-center justify-center">
+                                <MoreHorizontal size={14} className="text-stone-400" />
+                            </div>
+                        </div>
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
+                        <UrlPicker
+                            current={urlData}
+                            onSelect={(val) => handleUpdateRow(row.id, { [col.id]: val })}
+                            onClose={() => setActiveCell(null)}
+                            triggerRect={activeCell.trigger.getBoundingClientRect()}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        if (col.type === 'location') {
+            const locationData = value as { url: string; text?: string } | null;
+            const displayText = locationData?.text || locationData?.url;
+
+            return (
+                <div className="relative w-full h-full">
+                    <button
+                        onClick={(e) => toggleCell(e, row.id, col.id)}
+                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group/location"
+                    >
+                        {displayText ? (
+                            <div className="flex items-center gap-2 truncate text-blue-600 dark:text-blue-400">
+                                <MapPin size={14} className="shrink-0" />
+                                <a
+                                    href={locationData?.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="truncate hover:underline"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    {displayText}
+                                </a>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-stone-400">
+                                <MapPin size={14} />
+                                <span className={`${row.id === CREATION_ROW_ID ? 'text-[11px]' : 'text-xs'}`}>Location</span>
+                            </div>
+                        )}
+                        <div className="absolute right-2 opacity-0 group-hover/location:opacity-100 transition-opacity">
+                            <div className="w-5 h-5 rounded hover:bg-stone-200 dark:hover:bg-stone-700 flex items-center justify-center">
+                                <MoreHorizontal size={14} className="text-stone-400" />
+                            </div>
+                        </div>
+                    </button>
+                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
+                        <UrlPicker
+                            current={locationData}
+                            onSelect={(val) => handleUpdateRow(row.id, { [col.id]: val })}
+                            onClose={() => setActiveCell(null)}
+                            triggerRect={activeCell.trigger.getBoundingClientRect()}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        if (col.type === 'checkbox') {
+            return (
+                <div
+                    className="w-full h-full flex items-center justify-center"
+                    onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Open color picker for THIS column
+                        // We reuse the same activeColorMenu state but need to ensure it updates this specific column
+                        // The activeColorMenu logic in the main return uses generic `activeColorMenu` state.
+                        // We need to pass which column is active.
+                        // Since `activeColorMenu` currently just stores rect, we might need to store `colId` too.
+                        // BUT, for now let's just use the `activeColorMenu` for the *select* column?
+                        // No, the user wants to color THIS checkbox column.
+                        // So I need to update the `activeColorMenu` state to include `colId`.
+                        setActiveColorMenu({ rect: e.currentTarget.getBoundingClientRect(), colId: col.id });
+                    }}
+                >
+                    <input
+                        type="checkbox"
+                        checked={!!value}
+                        onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.checked })}
+                        style={{ accentColor: col.color || DEFAULT_CHECKBOX_COLOR }}
+                        className="rounded border-stone-300 dark:border-stone-600 cursor-pointer w-4 h-4"
+                    />
+                </div>
+            );
+        }
+
         // Default Text Cell
-        const cellStyle = row._styles?.[col.id]?.color ? { color: row._styles[col.id].color } : undefined;
+        const textColor = row._styles?.[col.id]?.color;
+        // Background color from column definition (unless cell overrides? No cell background override yet)
+        const backgroundColor = col.backgroundColor;
+
+        const cellStyle: React.CSSProperties = {};
+        if (textColor) cellStyle.color = textColor;
+        // if (backgroundColor) cellStyle.backgroundColor = backgroundColor; // Apply to wrapper instead
 
         return (
             <div className="h-full w-full">
@@ -2605,7 +2842,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         });
                     }}
                     style={cellStyle}
-                    className="w-full h-full bg-transparent border-none outline-none px-3 text-sm text-stone-700 dark:text-stone-300 placeholder:text-stone-400 focus:bg-stone-50 dark:focus:bg-stone-800/50 transition-colors"
+                    className="w-full h-full bg-transparent border-none outline-none px-3 text-sm text-center text-stone-700 dark:text-stone-300 placeholder:text-stone-400 focus:bg-stone-50 dark:focus:bg-stone-800/50 transition-colors"
                 />
             </div>
         )
@@ -2635,11 +2872,19 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     return (
                         <div
                             key={col.id}
+                            className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? `z-10 ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}` : ''} ${index === 1 && !isOverlay ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
                             style={{
                                 width: col.width,
-                                ...(isSticky && { left: leftPos, position: 'sticky', transform: 'translateZ(0)' })
+                                ...(isSticky && { left: leftPos, position: 'sticky', transform: 'translateZ(0)' }),
+                                backgroundColor: !isSticky ? (col.backgroundColor || undefined) : undefined
                             }}
-                            className={`h-full border-e border-transparent ${!isOverlay ? 'group-hover:border-stone-100 dark:group-hover:border-stone-800' : ''} ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? `z-10 ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}` : ''} ${index === 1 && !isOverlay ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
+                            onContextMenu={(e) => {
+                                if (col.id === 'select') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setActiveColorMenu({ rect: e.currentTarget.getBoundingClientRect() });
+                                }
+                            }}
                         >
                             {col.id === 'select' ? (
                                 <div
@@ -2650,7 +2895,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                         type="checkbox"
                                         checked={checkedRows.has(row.id)}
                                         onChange={() => toggleRowSelection(row.id)}
-                                        className="rounded border-stone-300 dark:border-stone-600 text-blue-600 focus:ring-blue-500 cursor-pointer w-4 h-4"
+                                        style={{ accentColor: columns.find(c => c.id === 'select')?.color || DEFAULT_CHECKBOX_COLOR }}
+                                        className="rounded border-stone-300 dark:border-stone-600 cursor-pointer w-4 h-4"
                                         onPointerDown={(e) => e.stopPropagation()}
                                     />
                                 </div>
@@ -3267,253 +3513,268 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         onDragOver={handleColumnDragOver}
                         onDragEnd={handleColumnDragEnd}
                     >
-                        {filteredTableGroups.map((group, groupIndex) => (
-                            <div key={group.id} className="mb-4">
-                                {/* Group Header - wrapper spans full width, content is sticky left */}
-                                <div className="shrink-0 bg-white dark:bg-[#1a1c22] border-b border-stone-100 dark:border-stone-800/50 min-w-max sticky top-0 z-50">
-                                    <div className="flex items-center gap-2 px-4 py-3 sticky left-0 w-fit bg-white dark:bg-[#1a1c22]" style={{ transform: 'translateZ(0)' }}>
-                                        {/* Color accent bar */}
-                                        <div className={`w-1 h-6 rounded-full ${group.color.bg}`} />
-                                        <button
-                                            onClick={() => handleToggleGroupCollapse(group.id)}
-                                            className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-md transition-colors text-stone-500 hover:text-stone-700"
-                                        >
-                                            {group.isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                                        </button>
-                                        <EditableName
-                                            name={group.name}
-                                            onRename={(newName) => handleUpdateGroupName(group.id, newName)}
-                                            className={`${group.color.text} text-[24px]`}
-                                        />
-                                        <span className="text-xs text-stone-400 ml-2">
-                                            {group.rows.length} {group.rows.length === 1 ? 'item' : 'items'}
-                                        </span>
-                                        {/* 3-dot menu */}
-                                        <div className="relative ml-2">
+                        {filteredTableGroups.map((group, groupIndex) => {
+                            const totalWidth = columns.reduce((acc, col) => acc + col.width, 0);
+                            return (
+                                <div key={group.id} className="mb-4">
+                                    {/* Group Header - wrapper spans full width, content is sticky left */}
+                                    <div
+                                        className="shrink-0 bg-white dark:bg-[#1a1c22] border-b border-stone-100 dark:border-stone-800/50 sticky top-0 z-50"
+                                        style={{ minWidth: totalWidth }}
+                                    >
+                                        <div className="flex items-center gap-2 px-4 py-3 sticky left-0 z-10 w-fit bg-white dark:bg-[#1a1c22]">
+                                            {/* Color accent bar */}
+                                            <div className={`w-1 h-6 rounded-full ${group.color.bg}`} />
                                             <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const menu = e.currentTarget.nextElementSibling;
-                                                    if (menu) {
-                                                        menu.classList.toggle('hidden');
-                                                    }
-                                                }}
-                                                className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-colors"
+                                                onClick={() => handleToggleGroupCollapse(group.id)}
+                                                className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-md transition-colors text-stone-500 hover:text-stone-700"
                                             >
-                                                <MoreHorizontal size={16} className="text-stone-400" />
+                                                {group.isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                                             </button>
-                                            <div className="hidden absolute left-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-xl z-50 min-w-[120px] py-1">
+                                            <EditableName
+                                                name={group.name}
+                                                onRename={(newName) => handleUpdateGroupName(group.id, newName)}
+                                                className={`${group.color.text} text-[24px]`}
+                                            />
+                                            <span className="text-xs text-stone-400 ml-2">
+                                                {group.rows.length} {group.rows.length === 1 ? 'item' : 'items'}
+                                            </span>
+                                            {/* 3-dot menu */}
+                                            <div className="relative ml-2">
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setDeleteConfig({
-                                                            isOpen: true,
-                                                            title: `Delete "${group.name}" and all its items?`,
-                                                            description: "This will permanently remove the group and all tasks within it.",
-                                                            onConfirm: () => handleDeleteGroup(group.id)
-                                                        });
-                                                        const menu = e.currentTarget.parentElement;
-                                                        if (menu) menu.classList.add('hidden');
+                                                        const menu = e.currentTarget.nextElementSibling;
+                                                        if (menu) {
+                                                            menu.classList.toggle('hidden');
+                                                        }
                                                     }}
-                                                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                                    className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-colors"
                                                 >
-                                                    <Trash2 size={14} />
-                                                    Delete
+                                                    <MoreHorizontal size={16} className="text-stone-400" />
                                                 </button>
+                                                <div className="hidden absolute left-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-xl z-50 min-w-[120px] py-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDeleteConfig({
+                                                                isOpen: true,
+                                                                title: `Delete "${group.name}" and all its items?`,
+                                                                description: "This will permanently remove the group and all tasks within it.",
+                                                                onConfirm: () => handleDeleteGroup(group.id)
+                                                            });
+                                                            const menu = e.currentTarget.parentElement;
+                                                            if (menu) menu.classList.add('hidden');
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             </div>
+
+
                                         </div>
-
-
                                     </div>
-                                </div>
 
-                                {/* Group Body (Table Header + Rows + Input) */}
-                                {!group.isCollapsed && (
-                                    <>
-                                        {/* Table Header - show for ALL groups */}
-                                        {/* Table Header - show for ALL groups */}
-                                        <SortableContext items={columns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
-                                            <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky top-[48px] z-[35]">
-                                                {columns.map((col, index) => {
-                                                    const uniqueId = `${group.id}__${col.id}`;
-                                                    const isSticky = index === 0 || index === 1;
-                                                    const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
-                                                    return (
-                                                        <SortableHeader
-                                                            key={uniqueId}
-                                                            col={{ ...col, id: uniqueId }}
-                                                            index={index}
-                                                            className={`
+                                    {/* Group Body (Table Header + Rows + Input) */}
+                                    {!group.isCollapsed && (
+                                        <>
+                                            {/* Table Header - show for ALL groups */}
+                                            {/* Table Header - show for ALL groups */}
+                                            <SortableContext items={columns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
+                                                <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky top-[48px] z-[35]">
+                                                    {columns.map((col, index) => {
+                                                        const uniqueId = `${group.id}__${col.id}`;
+                                                        const isSticky = index === 0 || index === 1;
+                                                        const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
+                                                        return (
+                                                            <SortableHeader
+                                                                key={uniqueId}
+                                                                col={{ ...col, id: uniqueId }}
+                                                                index={index}
+                                                                className={`
                                                                 h-full flex items-center text-xs font-sans font-medium text-stone-500 dark:text-stone-400 shrink-0
-                                                                ${col.id === 'select' ? 'justify-center px-0' : 'px-3'}
+                                                                ${col.id === 'select' ? 'justify-center px-0' : col.id === 'name' ? 'px-3' : 'justify-center px-3'}
                                                                 ${index !== columns.length - 1 ? 'border-e border-stone-200/50 dark:border-stone-800' : ''}
                                                                 hover:bg-stone-100 dark:hover:bg-stone-800 ${col.id !== 'select' ? 'cursor-pointer' : 'cursor-default'} transition-colors select-none relative group
                                                                 ${isSticky ? 'z-50 bg-stone-50 dark:bg-stone-900' : 'bg-stone-50 dark:bg-stone-900'}
                                                                 ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.1)]' : ''}
                                                                 ${activeColumnDragId === col.id ? 'opacity-30' : ''}
                                                             `}
-                                                            style={{
-                                                                width: col.width,
-                                                                ...(isSticky && { left: leftPos, position: 'sticky' })
-                                                            }}
-                                                            onClick={() => col.id !== 'select' ? handleSort(col.id) : undefined}
-                                                        >
-                                                            {col.id === 'select' && (
-                                                                <div className="w-3.5 h-3.5 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-800 hover:border-stone-400 transition-colors" />
-                                                            )}
-                                                            {col.id !== 'select' && (
-                                                                <div className="flex items-center justify-between w-full px-2">
-                                                                    <span className="truncate flex-1">{col.label}</span>
-                                                                    {!['name', 'select'].includes(col.id) && (
-                                                                        <button
-                                                                            onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
-                                                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
-                                                                            title="Delete Column"
-                                                                        >
-                                                                            <Trash2 size={12} />
-                                                                        </button>
-                                                                    )}
-                                                                    <div
-                                                                        className="w-1 h-3/4 mx-1 cursor-col-resize hover:bg-stone-300 dark:hover:bg-stone-600 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2"
-                                                                        onPointerDown={(e) => e.stopPropagation()}
-                                                                        onMouseDown={(e) => { e.stopPropagation(); startResize(e, col.id, col.width); }}
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </SortableHeader>
-                                                    );
-                                                })}
-                                                {/* Add Column Button */}
-                                                <div className="relative h-full flex flex-col justify-center shrink-0">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            const rect = e.currentTarget.getBoundingClientRect();
-                                                            setActiveColumnMenu({ rect });
-                                                        }}
-                                                        className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-                                                    >
-                                                        <Plus size={14} />
-                                                    </button>
-                                                    {activeColumnMenu && createPortal(
-                                                        <>
-                                                            {/* Backdrop */}
-                                                            <div
-                                                                className="fixed inset-0 z-[90] bg-transparent"
-                                                                onClick={() => setActiveColumnMenu(null)}
-                                                            />
-                                                            {/* Dropdown Menu */}
-                                                            <div
-                                                                className="fixed z-[100]"
-                                                                style={{
-                                                                    top: `${activeColumnMenu.rect.bottom + 8}px`,
-                                                                    right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
-                                                                }}
-                                                            >
-                                                                <ColumnMenu
-                                                                    onClose={() => setActiveColumnMenu(null)}
-                                                                    onSelect={(type, label, options) => { handleAddColumn(type, label, options); setActiveColumnMenu(null); }}
-                                                                />
-                                                            </div>
-                                                        </>,
-                                                        document.body
-                                                    )}
-                                                </div>
-                                                {/* Right spacer */}
-                                                <div className="w-24 shrink-0" />
-                                            </div>
-                                        </SortableContext>
-
-                                        {/* Group Rows */}
-                                        <DndContext
-                                            sensors={sensors}
-                                            collisionDetection={closestCenter}
-                                            onDragStart={handleDragStart}
-                                            onDragEnd={handleDragEnd}
-                                        >
-                                            {/* Creation Row (Draft) at Top */}
-                                            {/* We manually render a row-like structure for the creation row */}
-                                            <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 bg-white dark:bg-stone-900 min-w-max relative z-20">
-                                                {/* Simulate Row Data for Helpers */}
-                                                {(() => {
-                                                    const creationRowData: Row = {
-                                                        id: CREATION_ROW_ID,
-                                                        groupId: group.id,
-                                                        status: null,
-                                                        dueDate: null,
-                                                        date: new Date().toISOString(),
-                                                        priority: null,
-                                                        ...creationRow,
-                                                    } as Row; // Cast as partial row is handled
-
-                                                    return columns.map((col, index) => {
-                                                        const isSticky = index === 0 || index === 1;
-                                                        const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
-
-                                                        // Intercept rendering to use creation handlers
-                                                        // We can reuse renderCellContent but we need to ensure it uses the creation handlers
-                                                        // Actually, standard renderCellContent uses `handleUpdateRow` which calls `handleUpdateRowInGroup`.
-                                                        // We need `handleUpdateRow` to route to `handleUpdateCreationRow` if id is CREATION_ROW_ID.
-
-
-                                                        return (
-                                                            <div
-                                                                key={col.id}
                                                                 style={{
                                                                     width: col.width,
-                                                                    ...(isSticky && { left: leftPos, position: 'sticky' })
+                                                                    ...(isSticky && { left: leftPos, position: 'sticky' }),
+                                                                    backgroundColor: col.headerColor || col.backgroundColor || (isSticky ? undefined : undefined) // fallback handled by classes
                                                                 }}
-                                                                className={`h-full border-e border-transparent group-hover:border-stone-100 dark:group-hover:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-white dark:bg-stone-900' : ''} ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
+                                                                onClick={() => col.id !== 'select' ? handleSort(col.id) : undefined}
+                                                                onContextMenu={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setActiveHeaderMenu({
+                                                                        colId: col.id,
+                                                                        position: { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY }
+                                                                    });
+                                                                }}
                                                             >
-                                                                {col.id === 'select' ? (
-                                                                    <div className="w-full h-full flex items-center justify-center px-2">
-                                                                        <Plus size={14} className="text-stone-400" />
-                                                                    </div>
-                                                                ) : (
-                                                                    renderCellContent(col, creationRowData)
+                                                                {col.id === 'select' && (
+                                                                    <div className="w-3.5 h-3.5 border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-800 hover:border-stone-400 transition-colors" />
                                                                 )}
-                                                            </div>
+                                                                {col.id !== 'select' && (
+                                                                    <div className={`flex items-center ${col.id === 'name' ? 'justify-between' : 'justify-center'} w-full px-2`}>
+                                                                        <span className="truncate flex-1 text-center">{col.label}</span>
+                                                                        {!['name', 'select'].includes(col.id) && (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
+                                                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
+                                                                                title="Delete Column"
+                                                                            >
+                                                                                <Trash2 size={12} />
+                                                                            </button>
+                                                                        )}
+                                                                        <div
+                                                                            className="w-1 h-3/4 mx-1 cursor-col-resize hover:bg-stone-300 dark:hover:bg-stone-600 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2"
+                                                                            onPointerDown={(e) => e.stopPropagation()}
+                                                                            onMouseDown={(e) => { e.stopPropagation(); startResize(e, col.id, col.width); }}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </SortableHeader>
                                                         );
-                                                    });
-                                                })()}
-                                            </div>
+                                                    })}
+                                                    {/* Add Column Button */}
+                                                    <div className="relative h-full flex flex-col justify-center shrink-0">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                setActiveColumnMenu({ rect });
+                                                            }}
+                                                            className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                                                        >
+                                                            <Plus size={14} />
+                                                        </button>
+                                                        {activeColumnMenu && createPortal(
+                                                            <>
+                                                                {/* Backdrop */}
+                                                                <div
+                                                                    className="fixed inset-0 z-[90] bg-transparent"
+                                                                    onClick={() => setActiveColumnMenu(null)}
+                                                                />
+                                                                {/* Dropdown Menu */}
+                                                                <div
+                                                                    className="fixed z-[100]"
+                                                                    style={{
+                                                                        top: `${activeColumnMenu.rect.bottom + 8}px`,
+                                                                        right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
+                                                                    }}
+                                                                >
+                                                                    <ColumnMenu
+                                                                        onClose={() => setActiveColumnMenu(null)}
+                                                                        onSelect={(type, label, options) => { handleAddColumn(type, label, options); setActiveColumnMenu(null); }}
+                                                                    />
+                                                                </div>
+                                                            </>,
+                                                            document.body
+                                                        )}
+                                                    </div>
+                                                    {/* Right spacer */}
+                                                    <div className="w-24 shrink-0" />
+                                                </div>
+                                            </SortableContext>
 
-                                            <SortableContext items={group.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                                                {group.rows.map((row) => (
-                                                    <SortableRow
-                                                        key={row.id}
-                                                        row={row}
-                                                        className={`
+                                            {/* Group Rows */}
+                                            <DndContext
+                                                sensors={sensors}
+                                                collisionDetection={closestCenter}
+                                                onDragStart={handleDragStart}
+                                                onDragEnd={handleDragEnd}
+                                            >
+                                                {/* Creation Row (Draft) at Top */}
+                                                {/* We manually render a row-like structure for the creation row */}
+
+
+                                                <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 bg-white dark:bg-stone-900 min-w-max relative z-20">
+                                                    {/* Simulate Row Data for Helpers */}
+                                                    {(() => {
+                                                        const creationRowData: Row = {
+                                                            id: CREATION_ROW_ID,
+                                                            groupId: group.id,
+                                                            status: null,
+                                                            dueDate: null,
+                                                            date: new Date().toISOString(),
+                                                            priority: null,
+                                                            ...creationRow,
+                                                        } as Row; // Cast as partial row is handled
+
+                                                        return columns.map((col, index) => {
+                                                            const isSticky = index === 0 || index === 1;
+                                                            const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
+
+                                                            return (
+                                                                <div
+                                                                    key={col.id}
+                                                                    style={{
+                                                                        width: col.width,
+                                                                        ...(isSticky && { left: leftPos, position: 'sticky' })
+                                                                    }}
+                                                                    className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-white dark:bg-stone-900' : ''} ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
+                                                                >
+                                                                    {col.id === 'select' ? (
+                                                                        <div className="w-full h-full flex items-center justify-center px-2">
+                                                                            {/* Empty */}
+                                                                        </div>
+                                                                    ) : col.id === 'name' ? (
+                                                                        renderCellContent(col, creationRowData)
+                                                                    ) : null}
+                                                                </div>
+                                                            );
+                                                        });
+                                                    })()}
+                                                </div>
+
+                                                <SortableContext items={group.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                                                    {group.rows.map((row) => (
+                                                        <SortableRow
+                                                            key={row.id}
+                                                            row={row}
+                                                            className={`
                                                     group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 
                                                     hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors relative min-w-max
                                                     ${activeDragId === row.id ? 'opacity-30' : ''}
                                                     ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}
                                                 `}
-                                                    >
-                                                        {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
-                                                    </SortableRow>
-                                                ))}
-                                            </SortableContext>
+                                                        >
+                                                            {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
+                                                        </SortableRow>
+                                                    ))}
+                                                </SortableContext>
 
-                                            {createPortal(
-                                                <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
-                                                    {activeDragId ? (
-                                                        <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
-                                                            {(() => {
-                                                                const row = rows.find(r => r.id === activeDragId);
-                                                                if (!row) return null;
-                                                                return renderRowContent(row, null, true);
-                                                            })()}
-                                                        </div>
-                                                    ) : null}
-                                                </DragOverlay>,
-                                                document.body
-                                            )}
-                                        </DndContext>
-                                    </>
-                                )}
-                            </div>
-                        ))}
+                                                {/* Creation Row (Draft) at Bottom */}
+                                                {/* We manually render a row-like structure for the creation row */}
+
+
+                                                {createPortal(
+                                                    <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
+                                                        {activeDragId ? (
+                                                            <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
+                                                                {(() => {
+                                                                    const row = rows.find(r => r.id === activeDragId);
+                                                                    if (!row) return null;
+                                                                    return renderRowContent(row, null, true);
+                                                                })()}
+                                                            </div>
+                                                        ) : null}
+                                                    </DragOverlay>,
+                                                    document.body
+                                                )}
+                                            </DndContext>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
                         {createPortal(
                             <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }) }}>
                                 {activeColumnDragId ? (
@@ -3614,12 +3875,50 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 />
 
                 {
+                    activeHeaderMenu && (
+                        <HeaderContextMenu
+                            onClose={() => setActiveHeaderMenu(null)}
+                            onHeaderColorSelect={(color) => {
+                                const newCols = columns.map(c => c.id === activeHeaderMenu.colId ? { ...c, headerColor: color } : c);
+                                setColumns(newCols);
+                                setActiveHeaderMenu(null);
+                            }}
+                            onColumnColorSelect={(color) => {
+                                // When coloring column, we color both the background AND the header to match user request "whole column including header"
+                                const newCols = columns.map(c => c.id === activeHeaderMenu.colId ? { ...c, backgroundColor: color, headerColor: color } : c);
+                                setColumns(newCols);
+                                setActiveHeaderMenu(null);
+                            }}
+                            currentHeaderColor={columns.find(c => c.id === activeHeaderMenu.colId)?.headerColor}
+                            currentColumnColor={columns.find(c => c.id === activeHeaderMenu.colId)?.backgroundColor}
+                            position={activeHeaderMenu.position}
+                        />
+                    )
+                }
+                {
                     activeTextMenu && (
                         <TextCellContextMenu
                             onClose={() => setActiveTextMenu(null)}
                             onColorSelect={(color) => handleTextColorChange(activeTextMenu.rowId, activeTextMenu.colId, color)}
                             currentColor={rows.find(r => r.id === activeTextMenu.rowId)?._styles?.[activeTextMenu.colId]?.color}
                             position={activeTextMenu.position}
+                        />
+                    )
+                }
+                {
+                    activeColorMenu && (
+                        <CheckboxColorPicker
+                            onClose={() => setActiveColorMenu(null)}
+                            onSelect={(color) => {
+                                const colId = activeColorMenu.colId || 'select';
+                                const newCols = columns.map(c => c.id === colId ? { ...c, color } : c);
+                                setColumns(newCols);
+                                setActiveColorMenu(null);
+                            }}
+                            current={
+                                columns.find(c => c.id === (activeColorMenu.colId || 'select'))?.color || DEFAULT_CHECKBOX_COLOR
+                            }
+                            triggerRect={activeColorMenu.rect}
                         />
                     )
                 }
@@ -3636,9 +3935,10 @@ interface SortableHeaderProps {
     className?: string;
     style?: React.CSSProperties;
     onClick?: () => void;
+    onContextMenu?: (e: React.MouseEvent) => void;
 }
 
-const SortableHeader: React.FC<SortableHeaderProps> = ({ col, index, children, className, style, onClick }) => {
+const SortableHeader: React.FC<SortableHeaderProps> = ({ col, index, children, className, style, onClick, onContextMenu }) => {
     const {
         attributes,
         listeners,
@@ -3662,6 +3962,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ col, index, children, c
             style={dndStyle}
             className={className}
             onClick={onClick}
+            onContextMenu={onContextMenu}
             {...attributes}
             {...listeners}
         >

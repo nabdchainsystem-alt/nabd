@@ -1062,6 +1062,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
     const headerMenuRef = useRef<HTMLDivElement>(null);
     useClickOutside(headerMenuRef, () => setActiveHeaderMenu('none'));
 
+    // Toolbar state
+    const [showClosedOnly, setShowClosedOnly] = useState(false);
+    const [sortBy, setSortBy] = useState<'none' | 'name' | 'priority' | 'dueDate'>('none');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [filterPriority, setFilterPriority] = useState<string | null>(null);
+    const [filterAssignee, setFilterAssignee] = useState<string | null>(null);
+
     const handleTaskMove = (taskId: string, newStatusId: string) => {
         const updatedTasks = tasks.map(task =>
             task.id === taskId ? { ...task, statusId: newStatusId } : task
@@ -1137,9 +1144,51 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
         }
     };
 
-    const filteredTasks = tasks.filter(t =>
-        t.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredTasks = useMemo(() => {
+        let result = tasks;
+
+        // Search filter
+        if (searchQuery) {
+            result = result.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
+
+        // Priority filter
+        if (filterPriority) {
+            result = result.filter(t => t.priority?.toLowerCase() === filterPriority);
+        }
+
+        // Assignee filter
+        if (filterAssignee) {
+            result = result.filter(t => t.assignee === filterAssignee);
+        }
+
+        // Sorting
+        if (sortBy !== 'none') {
+            result = [...result].sort((a, b) => {
+                let comparison = 0;
+                switch (sortBy) {
+                    case 'name':
+                        comparison = a.title.localeCompare(b.title);
+                        break;
+                    case 'priority': {
+                        const priorityOrder = { urgent: 0, high: 1, medium: 2, normal: 3, low: 4, none: 5 };
+                        const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 5;
+                        const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 5;
+                        comparison = aPriority - bPriority;
+                        break;
+                    }
+                    case 'dueDate':
+                        const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+                        const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+                        comparison = aDate - bDate;
+                        break;
+                }
+                return sortDirection === 'asc' ? comparison : -comparison;
+            });
+        }
+
+        return result;
+    }, [tasks, searchQuery, filterPriority, filterAssignee, sortBy, sortDirection]);
 
     const handleDeleteColumn = (columnId: string) => {
         if (confirm('Are you sure you want to delete this group? All tasks within it will be deleted.')) {
@@ -1158,10 +1207,6 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                     <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700/50 rounded-lg text-xs font-medium text-stone-600 dark:text-stone-300 transition-colors shadow-sm">
                         <Layout size={14} className="text-stone-400" />
                         Group: Status
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700/50 rounded-lg text-xs font-medium text-stone-600 dark:text-stone-300 transition-colors shadow-sm">
-                        <GitMerge size={14} className="text-stone-400" />
-                        Subtasks
                     </button>
                 </div>
 
@@ -1190,30 +1235,91 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                             <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-stone-900 rounded-xl shadow-xl border border-stone-200 dark:border-stone-800 py-2 z-50">
                                 <div className="px-4 py-2 text-xs font-semibold text-stone-400 uppercase tracking-wider">Sort By</div>
                                 {[
-                                    'Status', 'Task Name', 'Assignee', 'Priority', 'Due date', 'Start date',
-                                    'Date created', 'Date updated', 'Date closed', 'Time tracked', 'Time estimate',
-                                    'Total time in Status', 'Duration'
+                                    { label: 'Task Name', value: 'name' },
+                                    { label: 'Priority', value: 'priority' },
+                                    { label: 'Due Date', value: 'dueDate' },
                                 ].map(item => (
-                                    <button key={item} className="w-full text-left px-4 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 text-sm text-stone-700 dark:text-stone-300 block">
-                                        {item}
+                                    <button
+                                        key={item.value}
+                                        onClick={() => { setSortBy(item.value as any); setActiveHeaderMenu('none'); }}
+                                        className={`w-full text-left px-4 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 text-sm text-stone-700 dark:text-stone-300 block ${sortBy === item.value ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600' : ''}`}
+                                    >
+                                        {item.label} {sortBy === item.value && (sortDirection === 'asc' ? '↑' : '↓')}
                                     </button>
                                 ))}
+                                {sortBy !== 'none' && (
+                                    <>
+                                        <div className="border-t border-stone-100 dark:border-stone-800 my-1" />
+                                        <button
+                                            onClick={() => setSortDirection(d => d === 'asc' ? 'desc' : 'asc')}
+                                            className="w-full text-left px-4 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 text-sm text-stone-500 block"
+                                        >
+                                            Toggle Direction ({sortDirection === 'asc' ? 'Ascending' : 'Descending'})
+                                        </button>
+                                        <button
+                                            onClick={() => { setSortBy('none'); setActiveHeaderMenu('none'); }}
+                                            className="w-full text-left px-4 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 text-sm text-rose-500 block"
+                                        >
+                                            Clear Sort
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
 
-                    {/* Filter, Check, Assignee Triggers (simplified for brevity but matching style) */}
+                    {/* Filter Trigger */}
                     <div className="relative">
                         <button
                             onClick={() => setActiveHeaderMenu(activeHeaderMenu === 'filter' ? 'none' : 'filter')}
-                            className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${activeHeaderMenu === 'filter' ? 'bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800'}`}
+                            className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${activeHeaderMenu === 'filter' || filterPriority || filterAssignee ? 'bg-stone-100 dark:bg-stone-800 text-stone-900 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800'}`}
                         >
                             <Filter size={16} />
-                            Filter
+                            Filter {(filterPriority || filterAssignee) && '•'}
                         </button>
+                        {activeHeaderMenu === 'filter' && (
+                            <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-stone-900 rounded-xl shadow-xl border border-stone-200 dark:border-stone-800 py-2 z-50">
+                                <div className="px-4 py-2 text-xs font-semibold text-stone-400 uppercase tracking-wider">Filter by Priority</div>
+                                {['Urgent', 'High', 'Medium', 'Low'].map(p => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setFilterPriority(filterPriority === p.toLowerCase() ? null : p.toLowerCase())}
+                                        className={`w-full text-left px-4 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 text-sm text-stone-700 dark:text-stone-300 block ${filterPriority === p.toLowerCase() ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600' : ''}`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                                <div className="border-t border-stone-100 dark:border-stone-800 my-1" />
+                                <div className="px-4 py-2 text-xs font-semibold text-stone-400 uppercase tracking-wider">Filter by Assignee</div>
+                                {MOCK_PEOPLE.map(person => (
+                                    <button
+                                        key={person.id}
+                                        onClick={() => setFilterAssignee(filterAssignee === person.id ? null : person.id)}
+                                        className={`w-full text-left px-4 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 text-sm text-stone-700 dark:text-stone-300 flex items-center gap-2 ${filterAssignee === person.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600' : ''}`}
+                                    >
+                                        <img src={person.avatar} alt={person.name} className="w-5 h-5 rounded-full" />
+                                        {person.name}
+                                    </button>
+                                ))}
+                                {(filterPriority || filterAssignee) && (
+                                    <>
+                                        <div className="border-t border-stone-100 dark:border-stone-800 my-1" />
+                                        <button
+                                            onClick={() => { setFilterPriority(null); setFilterAssignee(null); setActiveHeaderMenu('none'); }}
+                                            className="w-full text-left px-4 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 text-sm text-rose-500 block"
+                                        >
+                                            Clear All Filters
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    <button className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800 rounded-lg transition-colors">
+                    <button
+                        onClick={() => setShowClosedOnly(!showClosedOnly)}
+                        className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${showClosedOnly ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800'}`}
+                    >
                         <CheckCircle2 size={16} />
                         Closed
                     </button>
@@ -1228,24 +1334,26 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
             {/* Kanban Board Area */}
             <main className="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-4 pt-6 bg-white dark:bg-stone-950">
                 <div className="flex h-full gap-8">
-                    {columns.map(col => (
-                        <Column
-                            key={col.id}
-                            column={col}
-                            tasks={filteredTasks.filter(t => t.statusId === col.id)}
-                            onTaskMove={handleTaskMove}
-                            onAddTask={handleAddTask}
-                            onUpdateTask={handleUpdateTask}
-                            onDeleteTask={handleDeleteTask}
-                            onDuplicateTask={handleDuplicateTask}
-                            onClearColumn={handleClearColumn}
-                            onRenameColumn={handleRenameColumn}
-                            onColorChange={handleColorChange}
-                            onDeleteColumn={handleDeleteColumn}
-                            remindersByItem={remindersByItem}
-                            onOpenReminder={(taskId, rect) => setActiveReminderTarget({ taskId, rect })}
-                        />
-                    ))}
+                    {columns
+                        .filter(col => !showClosedOnly || col.id === 'Done' || col.title === 'Done')
+                        .map(col => (
+                            <Column
+                                key={col.id}
+                                column={col}
+                                tasks={filteredTasks.filter(t => t.statusId === col.id)}
+                                onTaskMove={handleTaskMove}
+                                onAddTask={handleAddTask}
+                                onUpdateTask={handleUpdateTask}
+                                onDeleteTask={handleDeleteTask}
+                                onDuplicateTask={handleDuplicateTask}
+                                onClearColumn={handleClearColumn}
+                                onRenameColumn={handleRenameColumn}
+                                onColorChange={handleColorChange}
+                                onDeleteColumn={handleDeleteColumn}
+                                remindersByItem={remindersByItem}
+                                onOpenReminder={(taskId, rect) => setActiveReminderTarget({ taskId, rect })}
+                            />
+                        ))}
 
                     {/* Add Group Placeholder */}
                     <div className="flex-shrink-0 w-[19rem] pt-3">

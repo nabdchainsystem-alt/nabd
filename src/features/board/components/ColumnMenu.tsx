@@ -60,25 +60,19 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
         { id: 'dropdown', label: 'Dropdown', icon: List, color: 'bg-emerald-500', description: 'Select options' },
         { id: 'text', label: 'Text', icon: Type, color: 'bg-yellow-400', description: 'Free text' },
         { id: 'date', label: 'Date', icon: Calendar, color: 'bg-purple-500', description: 'Dates' },
+        { id: 'files', label: 'Files', icon: Paperclip, color: 'bg-rose-400', description: 'Attach files' },
         { id: 'people', label: 'People', icon: Users, color: 'bg-blue-400', description: 'Assign people' },
         { id: 'number', label: 'Numbers', icon: Hash, color: 'bg-yellow-400', description: 'Count things' },
     ];
 
     const superUseful: ColumnType[] = [
-        { id: 'files', label: 'Files', icon: Paperclip, color: 'bg-rose-400', description: 'Attach files' },
         { id: 'timeline', label: 'Timeline', icon: Calendar, color: 'bg-purple-500', description: 'Visual timeline' },
-        { id: 'connect_boards', label: 'Connect...', icon: Link2, color: 'bg-rose-400', description: 'Connect boards' },
+        { id: 'url', label: 'URL', icon: Link2, color: 'bg-slate-500', description: 'Add a URL' },
         { id: 'checkbox', label: 'Checkbox', icon: CheckSquare, color: 'bg-orange-400', description: 'Check/Uncheck' },
         { id: 'doc', label: 'NABD Doc', icon: FileText, color: 'bg-rose-400', description: 'Embed docs' },
-        { id: 'formula', label: 'Formula', icon: Calculator, color: 'bg-teal-500', description: 'Calculations' },
-        { id: 'location', label: 'Location', icon: MapPin, color: 'bg-rose-500', description: 'Add a location' },
-        { id: 'progress_manual', label: 'Progress', icon: Minus, color: 'bg-emerald-500', description: 'Track progress' },
+        { id: 'location', label: 'Location', icon: MapPin, color: 'bg-red-500', description: 'Add a location' },
         { id: 'rating', label: 'Rating', icon: Star, color: 'bg-yellow-400', description: 'Rate items with stars' },
         { id: 'voting', label: 'Voting', icon: ThumbsUp, color: 'bg-blue-400', description: 'Vote on items' },
-        { id: 'signature', label: 'Signature', icon: PenLine, color: 'bg-emerald-500', description: 'Add a signature' },
-        { id: 'rollup', label: 'Rollup', icon: ArrowUpRight, color: 'bg-indigo-500', description: 'Mirror value' },
-        { id: 'button', label: 'Button', icon: MousePointerClick, color: 'bg-blue-400', description: 'Trigger an action' },
-        { id: 'action_items', label: 'Item ID', icon: ListTodo, color: 'bg-teal-500', description: 'Track unique IDs' },
     ];
 
     const powerUps: ColumnType[] = [
