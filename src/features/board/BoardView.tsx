@@ -587,6 +587,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                         viewId="kanban-main"
                         tasks={tasks}
                         onUpdateTasks={onUpdateTasks}
+                        onDeleteTask={deleteTask}
                     />
                 );
             case 'table':
@@ -658,6 +659,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                         viewId="kanban-main"
                         tasks={board.tasks}
                         onUpdateTasks={onUpdateTasks}
+                        onDeleteTask={deleteTask}
                     />
                 );
         }

@@ -904,9 +904,10 @@ interface KanbanBoardProps {
     viewId?: string;
     tasks: any[];
     onUpdateTasks: (tasks: any[]) => void;
+    onDeleteTask?: (groupId: string, taskId: string) => void;
 }
 
-const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: externalTasks, onUpdateTasks }) => {
+const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: externalTasks, onUpdateTasks, onDeleteTask }) => {
     // Shared key for statuses
     const statusesKey = `board-statuses-${boardId}`;
 
@@ -1090,8 +1091,18 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
     };
 
     const handleDeleteTask = (taskId: string) => {
-        const updatedTasks = tasks.filter(task => task.id !== taskId);
-        updateParent(updatedTasks);
+        // Find the task to get its groupId/statusId for proper deletion
+        const taskToDelete = tasks.find(t => t.id === taskId);
+        const groupId = taskToDelete?.groupId || taskToDelete?.statusId || 'default-group';
+
+        if (onDeleteTask) {
+            // Use proper deletion through shared state
+            onDeleteTask(groupId, taskId);
+        } else {
+            // Fallback: filter and update (may not sync properly)
+            const updatedTasks = tasks.filter(task => task.id !== taskId);
+            updateParent(updatedTasks);
+        }
     };
 
     const handleDuplicateTask = (task: Task) => {

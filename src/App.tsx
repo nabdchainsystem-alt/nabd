@@ -469,6 +469,38 @@ const AppContent: React.FC = () => {
           // Replace optimistic one with real one
           setWorkspaces(prev => prev.map(w => w.id === tempId ? newWorkspaceReal : w));
           setActiveWorkspaceId(newWorkspaceReal.id);
+
+          // Auto-create a default "Table Plan" board for the new workspace
+          const defaultBoardId = `board-${Date.now()}`;
+          const defaultBoard: Board = {
+            id: defaultBoardId,
+            name: 'Board',
+            workspaceId: newWorkspaceReal.id,
+            columns: [
+              { id: 'name', title: 'Name', type: 'text' },
+              { id: 'status', title: 'Status', type: 'status' },
+              { id: 'dueDate', title: 'Due date', type: 'date' },
+              { id: 'priority', title: 'Priority', type: 'priority' }
+            ],
+            tasks: [],
+            defaultView: 'table',
+            availableViews: ['table'],
+            icon: 'Table'
+          };
+
+          // Create the board via API
+          try {
+            const createdBoard = await boardService.createBoard(token, defaultBoard);
+            setBoards(prev => [...prev, createdBoard]);
+            setActiveBoardId(createdBoard.id);
+            setActiveView('board');
+          } catch (boardErr) {
+            console.error("Failed to auto-create default board", boardErr);
+            // Still add to local state as fallback
+            setBoards(prev => [...prev, defaultBoard]);
+            setActiveBoardId(defaultBoardId);
+            setActiveView('board');
+          }
         } else {
           console.error("Failed to add workspace backend, keeping local");
           // Optionally revert or mark as unsynced
