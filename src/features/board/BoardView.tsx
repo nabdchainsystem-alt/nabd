@@ -116,7 +116,7 @@ const SortableTab: React.FC<SortableTabProps> = ({ viewId, isActive, label, icon
             {...listeners}
             onClick={onClick}
             onContextMenu={onContextMenu}
-            className={`flex items-center justify-start text-left gap-2 py-1.5 border-b-2 text-[10.5px] font-medium transition-colors whitespace-nowrap select-none ${isActive
+            className={`flex items-center justify-start text-left gap-2 py-1.5 border-b-2 text-[13.6px] font-medium transition-colors whitespace-nowrap select-none ${isActive
                 ? 'border-slate-900 text-slate-900 dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
@@ -281,6 +281,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; viewId: BoardViewType } | null>(null);
     const contextMenuRef = useRef<HTMLDivElement>(null);
     const addViewRef = useRef<HTMLButtonElement>(null);
+    const boardTitleRef = useRef<HTMLDivElement>(null);
 
     // Custom view names logic (isolated to BoardView for now)
     const viewNamesStorageKey = `board-view-names-${board.id}`;
@@ -736,6 +737,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                             {/* Left: Title */}
                             <div className="relative">
                                 <div
+                                    ref={boardTitleRef}
                                     className="flex items-center gap-1 group cursor-pointer min-w-0"
                                     onClick={() => setShowInfoMenu(!showInfoMenu)}
                                 >
@@ -745,19 +747,18 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
                                 {/* Board Info / Rename Popover */}
                                 {showInfoMenu && (
-                                    <>
-                                        {/* Backdrop to cancel and close when clicking anywhere on page */}
-                                        <div
-                                            className="fixed inset-0 z-40"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                // Reset to original values (cancel)
-                                                setEditName(board.name);
-                                                setEditDescription(board.description || '');
-                                                setShowInfoMenu(false);
-                                            }}
-                                        />
-                                        <div className="absolute top-full left-0 mt-2 w-80 bg-white/90 dark:bg-[#1a1d24]/90 backdrop-blur-xl border border-blue-500/20 dark:border-blue-400/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-50 p-5 animate-in fade-in zoom-in-95 duration-200">
+                                    <PortalPopup
+                                        triggerRef={boardTitleRef}
+                                        onClose={() => {
+                                            // Reset to original values (cancel)
+                                            setEditName(board.name);
+                                            setEditDescription(board.description || '');
+                                            setShowInfoMenu(false);
+                                        }}
+                                        side="bottom"
+                                        align="start"
+                                    >
+                                        <div className="w-80 bg-white/90 dark:bg-[#1a1d24]/90 backdrop-blur-xl border border-blue-500/20 dark:border-blue-400/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] p-5 animate-in fade-in zoom-in-95 duration-200 mt-2">
                                             <div className="space-y-5">
                                                 <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
                                                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Board Settings</span>
@@ -806,7 +807,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                                 </div>
                                             </div>
                                         </div>
-                                    </>
+                                    </PortalPopup>
                                 )}
                             </div>
 
@@ -831,7 +832,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
                         {/* Tabs Row */}
                         <div className="flex items-center gap-0 pr-6 border-b border-gray-200 dark:border-gray-800">
-                            <div className="flex items-center justify-start gap-[23px] overflow-x-auto no-scrollbar max-w-full">
+                            <div className="flex items-center justify-start gap-[11.5px] overflow-x-auto no-scrollbar max-w-full">
                                 {/* Fixed "Overview" Tab */}
                                 {sanitizedAvailableViews.includes('overview') && (() => {
                                     const overviewOption = effectiveViewOptions.find(v => v.id === 'overview');
@@ -842,7 +843,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                         <button
                                             onClick={() => setActiveView('overview')}
                                             onContextMenu={(e) => handleContextMenu(e, 'overview')}
-                                            className={`flex items-center justify-start text-left gap-2 py-1.5 border-b-2 text-[10.5px] font-medium transition-colors whitespace-nowrap ${activeView === 'overview'
+                                            className={`flex items-center justify-start text-left gap-2 py-1.5 border-b-2 text-[13.6px] font-medium transition-colors whitespace-nowrap ${activeView === 'overview'
                                                 ? 'border-slate-900 text-slate-900 dark:text-slate-100'
                                                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                                 }`}

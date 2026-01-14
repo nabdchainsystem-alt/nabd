@@ -1837,8 +1837,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         return filteredTableGroups.map(group => ({
             ...group,
             rows: group.rows.filter(r => paginatedRowIds.has(r.id))
-        })).filter(group => group.rows.length > 0 || group.isPinned);
-    }, [filteredTableGroups, paginatedRows, isAllRows]);
+        })).filter(group => group.rows.length > 0 || group.isPinned || hideGroupHeader);
+    }, [filteredTableGroups, paginatedRows, isAllRows, hideGroupHeader]);
 
     // Priority Summary Calculation
     const priorityStats = useMemo(() => {
@@ -4034,7 +4034,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                 const totalWidth = columns.reduce((acc, col) => acc + col.width, 0);
                                 return (
                                     <SortableGroupWrapper key={group.id} group={group}>
-                                        <div className="mb-4">
+                                        <div className={hideGroupHeader && groupIndex > 0 ? "" : "mb-4"}>
                                             {/* Group Header - wrapper spans full width, content is sticky left */}
                                             {!hideGroupHeader && (
                                                 <div
@@ -4108,112 +4108,114 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                             {!group.isCollapsed && (
                                                 <>
                                                     {/* Table Header - show for ALL groups */}
-                                                    {/* Table Header - show for ALL groups */}
-                                                    <SortableContext items={columns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
-                                                        <div
-                                                            className="group flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky z-[35]"
-                                                            style={{ top: hideGroupHeader ? 0 : '57px' }}
-                                                        >
-                                                            {columns.map((col, index) => {
-                                                                const isSticky = !!col.pinned;
-                                                                let leftPos = 0;
-                                                                if (isSticky) {
-                                                                    for (let i = 0; i < index; i++) {
-                                                                        if (columns[i].pinned) leftPos += columns[i].width;
+                                                    {/* Table Header - show for ALL groups unless hidden for simplified view (Data Table) */}
+                                                    {(groupIndex === 0 || !hideGroupHeader) && (
+                                                        <SortableContext items={columns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
+                                                            <div
+                                                                className="group flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky z-[35]"
+                                                                style={{ top: hideGroupHeader ? 0 : '57px' }}
+                                                            >
+                                                                {columns.map((col, index) => {
+                                                                    const isSticky = !!col.pinned;
+                                                                    let leftPos = 0;
+                                                                    if (isSticky) {
+                                                                        for (let i = 0; i < index; i++) {
+                                                                            if (columns[i].pinned) leftPos += columns[i].width;
+                                                                        }
                                                                     }
-                                                                }
 
-                                                                return (
-                                                                    <TableHeaderCell
-                                                                        key={`${group.id}__${col.id}`}
-                                                                        col={col}
-                                                                        index={index}
-                                                                        columnsLength={columns.length}
-                                                                        group={group}
-                                                                        rows={rows}
-                                                                        renamingColId={renamingColId}
-                                                                        setRenamingColId={setRenamingColId}
-                                                                        handleRenameColumn={handleRenameColumn}
-                                                                        handleSort={handleSort}
-                                                                        handleDeleteColumn={handleDeleteColumn}
-                                                                        handleSelectAll={handleSelectAll}
-                                                                        setActiveHeaderMenu={setActiveHeaderMenu}
-                                                                        startResize={startResize}
-                                                                        activeColumnDragId={activeColumnDragId}
-                                                                        // Pass styling props directly
-                                                                        style={{
-                                                                            width: col.width,
-                                                                            ...(isSticky && { left: leftPos, position: 'sticky' }),
-                                                                            backgroundColor: col.headerColor || col.backgroundColor || (isSticky ? undefined : undefined)
-                                                                        }}
-                                                                        showRightShadow={isSticky && !columns[index + 1]?.pinned}
-                                                                    />
-                                                                );
-                                                            })}
-                                                            <div className="relative h-full flex flex-col justify-center shrink-0">
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                                        setActiveColumnMenu({ rect });
-                                                                    }}
-                                                                    className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-                                                                >
-                                                                    <Plus size={14} />
-                                                                </button>
-                                                                {activeColumnMenu && createPortal(
-                                                                    <>
-                                                                        {/* Backdrop */}
-                                                                        <div
-                                                                            className="fixed inset-0 z-[90] bg-transparent"
-                                                                            onClick={() => setActiveColumnMenu(null)}
-                                                                        />
-                                                                        {/* Dropdown Menu */}
-                                                                        <div
-                                                                            className="fixed z-[100]"
+                                                                    return (
+                                                                        <TableHeaderCell
+                                                                            key={`${group.id}__${col.id}`}
+                                                                            col={col}
+                                                                            index={index}
+                                                                            columnsLength={columns.length}
+                                                                            group={group}
+                                                                            rows={rows}
+                                                                            renamingColId={renamingColId}
+                                                                            setRenamingColId={setRenamingColId}
+                                                                            handleRenameColumn={handleRenameColumn}
+                                                                            handleSort={handleSort}
+                                                                            handleDeleteColumn={handleDeleteColumn}
+                                                                            handleSelectAll={handleSelectAll}
+                                                                            setActiveHeaderMenu={setActiveHeaderMenu}
+                                                                            startResize={startResize}
+                                                                            activeColumnDragId={activeColumnDragId}
+                                                                            // Pass styling props directly
                                                                             style={{
-                                                                                top: `${activeColumnMenu.rect.bottom + 8}px`,
-                                                                                right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
+                                                                                width: col.width,
+                                                                                ...(isSticky && { left: leftPos, position: 'sticky' }),
+                                                                                backgroundColor: col.headerColor || col.backgroundColor || (isSticky ? undefined : undefined)
                                                                             }}
-                                                                        >
-                                                                            <ColumnMenu
-                                                                                onClose={() => setActiveColumnMenu(null)}
-                                                                                onSelect={(type, label, options) => { handleAddColumn(type, label, options); }}
+                                                                            showRightShadow={isSticky && !columns[index + 1]?.pinned}
+                                                                        />
+                                                                    );
+                                                                })}
+                                                                <div className="relative h-full flex flex-col justify-center shrink-0">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            const rect = e.currentTarget.getBoundingClientRect();
+                                                                            setActiveColumnMenu({ rect });
+                                                                        }}
+                                                                        className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                                                                    >
+                                                                        <Plus size={14} />
+                                                                    </button>
+                                                                    {activeColumnMenu && createPortal(
+                                                                        <>
+                                                                            {/* Backdrop */}
+                                                                            <div
+                                                                                className="fixed inset-0 z-[90] bg-transparent"
+                                                                                onClick={() => setActiveColumnMenu(null)}
                                                                             />
-                                                                        </div>
-                                                                    </>,
-                                                                    document.body
-                                                                )}
-                                                            </div>
+                                                                            {/* Dropdown Menu */}
+                                                                            <div
+                                                                                className="fixed z-[100]"
+                                                                                style={{
+                                                                                    top: `${activeColumnMenu.rect.bottom + 8}px`,
+                                                                                    right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
+                                                                                }}
+                                                                            >
+                                                                                <ColumnMenu
+                                                                                    onClose={() => setActiveColumnMenu(null)}
+                                                                                    onSelect={(type, label, options) => { handleAddColumn(type, label, options); }}
+                                                                                />
+                                                                            </div>
+                                                                        </>,
+                                                                        document.body
+                                                                    )}
+                                                                </div>
 
-                                                            {/* Context Menus */}
-                                                            {
-                                                                activeHeaderMenu && (
-                                                                    <HeaderContextMenu
-                                                                        onClose={() => setActiveHeaderMenu(null)}
-                                                                        onHeaderColorSelect={(color) => {
-                                                                            const newCols = columns.map(c => c.id === activeHeaderMenu.colId ? { ...c, headerColor: color } : c);
-                                                                            setColumns(newCols);
-                                                                            setActiveHeaderMenu(null);
-                                                                        }}
-                                                                        onColumnColorSelect={(color) => {
-                                                                            const newCols = columns.map(c => c.id === activeHeaderMenu.colId ? { ...c, backgroundColor: color, headerColor: color } : c);
-                                                                            setColumns(newCols);
-                                                                            setActiveHeaderMenu(null);
-                                                                        }}
-                                                                        onRename={() => {
-                                                                            setRenamingColId(activeHeaderMenu.colId);
-                                                                            setActiveHeaderMenu(null);
-                                                                        }}
-                                                                        currentHeaderColor={columns.find(c => c.id === activeHeaderMenu.colId)?.headerColor}
-                                                                        currentColumnColor={columns.find(c => c.id === activeHeaderMenu.colId)?.backgroundColor}
-                                                                        position={activeHeaderMenu.position}
-                                                                    />
-                                                                )
-                                                            }
-                                                            {/* Right spacer */}
-                                                            <div className="w-24 shrink-0" />
-                                                        </div>
-                                                    </SortableContext>
+                                                                {/* Context Menus */}
+                                                                {
+                                                                    activeHeaderMenu && (
+                                                                        <HeaderContextMenu
+                                                                            onClose={() => setActiveHeaderMenu(null)}
+                                                                            onHeaderColorSelect={(color) => {
+                                                                                const newCols = columns.map(c => c.id === activeHeaderMenu.colId ? { ...c, headerColor: color } : c);
+                                                                                setColumns(newCols);
+                                                                                setActiveHeaderMenu(null);
+                                                                            }}
+                                                                            onColumnColorSelect={(color) => {
+                                                                                const newCols = columns.map(c => c.id === activeHeaderMenu.colId ? { ...c, backgroundColor: color, headerColor: color } : c);
+                                                                                setColumns(newCols);
+                                                                                setActiveHeaderMenu(null);
+                                                                            }}
+                                                                            onRename={() => {
+                                                                                setRenamingColId(activeHeaderMenu.colId);
+                                                                                setActiveHeaderMenu(null);
+                                                                            }}
+                                                                            currentHeaderColor={columns.find(c => c.id === activeHeaderMenu.colId)?.headerColor}
+                                                                            currentColumnColor={columns.find(c => c.id === activeHeaderMenu.colId)?.backgroundColor}
+                                                                            position={activeHeaderMenu.position}
+                                                                        />
+                                                                    )
+                                                                }
+                                                                {/* Right spacer */}
+                                                                <div className="w-24 shrink-0" />
+                                                            </div>
+                                                        </SortableContext>
+                                                    )}
 
                                                     {/* Group Rows */}
                                                     <DndContext
@@ -4225,50 +4227,52 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                         {/* Creation Row (Draft) at Top */}
                                                         {/* We manually render a row-like structure for the creation row */}
 
+                                                        {/* Creation Row (Draft) at Top - Only show for first group in Data Table mode */}
+                                                        {(!hideGroupHeader || groupIndex === 0) && (
+                                                            <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 bg-white dark:bg-stone-900 min-w-max relative z-20">
+                                                                {/* Simulate Row Data for Helpers */}
+                                                                {(() => {
+                                                                    const creationRowData: Row = {
+                                                                        id: CREATION_ROW_ID,
+                                                                        groupId: group.id,
+                                                                        status: null,
+                                                                        dueDate: null,
+                                                                        date: new Date().toISOString(),
+                                                                        priority: null,
+                                                                        ...creationRows[group.id],
+                                                                    } as Row; // Cast as partial row is handled
 
-                                                        <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 bg-white dark:bg-stone-900 min-w-max relative z-20">
-                                                            {/* Simulate Row Data for Helpers */}
-                                                            {(() => {
-                                                                const creationRowData: Row = {
-                                                                    id: CREATION_ROW_ID,
-                                                                    groupId: group.id,
-                                                                    status: null,
-                                                                    dueDate: null,
-                                                                    date: new Date().toISOString(),
-                                                                    priority: null,
-                                                                    ...creationRows[group.id],
-                                                                } as Row; // Cast as partial row is handled
-
-                                                                return columns.map((col, index) => {
-                                                                    const isSticky = !!col.pinned;
-                                                                    let leftPos = 0;
-                                                                    if (isSticky) {
-                                                                        for (let i = 0; i < index; i++) {
-                                                                            if (columns[i].pinned) leftPos += columns[i].width;
+                                                                    return columns.map((col, index) => {
+                                                                        const isSticky = !!col.pinned;
+                                                                        let leftPos = 0;
+                                                                        if (isSticky) {
+                                                                            for (let i = 0; i < index; i++) {
+                                                                                if (columns[i].pinned) leftPos += columns[i].width;
+                                                                            }
                                                                         }
-                                                                    }
 
-                                                                    return (
-                                                                        <div
-                                                                            key={col.id}
-                                                                            style={{
-                                                                                width: col.width,
-                                                                                ...(isSticky && { left: leftPos, position: 'sticky' })
-                                                                            }}
-                                                                            className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-white dark:bg-stone-900' : ''} ${isSticky && !columns[index + 1]?.pinned ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
-                                                                        >
-                                                                            {col.id === 'select' ? (
-                                                                                <div className="w-full h-full flex items-center justify-center px-2">
-                                                                                    {/* Empty */}
-                                                                                </div>
-                                                                            ) : col.id === 'name' ? (
-                                                                                renderCellContent(col, creationRowData)
-                                                                            ) : null}
-                                                                        </div>
-                                                                    );
-                                                                });
-                                                            })()}
-                                                        </div>
+                                                                        return (
+                                                                            <div
+                                                                                key={col.id}
+                                                                                style={{
+                                                                                    width: col.width,
+                                                                                    ...(isSticky && { left: leftPos, position: 'sticky' })
+                                                                                }}
+                                                                                className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-white dark:bg-stone-900' : ''} ${isSticky && !columns[index + 1]?.pinned ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
+                                                                            >
+                                                                                {col.id === 'select' ? (
+                                                                                    <div className="w-full h-full flex items-center justify-center px-2">
+                                                                                        {/* Empty */}
+                                                                                    </div>
+                                                                                ) : col.id === 'name' ? (
+                                                                                    renderCellContent(col, creationRowData)
+                                                                                ) : null}
+                                                                            </div>
+                                                                        );
+                                                                    });
+                                                                })()}
+                                                            </div>
+                                                        )}
 
                                                         <SortableContext items={group.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
                                                             {group.rows.map((row) => (

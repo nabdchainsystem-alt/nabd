@@ -7,7 +7,7 @@ import {
     Pencil, Gauge, X, Star, Heart, Smiley, Cpu, Database, Cloud, Code, TerminalWindow,
     Command, Hash, Image, MusicNotes, VideoCamera, PenNib, Cube, Stack,
     Copy, ArrowSquareOut, Archive, ArrowCircleRight, CheckSquare, Kanban, List,
-    CreditCard, ChatCircleText
+    CreditCard, ChatCircleText, CalendarBlank, ChartLineUp
 } from 'phosphor-react';
 import { Board, Workspace, ViewState } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
@@ -722,49 +722,98 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     )}
                                 </div>
 
-                                {/* Add New Menu - Fixed Position (Right Side) */}
+                                {/* Add New Menu - Simple Board Creator */}
                                 {isAddMenuOpen && (
                                     <div
                                         ref={addMenuRef}
-                                        className="fixed bg-white dark:bg-monday-dark-surface shadow-xl rounded-sm border border-gray-200 dark:border-monday-dark-border z-[100] animate-in fade-in zoom-in-95 duration-100 w-48 overflow-hidden"
+                                        className="fixed bg-white dark:bg-monday-dark-surface shadow-xl rounded-lg border border-gray-200 dark:border-monday-dark-border z-[100] animate-in fade-in zoom-in-95 duration-100 w-64 overflow-hidden"
                                         style={{
                                             top: addMenuPos.top,
                                             left: addMenuPos.left
                                         }}
+                                        onClick={(e) => e.stopPropagation()}
                                     >
-                                        <div className="px-4 py-3 border-b border-gray-100 dark:border-monday-dark-border">
-                                            <span className="text-[14px] font-semibold text-gray-800 dark:text-monday-dark-text">{t('add_new')}</span>
-                                        </div>
-                                        <div className="py-2">
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setIsAddWorkspaceModalOpen(true);
+                                        <form
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                if (newBoardName.trim()) {
+                                                    const iconMap: Record<string, string> = { table: 'Table', datatable: 'Database', kanban: 'Kanban' };
+                                                    // Default to active workspace
+                                                    const workspaceId = activeWorkspaceId;
+                                                    // We can't easily pass workspaceId to onAddBoard if it doesn't accept it, 
+                                                    // but onAddBoard likely handles current workspace internally or we need to check its signature.
+                                                    // Looking at SidebarProps: onAddBoard: (name, icon, template, defaultView, parentId)
+                                                    // It doesn't take workspaceId. It assumes active workspace.
+
+                                                    onAddBoard(
+                                                        newBoardName.trim(),
+                                                        iconMap[selectedLayout] || 'Table',
+                                                        undefined,
+                                                        selectedLayout as any,
+                                                        undefined
+                                                    );
+
+                                                    setNewBoardName('');
+                                                    setSelectedLayout('table');
                                                     setIsAddMenuOpen(false);
-                                                }}
-                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group"
-                                            >
-                                                <Briefcase size={16} className="text-gray-500 dark:text-gray-400" />
-                                                <span>{t('workspace')}</span>
+                                                }
+                                            }}
+                                            className="p-3"
+                                        >
+                                            <div className="mb-3">
+                                                <input
+                                                    type="text"
+                                                    autoFocus
+                                                    value={newBoardName}
+                                                    onChange={(e) => setNewBoardName(e.target.value)}
+                                                    placeholder="Board name"
+                                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-monday-dark-border rounded-md bg-gray-50 dark:bg-monday-dark-bg focus:outline-none focus:ring-1 focus:ring-monday-blue focus:border-monday-blue transition-shadow"
+                                                />
                                             </div>
 
-                                            <div className="h-px bg-gray-100 dark:bg-monday-dark-border my-1"></div>
-
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setCreationStep('details');
-                                                    setSelectedTemplate(undefined);
-                                                    setParentBoardIdForCreation(undefined);
-                                                    setIsNewBoardModalOpen(true);
-                                                    setIsAddMenuOpen(false);
-                                                }}
-                                                className="px-3 py-2 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-monday-dark-hover cursor-pointer text-gray-700 dark:text-gray-200 text-[14px] group"
-                                            >
-                                                <Table size={16} className="text-monday-blue" />
-                                                <span>{t('board')}</span>
+                                            <div className="grid grid-cols-3 gap-1 mb-3">
+                                                {[
+                                                    { id: 'table', label: 'Table', icon: Table },
+                                                    { id: 'datatable', label: 'Data', icon: Database },
+                                                    { id: 'kanban', label: 'Kanban', icon: Kanban }
+                                                ].map((layout) => (
+                                                    <button
+                                                        key={layout.id}
+                                                        type="button"
+                                                        onClick={() => setSelectedLayout(layout.id as any)}
+                                                        className={`flex flex-col items-center gap-1 py-2 px-1 rounded-md text-[10px] font-medium transition-all ${selectedLayout === layout.id
+                                                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 ring-1 ring-blue-100 dark:ring-blue-800'
+                                                            : 'bg-gray-50 dark:bg-monday-dark-hover text-gray-500 dark:text-gray-400 hover:bg-gray-100'
+                                                            }`}
+                                                    >
+                                                        <layout.icon size={16} weight={selectedLayout === layout.id ? "fill" : "regular"} />
+                                                        <span>{layout.label}</span>
+                                                    </button>
+                                                ))}
                                             </div>
-                                        </div>
+
+                                            <button
+                                                type="submit"
+                                                disabled={!newBoardName.trim()}
+                                                className="w-full py-1.5 bg-monday-blue text-white text-xs font-semibold rounded-md hover:bg-blue-600 disabled:opacity-50 transition-colors shadow-sm"
+                                            >
+                                                Create Board
+                                            </button>
+
+                                            {/* Small option to add workspace if needed, minimal footprint */}
+                                            <div className="mt-2 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsAddWorkspaceModalOpen(true);
+                                                        setIsAddMenuOpen(false);
+                                                    }}
+                                                    className="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                                >
+                                                    or create workspace
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
                                 )}
                             </div>
@@ -1003,7 +1052,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         />
 
                         {/* Layout Type Selection */}
-                        <div className="flex gap-1 mt-3">
+                        <div className="grid grid-cols-3 gap-1 mt-3">
                             {[
                                 { id: 'table', label: 'Table', icon: Table },
                                 { id: 'datatable', label: 'Data', icon: Database },
@@ -1013,7 +1062,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     key={layout.id}
                                     type="button"
                                     onClick={() => setSelectedLayout(layout.id as any)}
-                                    className={`flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-md text-xs transition-all ${selectedLayout === layout.id
+                                    className={`flex flex-col items-center gap-1 py-2 px-1 rounded-md text-xs transition-all ${selectedLayout === layout.id
                                         ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
                                         : 'bg-gray-100 dark:bg-monday-dark-hover text-gray-600 dark:text-gray-300 hover:bg-gray-200'
                                         }`}
@@ -1284,7 +1333,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                                 {[
                                                     { id: 'table', label: 'Table', icon: Table, description: 'Spreadsheet view' },
                                                     { id: 'kanban', label: 'Kanban', icon: Kanban, description: 'Visual workflow' },
-                                                    { id: 'datatable', label: 'Data Table', icon: Database, description: 'High performance' }
+                                                    { id: 'list', label: 'List', icon: List, description: 'Simple list view' },
+                                                    { id: 'calendar', label: 'Calendar', icon: CalendarBlank, description: 'Schedule tasks' },
+                                                    { id: 'gantt', label: 'Gantt', icon: ChartLineUp, description: 'Visual timeline' },
+                                                    { id: 'doc', label: 'Doc', icon: FileText, description: 'Collaborate on docs' },
                                                 ].map((tool) => (
                                                     <button
                                                         key={tool.id}

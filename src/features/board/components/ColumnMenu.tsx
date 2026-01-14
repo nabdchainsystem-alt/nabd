@@ -159,9 +159,15 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
     };
 
     const RenderItem: React.FC<{ type: ColumnType, showPlus?: boolean }> = ({ type, showPlus = true }) => (
-        <button
-            onClick={() => handleSelect(type)}
-            className="flex items-center gap-3 w-full p-1.5 rounded hover:bg-gray-100 dark:hover:bg-stone-800 transition-colors group text-left"
+        <div
+            className="flex items-center gap-3 w-full p-1.5 rounded hover:bg-gray-100 dark:hover:bg-stone-800 transition-colors group text-left cursor-pointer"
+            onClick={() => {
+                handleSelect(type);
+                // For direct actions (not custom/dropdown setup), close the menu
+                if (type.id !== 'custom' && type.id !== 'dropdown') {
+                    onClose();
+                }
+            }}
         >
             <div className={`shrink-0 w-6 h-6 rounded flex items-center justify-center ${type.color} text-white shadow-sm`}>
                 <type.icon size={12} strokeWidth={2.5} />
@@ -170,9 +176,17 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
                 {type.label}
             </span>
             {showPlus && (
-                <Plus size={14} className="text-gray-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelect(type);
+                    }}
+                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-stone-700 text-gray-400 group-hover:text-stone-600 dark:text-stone-500 dark:group-hover:text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    <Plus size={14} />
+                </button>
             )}
-        </button>
+        </div>
     );
 
     if (view === 'custom_name') {
