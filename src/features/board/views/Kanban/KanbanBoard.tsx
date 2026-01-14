@@ -95,6 +95,13 @@ export const priorityConfig: Record<Priority, { color: string; label: string; do
     normal: { color: MEDIUM_CLASSES.text, dot: MEDIUM_CLASSES.dot, label: 'Medium' },
 };
 
+const PRIORITY_STYLES: Record<string, string> = {
+    'Urgent': 'bg-[#EF4444] text-white', // Red
+    'High': 'bg-[#F59E0B] text-white', // Orange
+    'Medium': 'bg-[#3B82F6] text-white', // Blue
+    'Low': 'bg-[#10B981] text-white', // Green
+};
+
 // --- Sub-Components (Menus, etc.) ---
 
 const MenuItem = ({ icon: Icon, label, hasSubmenu = false }: { icon: any, label: string, hasSubmenu?: boolean }) => (
@@ -109,26 +116,34 @@ const MenuItem = ({ icon: Icon, label, hasSubmenu = false }: { icon: any, label:
 
 export const PriorityMenu = ({ currentPriority, onSelect }: { currentPriority: Priority, onSelect: (p: Priority | 'clear') => void }) => {
     return (
-        <div className="py-2">
-            <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Task Priority</div>
+        <div className="flex flex-col gap-1 p-2">
+            <div className="px-4 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Task Priority</div>
             {PRIORITY_LEVELS.map(level => {
                 const value = level.toLowerCase() as Priority;
-                const colors = getPriorityClasses(level);
+                const styleClass = PRIORITY_STYLES[level] || 'bg-gray-100 text-gray-800';
+                const isActive = normalizePriority(currentPriority) === level;
                 return (
-                    <button key={level} onClick={() => onSelect(value)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-sm text-gray-700">
-                        <Flag size={16} className={colors.text} fill="currentColor" /> {level}
+                    <button
+                        key={level}
+                        onClick={() => onSelect(value)}
+                        className={`w-full flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded shadow-sm transition-transform active:scale-95 ${styleClass} ${isActive ? 'ring-2 ring-offset-1 ring-stone-400' : ''}`}
+                    >
+                        {level}
                     </button>
                 );
             })}
-            <div className="h-px bg-gray-100 my-1"></div>
-            <button onClick={() => onSelect('clear')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-3 text-sm text-gray-700">
-                <Slash size={16} className="text-gray-400" /> Clear
+            <div className="h-px bg-gray-100 my-1 mx-2"></div>
+            <button
+                onClick={() => onSelect('clear')}
+                className="w-full text-left px-3 py-1.5 rounded flex items-center justify-center gap-2 text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+                No priority
             </button>
-            <div className="mt-2 pt-2 border-t border-gray-100 px-4 pb-2">
-                <div className="text-xs text-gray-500 mb-2">Add to Personal Priorities</div>
+            <div className="mt-2 pt-2 border-t border-gray-100 px-3 pb-1">
+                <div className="text-[10px] font-semibold text-gray-400 mb-2 uppercase tracking-wide">Add to Personal Priorities</div>
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">MA</div>
-                    <button className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200"><PlusIcon size={14} /></button>
+                    <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm ring-1 ring-gray-100">MA</div>
+                    <button className="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 flex items-center justify-center hover:bg-gray-50 hover:text-gray-600 hover:border-gray-300 transition-all"><PlusIcon size={14} /></button>
                 </div>
             </div>
         </div>

@@ -1,8 +1,9 @@
 export enum Status {
-    New = 'New',
-    Working = 'Working',
+    ToDo = 'To Do',
+    WorkingOnIt = 'Working on it',
     Stuck = 'Stuck',
     Done = 'Done',
+    InProgress = 'In Progress',
     Pending = 'Pending',
     AlmostFinish = 'Almost Done'
 }
@@ -16,10 +17,11 @@ export enum Priority {
 }
 
 export const STATUS_COLORS: Record<Status, string> = {
-    [Status.New]: '#c4c4c4',
-    [Status.Working]: '#fdab3d',
+    [Status.ToDo]: '#c4c4c4',
+    [Status.WorkingOnIt]: '#fdab3d',
     [Status.Stuck]: '#e2445c',
     [Status.Done]: '#00c875',
+    [Status.InProgress]: '#3B82F6',
     [Status.Pending]: '#579bfc',
     [Status.AlmostFinish]: '#a25ddc'
 };

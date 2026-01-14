@@ -19,7 +19,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
     existingTask
 }) => {
     const [title, setTitle] = useState('');
-    const [status, setStatus] = useState<Status>(Status.New);
+    const [status, setStatus] = useState<Status>(Status.ToDo);
     const [priority, setPriority] = useState<Priority>(Priority.Normal);
     const [date, setDate] = useState('');
 
@@ -32,7 +32,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
                 setDate(existingTask.dueDate ? existingTask.dueDate.split('T')[0] : '');
             } else {
                 setTitle('');
-                setStatus(Status.New);
+                setStatus(Status.ToDo);
                 setPriority(Priority.Normal);
                 // Format initialDate as YYYY-MM-DD
                 const d = initialDate || new Date();
@@ -58,14 +58,16 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex justify-end bg-transparent" onClick={onClose}>
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                    className="w-full max-w-md bg-white dark:bg-[#1e2129] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+                    initial={{ x: "100%", opacity: 0.5 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: "100%", opacity: 0.5 }}
+                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full max-w-md h-full bg-white dark:bg-[#1e2129] shadow-2xl border-l border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
                 >
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {existingTask ? 'Edit Event' : 'New Event'}
                         </h2>
@@ -77,7 +79,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                    <form onSubmit={handleSubmit} className="p-6 space-y-5 flex-1 overflow-y-auto">
                         <div className="space-y-2">
                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                                 Event Title
@@ -141,7 +143,7 @@ export const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
                             </div>
                         </div>
 
-                        <div className="pt-4 flex items-center justify-end gap-3">
+                        <div className="pt-4 flex items-center justify-end gap-3 mt-auto">
                             <button
                                 type="button"
                                 onClick={onClose}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import {
     ChevronLeft,
     ChevronRight,
@@ -21,10 +21,12 @@ import {
     useDroppable
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ITask, Status } from '../../types/boardTypes';
+import { ITask, Status, PEOPLE } from '../../types/boardTypes';
 import { useRoomBoardData } from '../../hooks/useRoomBoardData';
+import { useClickOutside } from '../../../../hooks/useClickOutside';
 import { CalendarEventModal } from './components/CalendarEventModal';
 import { motion } from 'framer-motion';
+import { User, UserCheck } from 'lucide-react';
 
 type CalendarViewMode = 'daily' | '5days' | 'weekly' | 'monthly' | 'yearly';
 
@@ -60,7 +62,7 @@ const DraggableTask: React.FC<{ task: ITask; onClick: (e: React.MouseEvent) => v
     // New "Dot + Text" style
     let dotColor = 'bg-gray-400';
     if (task.status === Status.Done) dotColor = 'bg-green-500';
-    else if (task.status === Status.Working) dotColor = 'bg-amber-500';
+    else if (task.status === Status.WorkingOnIt) dotColor = 'bg-amber-500';
     else if (task.status === Status.Stuck) dotColor = 'bg-red-500';
 
     return (
@@ -155,6 +157,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
     const [currentDate, setCurrentDate] = useState(new Date());
     const [calendarView, setCalendarView] = useState<CalendarViewMode>('monthly');
 
+    const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
+    const viewMenuRef = useRef<HTMLDivElement>(null);
+    useClickOutside(viewMenuRef, () => setIsViewMenuOpen(false));
+
+    // Filter States
+    const [isFilterActive, setIsFilterActive] = useState(false);
+    const [filterText, setFilterText] = useState('');
+    const [isClosedFilterActive, setIsClosedFilterActive] = useState(false);
+    const [isAssignedToMeActive, setIsAssignedToMeActive] = useState(false);
+    const [isAssigneeMenuOpen, setIsAssigneeMenuOpen] = useState(false);
+    const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
+    const peopleMenuRef = useRef<HTMLDivElement>(null);
+    useClickOutside(peopleMenuRef, () => setIsAssigneeMenuOpen(false));
+
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalDate, setModalDate] = useState(new Date());
@@ -189,6 +205,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
             board.groups.forEach(group => {
                 group.tasks.forEach(task => {
                     if (!task.dueDate) return;
+
+                    // Filters
+                    if (isClosedFilterActive) {
+                        // If closed filter is ON, show ONLY Done tasks
+                        if (task.status !== Status.Done) return;
+                    }
+                    if (filterText) {
+                        if (!task.name.toLowerCase().includes(filterText.toLowerCase())) return;
+                    }
+
+                    // Assignment Filter Logic
+                    if (isAssignedToMeActive) {
+                        if (task.personId !== '1') return;
+                    } else if (selectedAssigneeId) {
+                        if (task.personId !== selectedAssigneeId) return;
+                    }
+
                     const dateObj = new Date(task.dueDate);
                     const key = formatKey(dateObj);
                     if (!map[key]) map[key] = [];
@@ -197,7 +230,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
             });
         }
         return map;
-    }, [board]);
+    }, [board, isClosedFilterActive, filterText, isAssignedToMeActive, selectedAssigneeId]);
 
     const monthGrid = useMemo(() => {
         const year = currentDate.getFullYear();
@@ -295,90 +328,193 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
                 {/* --- Header Section --- */}
                 <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
                     {/* Top Row: Title, Nav, Actions */}
-                    <div className="flex items-center justify-between px-6 py-3.5">
-                        <div className="flex items-center gap-6">
+                    <div className="flex items-center justify-start gap-4 px-0 py-3">
+                        <div className="flex items-center gap-3">
                             {/* Today Button */}
                             <button
                                 onClick={goToToday}
-                                className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                className="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                             >
                                 Today
                             </button>
 
                             {/* Month Dropdown Stub (Visual) */}
-                            <button className="flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 px-2 py-1.5 rounded-md transition-colors">
-                                <span>Month</span>
-                                <ChevronDown size={14} className="text-gray-400" />
-                            </button>
+                            {/* Month Dropdown / View Switcher */}
+                            <div className="relative" ref={viewMenuRef}>
+                                <button
+                                    onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
+                                    className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors"
+                                >
+                                    <span>
+                                        {calendarView === 'daily' ? 'Day' :
+                                            calendarView === '5days' ? '4 Days' :
+                                                calendarView === 'weekly' ? 'Week' :
+                                                    'Month'}
+                                    </span>
+                                    <ChevronDown size={12} className="text-gray-400" />
+                                </button>
 
-                            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+                                {isViewMenuOpen && (
+                                    <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1">
+                                        {[
+                                            { label: 'Day', value: 'daily' },
+                                            { label: '4 Days', value: '5days' },
+                                            { label: 'Week', value: 'weekly' },
+                                            { label: 'Month', value: 'monthly' },
+                                        ].map((option) => (
+                                            <button
+                                                key={option.value}
+                                                onClick={() => {
+                                                    setCalendarView(option.value as CalendarViewMode);
+                                                    setIsViewMenuOpen(false);
+                                                }}
+                                                className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors
+                                                    ${calendarView === option.value ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'}
+                                                `}
+                                            >
+                                                {option.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="h-4 w-px bg-gray-200 dark:bg-gray-700" />
 
                             {/* Navigation & Title */}
-                            <div className="flex items-center gap-2">
-                                <button onClick={prev} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 transition-colors"><ChevronLeft size={18} /></button>
-                                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            {/* Navigation & Title */}
+                            <div className="flex items-center gap-1">
+                                <button onClick={prev} className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 transition-colors"><ChevronLeft size={16} /></button>
+                                <button onClick={next} className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 transition-colors"><ChevronRight size={16} /></button>
+                                <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100 ml-2">
                                     {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                                 </h1>
-                                <button onClick={next} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full text-gray-500 transition-colors"><ChevronRight size={18} /></button>
+                            </div>
+
+
+                            <div className="flex items-center gap-2">
+                                {/* Filter Button & Input */}
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const newState = !isFilterActive;
+                                            setIsFilterActive(newState);
+                                            if (!newState) setFilterText('');
+                                        }}
+                                        className={`flex items-center gap-1 px-2 py-0.5 border rounded-full text-[11px] font-medium transition-colors
+                                        ${isFilterActive ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}
+                                    `}
+                                    >
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                                        Filter
+                                    </button>
+                                    {isFilterActive && (
+                                        <motion.input
+                                            initial={{ opacity: 0, width: 0 }}
+                                            animate={{ opacity: 1, width: 120 }}
+                                            type="text"
+                                            placeholder="Search..."
+                                            value={filterText}
+                                            onChange={(e) => setFilterText(e.target.value)}
+                                            className="text-xs px-2 py-1 bg-gray-50 dark:bg-[#252830] border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            autoFocus
+                                        />
+                                    )}
+                                </div>
+
+                                <button
+                                    onClick={() => setIsClosedFilterActive(!isClosedFilterActive)}
+                                    className={`flex items-center gap-1 px-2 py-0.5 border rounded-full text-[11px] font-medium transition-colors
+                                    ${isClosedFilterActive ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}
+                                `}
+                                >
+                                    Closed
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        const newState = !isAssignedToMeActive;
+                                        setIsAssignedToMeActive(newState);
+                                        if (newState) setSelectedAssigneeId(null); // Clear specific person if "Me" is active
+                                    }}
+                                    className={`flex items-center gap-1 px-2 py-0.5 border rounded-full text-[11px] font-medium transition-colors
+                                    ${isAssignedToMeActive ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}
+                                `}
+                                >
+                                    <UserCheck size={10} />
+                                    Assigned to me
+                                </button>
+
+                                {/* People Filter */}
+                                <div className="relative" ref={peopleMenuRef}>
+                                    <button
+                                        onClick={() => setIsAssigneeMenuOpen(!isAssigneeMenuOpen)}
+                                        className={`flex items-center gap-1 px-2 py-0.5 border rounded-full text-[11px] font-medium transition-colors
+                                        ${selectedAssigneeId ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'}
+                                    `}
+                                    >
+                                        <User size={10} />
+                                        People
+                                    </button>
+                                    {isAssigneeMenuOpen && (
+                                        <div className="absolute top-full left-0 mt-1 w-40 bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1">
+                                            <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                                <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">All Users</span>
+                                                {selectedAssigneeId && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedAssigneeId(null);
+                                                            setIsAssigneeMenuOpen(false);
+                                                        }}
+                                                        className="text-[10px] text-red-500 hover:text-red-700 font-medium bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded"
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {PEOPLE.map(person => (
+                                                <button
+                                                    key={person.id}
+                                                    onClick={() => {
+                                                        setSelectedAssigneeId(person.id);
+                                                        setIsAssignedToMeActive(false); // Clear "Assigned to me" when picking a person
+                                                        setIsAssigneeMenuOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2
+                                                    ${selectedAssigneeId === person.id ? 'font-semibold text-blue-600' : 'text-gray-700 dark:text-gray-300'}
+                                                `}
+                                                >
+                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: person.color }} />
+                                                    {person.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Right: Search, Customization, Add Task */}
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400">
-                                <button className="flex items-center gap-1.5 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-sm font-medium">
-                                    <Search size={16} />
-                                    <span>Search</span>
-                                </button>
-                                {/* Hide & Customize Stubs */}
-                                {/* In a real app these would toggle UI or Modals */}
-                                <button className="flex items-center gap-1.5 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-sm font-medium">
-                                    {/* Using a placeholder icon for Hide */}
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                                    <span>Hide</span>
-                                </button>
-                                <button className="flex items-center gap-1.5 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-sm font-medium">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-                                    <span>Customize</span>
-                                </button>
-                                <button className="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
-                                </button>
-                            </div>
-
-                            <button
-                                onClick={() => {
-                                    setModalDate(new Date());
-                                    setEditingTask(null);
-                                    setIsModalOpen(true);
-                                }}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
-                            >
-                                <Plus size={16} /> Add Task
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => {
+                                setModalDate(new Date());
+                                setEditingTask(null);
+                                setIsModalOpen(true);
+                            }}
+                            className="flex items-center gap-1.5 ml-auto hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-xs font-medium"
+                        >
+                            <Plus size={14} />
+                            <span>Add Task</span>
+                        </button>
                     </div>
 
-                    {/* Bottom Row: Filters (Filter / Closed / Assignee) */}
-                    <div className="flex items-center gap-2 px-6 pb-3 overflow-x-auto no-scrollbar">
-                        <button className="flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                            Filter
-                        </button>
-                        <button className="flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                            Closed
-                        </button>
-                        <button className="flex items-center gap-1.5 px-3 py-1 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                            Assignee
-                        </button>
-                        {/* More Filter dots */}
-                        <div className="ml-auto flex gap-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700" />
-                            <div className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700" />
-                            <div className="w-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700" />
-                        </div>
-                    </div>
+                    {/* Right: Search, Customization, Add Task */}
+
+
+
+
+
+
                 </div>
 
                 {/* --- Grid Section --- */}
@@ -455,7 +591,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
                 <DragOverlay>
                     {/* Optional: Custom Drag Preview */}
                 </DragOverlay>
-            </DndContext>
+            </DndContext >
 
             <CalendarEventModal
                 isOpen={isModalOpen}
@@ -464,7 +600,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
                 initialDate={modalDate}
                 existingTask={editingTask?.task}
             />
-        </div>
+        </div >
     );
 };
 

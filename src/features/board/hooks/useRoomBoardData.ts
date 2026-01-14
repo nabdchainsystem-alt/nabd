@@ -255,7 +255,7 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
                         tasks: [{
                             id: uuidv4(),
                             name,
-                            status: Status.New,
+                            status: Status.ToDo,
                             priority: Priority.Normal,
                             personId: null,
                             dueDate: '',

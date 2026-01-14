@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import { ChartBuilderModal } from '../../components/chart-builder/ChartBuilderModal';
@@ -19,6 +19,7 @@ import {
     Calendar as CalendarIcon,
     Clock,
     Link2, // Import Link2
+    Pin,
     MapPin,
     CheckCircle2,
     Circle,
@@ -78,6 +79,7 @@ import {
     horizontalListSortingStrategy,
     useSortable,
 } from '@dnd-kit/sortable';
+import { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { CSS } from '@dnd-kit/utilities';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ColumnMenu } from '../../components/ColumnMenu';
@@ -158,6 +160,7 @@ export interface TableGroup {
     name: string;
     rows: Row[];
     isCollapsed: boolean;
+    isPinned?: boolean; // New: Pin group to top
     color: GroupColor; // Color accent for the group
 }
 
@@ -354,34 +357,32 @@ const PriorityPicker: React.FC<{
             <div
                 ref={menuRef}
                 onClick={(e) => e.stopPropagation()}
-                className="fixed z-[9999] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 min-w-[180px]"
+                className="fixed z-[9999] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 min-w-[200px]"
                 style={positionStyle}
             >
-                <div className="px-3 py-2 bg-stone-50 dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Priority</span>
+                <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-800">
+                    <span className="text-[11px] font-bold font-sans uppercase tracking-wider text-stone-400">Task Priority</span>
                 </div>
-                <div className="p-1">
+                <div className="p-2 flex flex-col gap-1">
                     {PRIORITY_LEVELS.map((label) => {
-                        const colors = getPriorityClasses(label);
+                        const styleClass = PRIORITY_STYLES[label] || 'bg-gray-100 text-gray-800';
                         const isActive = normalizedCurrent === label;
                         return (
                             <button
                                 key={label}
                                 onClick={() => { onSelect(label); onClose(); }}
-                                className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${isActive ? 'bg-stone-50 dark:bg-stone-800/50' : ''}`}
+                                className={`w-full flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded shadow-sm transition-transform active:scale-95 ${styleClass} ${isActive ? 'ring-2 ring-offset-1 ring-stone-400 dark:ring-stone-600' : ''}`}
                             >
-                                <Flag size={16} className={colors.text} fill="currentColor" fillOpacity={isActive ? 1 : 0.3} />
-                                <span className="text-stone-700 dark:text-stone-200">{label}</span>
+                                {label}
                             </button>
                         );
                     })}
-                    <div className="h-px bg-stone-100 dark:bg-stone-800 my-1"></div>
+                    <div className="h-px bg-stone-100 dark:bg-stone-800 my-1 mx-2"></div>
                     <button
                         onClick={() => { onSelect(null); onClose(); }}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-stone-500 hover:text-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 rounded transition-colors"
                     >
-                        <Flag size={16} className="text-stone-400" />
-                        <span className="text-stone-700 dark:text-stone-200">No priority</span>
+                        <span>No priority</span>
                     </button>
                 </div>
             </div>
@@ -389,6 +390,46 @@ const PriorityPicker: React.FC<{
     );
 
     return createPortal(content, document.body);
+};
+
+// --- Group Drag Components ---
+const GroupDragContext = React.createContext<{ listeners?: SyntheticListenerMap, attributes?: any }>({});
+
+const SortableGroupWrapper: React.FC<{ group: TableGroup; children: React.ReactNode }> = ({ group, children }) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: group.id, data: { type: 'group', group } });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : undefined, // Lower z-index than columns but high enough
+        position: 'relative' as const,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className={isDragging ? 'opacity-50' : ''}>
+            <GroupDragContext.Provider value={{ listeners, attributes }}>
+                {children}
+            </GroupDragContext.Provider>
+        </div>
+    );
+};
+
+const GroupDragHandle: React.FC<{ colorClass?: string }> = ({ colorClass }) => {
+    const { listeners, attributes } = useContext(GroupDragContext);
+    return (
+        <div
+            {...listeners}
+            {...attributes}
+            className={`w-1.5 h-6 rounded-full ${colorClass} cursor-grab active:cursor-grabbing hover:scale-110 transition-transform touch-none`}
+        />
+    );
 };
 
 const StatusPicker: React.FC<{
@@ -472,43 +513,47 @@ const StatusPicker: React.FC<{
             <div
                 ref={menuRef}
                 onClick={(e) => e.stopPropagation()}
-                className="fixed w-56 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl z-[100] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
+                className="fixed w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
                 style={positionStyle}
             >
-                <div className="px-3 py-2 bg-stone-50 dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
-                    <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Status</span>
+                <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-800">
+                    <span className="text-[11px] font-bold font-sans uppercase tracking-wider text-stone-400">Task Status</span>
                 </div>
-                <div className="p-1 max-h-48 overflow-y-auto">
-                    {displayStatuses.map((s) => (
-                        <button
-                            key={s}
-                            onClick={() => { onSelect(s); onClose(); }}
-                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${current === s ? 'bg-stone-50 dark:bg-stone-800/50' : ''}`}
-                        >
-                            {getStatusIcon(s)}
-                            <span className="text-stone-700 dark:text-stone-200 flex-1 truncate">{s}</span>
-                            {!defaultStatuses.includes(s) && onDelete && (
-                                <div
-                                    role="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDelete(s);
-                                    }}
-                                    className="p-1 text-stone-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                <div className="p-2 max-h-64 overflow-y-auto flex flex-col gap-1 custom-scrollbar">
+                    {displayStatuses.map((s) => {
+                        const statusStyle = STATUS_STYLES[s] || 'bg-gray-100 text-gray-800';
+                        const isActive = current === s;
+                        return (
+                            <div key={s} className="group relative flex items-center">
+                                <button
+                                    onClick={() => { onSelect(s); onClose(); }}
+                                    className={`flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded shadow-sm transition-transform active:scale-95 ${statusStyle} ${isActive ? 'ring-2 ring-offset-1 ring-stone-400 dark:ring-stone-600' : ''}`}
                                 >
-                                    <Trash size={12} />
-                                </div>
-                            )}
-                        </button>
-                    ))}
+                                    {s}
+                                </button>
+                                {!defaultStatuses.includes(s) && onDelete && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDelete(s);
+                                        }}
+                                        className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-stone-400 hover:text-red-500 bg-white/50 hover:bg-white/80 rounded-r opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Delete status"
+                                    >
+                                        <Trash size={12} />
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
-                <form onSubmit={handleAddStatus} className="p-2 border-t border-stone-100 dark:border-stone-800">
+                <form onSubmit={handleAddStatus} className="p-2 border-t border-stone-100 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50">
                     <input
                         type="text"
                         value={customStatus}
                         onChange={(e) => setCustomStatus(e.target.value)}
                         placeholder="Add new status..."
-                        className="w-full px-2 py-1 text-xs bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded focus:outline-none focus:ring-1 focus:ring-stone-400"
+                        className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg focus:outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-100 dark:focus:ring-stone-800 transition-all placeholder:text-stone-400"
                     />
                 </form>
             </div>
@@ -642,35 +687,42 @@ const CheckboxColorPicker: React.FC<{
     triggerRect?: DOMRect;
 }> = ({ onSelect, onClose, current, triggerRect }) => {
     const menuRef = useRef<HTMLDivElement>(null);
-    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
-        if (triggerRect) {
-            const menuHeight = 100;
-            const spaceBelow = window.innerHeight - triggerRect.bottom;
-            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
-            if (openUp) {
-                return { bottom: window.innerHeight - triggerRect.top - 4, left: triggerRect.left, position: 'fixed' };
-            } else {
-                return { top: triggerRect.bottom - 4, left: triggerRect.left, position: 'fixed' };
-            }
-        }
-        return { display: 'none' };
-    });
+    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>({ display: 'none' });
 
     useLayoutEffect(() => {
-        if (triggerRect) {
-            const menuHeight = 100;
+        if (triggerRect && menuRef.current) {
+            const menuWidth = 190; // Fixed width from w-[190px]
+            const menuHeight = 200; // Approx height
+
             const spaceBelow = window.innerHeight - triggerRect.bottom;
             const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
+
+            const style: React.CSSProperties = { position: 'fixed', zIndex: 9999 };
+
             if (openUp) {
-                setPositionStyle({ bottom: window.innerHeight - triggerRect.top - 4, left: triggerRect.left, position: 'fixed' });
+                style.bottom = window.innerHeight - triggerRect.top - 4;
             } else {
-                setPositionStyle({ top: triggerRect.bottom - 4, left: triggerRect.left, position: 'fixed' });
+                style.top = triggerRect.bottom - 4;
             }
+
+            // Default: align left edge of menu with left edge of trigger
+            style.left = triggerRect.left;
+
+            // Check overflow right
+            // Force it to fit if it overflows
+            if (triggerRect.left + menuWidth > window.innerWidth - 10) {
+                style.left = window.innerWidth - menuWidth - 10;
+            }
+
+            setPositionStyle(style);
         }
     }, [triggerRect]);
 
     const COLORS = [
-        '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#78716c'
+        // Pastels
+        '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#10b981',
+        '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6',
+        '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#78716c', '#1c1917'
     ];
 
     const content = (
@@ -679,17 +731,41 @@ const CheckboxColorPicker: React.FC<{
             <div
                 ref={menuRef}
                 onClick={(e) => e.stopPropagation()}
-                className="fixed z-[100] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl p-2 grid grid-cols-4 gap-2 animate-in fade-in zoom-in-95 duration-100"
+                className="fixed bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-xl w-[190px] overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col p-2"
                 style={positionStyle}
             >
-                {COLORS.map(c => (
-                    <button
-                        key={c}
-                        onClick={() => { onSelect(c); onClose(); }}
-                        className={`w-6 h-6 rounded-full hover:scale-110 transition-transform ${current === c ? 'ring-2 ring-stone-900 dark:ring-white ring-offset-1 dark:ring-offset-stone-800' : ''}`}
-                        style={{ backgroundColor: c }}
-                    />
-                ))}
+                <div className="pb-2 mb-2 border-b border-stone-100 dark:border-stone-800">
+                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-stone-400 px-1">Checkbox Color</span>
+                </div>
+                <div className="grid grid-cols-6 gap-1.5">
+                    {COLORS.map(c => (
+                        <button
+                            key={c}
+                            onClick={() => { onSelect(c); onClose(); }}
+                            title={c}
+                            className={`
+                                w-6 h-6 rounded-md hover:scale-110 transition-transform border border-transparent hover:border-stone-300 dark:hover:border-stone-600 shadow-sm
+                                ${current === c ? 'ring-2 ring-stone-900 dark:ring-white ring-offset-1 dark:ring-offset-stone-800 z-10' : ''}
+                            `}
+                            style={{ backgroundColor: c }}
+                        />
+                    ))}
+                    {/* Custom Color Picker */}
+                    <div className="relative w-6 h-6">
+                        <input
+                            type="color"
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            onChange={(e) => {
+                                onSelect(e.target.value);
+                                onClose();
+                            }}
+                            title="Custom Color"
+                        />
+                        <div className="w-full h-full rounded-md flex items-center justify-center transition-all border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 hover:scale-105 hover:border-stone-400 shadow-sm">
+                            <span className="text-[10px] text-stone-500 font-bold">+</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </>
     );
@@ -773,6 +849,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
     const [activeColorMenu, setActiveColorMenu] = useState<{ rect: DOMRect; colId?: string; rowId?: string } | null>(null);
     const [activeHeaderMenu, setActiveHeaderMenu] = useState<{ colId: string; position: { x: number; y: number } } | null>(null);
+    const creationRowInputRef = useRef<HTMLInputElement>(null);
 
     // --- State ---
     const [columns, setColumns] = useState<Column[]>(() => {
@@ -1158,6 +1235,16 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         ));
     }, []);
 
+    // Handler to toggle group pin
+    const handleToggleGroupPin = useCallback((groupId: string) => {
+        setTableGroups(prev => {
+            const updated = prev.map(g =>
+                g.id === groupId ? { ...g, isPinned: !g.isPinned } : g
+            );
+            return updated;
+        });
+    }, []);
+
     // Handler to delete a group
     const handleDeleteGroup = useCallback((groupId: string) => {
         setTableGroups(prev => {
@@ -1202,20 +1289,26 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
     // --- Creation Row Logic ---
     const CREATION_ROW_ID = 'creation-row-temp-id';
-    const [creationRow, setCreationRow] = useState<Partial<Row>>({});
+    // Creation Row State - separate buffer for EACH group to avoid sync issues
+    const [creationRows, setCreationRows] = useState<Record<string, Partial<Row>>>({});
 
-    const handleUpdateCreationRow = (updates: Partial<Row>) => {
-        setCreationRow(prev => ({ ...prev, ...updates }));
+    const handleUpdateCreationRow = (groupId: string, updates: Partial<Row>) => {
+        setCreationRows(prev => ({
+            ...prev,
+            [groupId]: { ...(prev[groupId] || {}), ...updates }
+        }));
     };
 
     const handleCommitCreationRow = (groupId: string) => {
-        if (!creationRow.name && !Object.keys(creationRow).length) return; // Prevent empty commits if strictly empty
+        const groupCreationRow = creationRows[groupId] || {};
+
+        if (!groupCreationRow.name && !Object.keys(groupCreationRow).length) return; // Prevent empty commits if strictly empty
 
         // Use the existing add logic, but merge our creationRow data
         const primaryCol = columns.find(c => c.id === 'name') || columns.find(c => c.id !== 'select') || { id: 'name' };
-        const nameToUse = creationRow[primaryCol.id] || 'New Item';
+        const nameToUse = groupCreationRow[primaryCol.id] || 'New Item';
 
-        // We need to pass the FULL creation row data, not just the name. 
+        // We need to pass the FULL creation row data, not just the name.
         // handleAddRowToGroup currently takes (groupId, rowName). We should update it or manually do it here.
         // Let's refactor the adding logic slightly or just use the logic inline here to be safe and support all fields.
 
@@ -1226,7 +1319,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             dueDate: null,
             date: new Date().toISOString(),
             priority: null,
-            ...creationRow, // Spread valid fields
+            ...groupCreationRow, // Spread valid fields
             [primaryCol.id]: nameToUse, // Ensure name is set
         };
 
@@ -1253,22 +1346,20 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             onUpdateTasks(allRows);
         }
 
-        // Reset creation row
-        setCreationRow({});
+        // Reset creation row for THIS group
+        setCreationRows(prev => {
+            const next = { ...prev };
+            delete next[groupId];
+            return next;
+        });
+
+        // Keep focus on the creation row input for continuous entry
+        requestAnimationFrame(() => {
+            if (creationRowInputRef.current) {
+                creationRowInputRef.current.focus();
+            }
+        });
     };
-
-    // Handler to update a row within groups
-    const handleUpdateRowInGroup = useCallback((rowId: string, updates: Partial<Row>) => {
-        if (rowId === CREATION_ROW_ID) {
-            handleUpdateCreationRow(updates);
-            return;
-        }
-
-        setTableGroups(prev => prev.map(g => ({
-            ...g,
-            rows: g.rows.map(r => r.id === rowId ? { ...r, ...updates } : r)
-        })));
-    }, []);
 
     // Handler to delete a row from groups
     const handleDeleteRowFromGroup = useCallback((rowId: string) => {
@@ -1499,7 +1590,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             // Filter rows
             let filteredGroupRows = group.rows.filter(filterRow);
 
-            // Apply sort rules
             if (sortRules.length > 0) {
                 filteredGroupRows = [...filteredGroupRows].sort((a, b) => {
                     for (const rule of sortRules) {
@@ -1527,13 +1617,32 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     }
                     return 0;
                 });
+            } else if (sortConfig) {
+                filteredGroupRows = [...filteredGroupRows].sort((a, b) => {
+                    const aVal = a[sortConfig.columnId];
+                    const bVal = b[sortConfig.columnId];
+                    // ... (existing sortConfig logic could be here, but let's assume it's handled or we can simplify)
+                    // For brevity in this replacement, we assume sortRules is primary. 
+                    // To be safe, let's keep the map structure but just add the SORTING OF THE GROUPS themselves at the end.
+                    if (sortConfig.columnId === 'priority') {
+                        const r = comparePriority(aVal, bVal);
+                        return sortConfig.direction === 'asc' ? r : -r;
+                    }
+                    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
             }
 
-            return {
-                ...group,
-                rows: filteredGroupRows
-            };
+            return { ...group, rows: filteredGroupRows };
+        }).sort((a, b) => {
+            // Sort by Pinned status first
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            return 0; // Existing order typically roughly creation order or alphabetical if we added name sort
         });
+
+
     }, [tableGroups, filterRow, sortRules]);
 
     // Click outside handler for toolbar panels
@@ -1722,9 +1831,11 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     };
 
 
-    const handleUpdateRow = (id: string, updates: Partial<Row>) => {
+    const handleUpdateRow = (id: string, updates: Partial<Row>, groupId?: string) => {
         if (id === CREATION_ROW_ID) {
-            handleUpdateCreationRow(updates);
+            if (groupId) {
+                handleUpdateCreationRow(groupId, updates);
+            }
             return;
         }
 
@@ -1772,9 +1883,11 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
     const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const handleTextChange = (id: string, colId: string, value: string) => {
+    const handleTextChange = (id: string, colId: string, value: string, groupId?: string) => {
         if (id === CREATION_ROW_ID) {
-            handleUpdateCreationRow({ [colId]: value });
+            if (groupId) {
+                handleUpdateCreationRow(groupId, { [colId]: value });
+            }
             return;
         }
 
@@ -1927,22 +2040,51 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         }
     };
 
-    // Drag & Drop Handlers (Columns)
-    const handleColumnDragStart = (event: DragStartEvent) => {
-        // ID format: "groupId__colId"
+    // Drag & Drop Handlers (Columns & Groups)
+    const handleStructureDragStart = (event: DragStartEvent) => {
         const activeId = event.active.id as string;
+
+        // Check if group drag
+        if (tableGroups.some(g => g.id === activeId)) {
+            // Group drag - nothing special for now
+            return;
+        }
+
+        // Column drag
+        // ID format: "groupId__colId" or just "colId" if we change strategy
         const colId = activeId.includes('__') ? activeId.split('__')[1] : activeId;
         setActiveColumnDragId(colId);
     };
 
-    const handleColumnDragOver = (event: DragEndEvent) => {
+    const handleStructureDragOver = (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over) return;
 
-        // Parse IDs to get real column IDs
         const activeId = String(active.id);
         const overId = String(over.id);
 
+        // Group Drag Over
+        const isGroupDrag = tableGroups.some(g => g.id === activeId);
+        if (isGroupDrag) {
+            // Reordering groups logic - done in DragEnd usually for simple lists,
+            // but can do here for live preview if arrayMove is fast enough
+            // Let's do it in DragEnd for stability or here for responsiveness?
+            // sortableKeyboardCoordinates defaults handle sort preview.
+            // But we need to update state if we want real-time preview if using SortableContext
+            if (activeId !== overId) {
+                setTableGroups((groups) => {
+                    const oldIndex = groups.findIndex((g) => g.id === activeId);
+                    const newIndex = groups.findIndex((g) => g.id === overId);
+                    if (oldIndex !== -1 && newIndex !== -1) {
+                        return arrayMove(groups, oldIndex, newIndex);
+                    }
+                    return groups;
+                });
+            }
+            return;
+        }
+
+        // Column Drag Over
         const activeColId = activeId.includes('__') ? activeId.split('__')[1] : activeId;
         const overColId = overId.includes('__') ? overId.split('__')[1] : overId;
 
@@ -1959,9 +2101,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         }
     };
 
-    const handleColumnDragEnd = (event: DragEndEvent) => {
+    const handleStructureDragEnd = (event: DragEndEvent) => {
         setActiveColumnDragId(null);
-        // Persistence can happen here if needed, keeping it simple for now as it syncs via state
     };
 
     // Column Resize
@@ -2132,7 +2273,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     // For any file header that didn't match an existing column, create a NEW column
                     unmatchedHeaderIndices.forEach(idx => {
                         const headerLabel = String(headerRow[idx] || `Column ${idx + 1}`).trim();
-                        // Skip empty headers unless they have data? 
+                        // Skip empty headers unless they have data?
                         if (!headerLabel) return;
 
                         const newId = headerLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '') + '_' + Date.now() + '_' + idx;
@@ -2240,7 +2381,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             [colId]: { ...colStyles, color }
         };
 
-        handleUpdateRowInGroup(rowId, { _styles: newStyles });
+        handleUpdateRow(rowId, { _styles: newStyles });
     };
 
     const renderCellContent = (col: Column, row: Row) => {
@@ -2252,7 +2393,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     <input
                         type="checkbox"
                         checked={!!value}
-                        onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.checked })}
+                        onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.checked }, row.groupId)}
                         className="rounded border-stone-300 dark:border-stone-600 cursor-pointer w-4 h-4 accent-blue-600"
                         onClick={(e) => e.stopPropagation()}
                     />
@@ -2278,7 +2419,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
                         <StatusPicker
                             current={value}
-                            onSelect={(s) => handleUpdateRow(row.id, { [col.id]: s })}
+                            onSelect={(s) => handleUpdateRow(row.id, { [col.id]: s }, row.groupId)}
                             onClose={() => setActiveCell(null)}
                             triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
                             options={customStatuses}
@@ -2309,8 +2450,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         >
                             <SharedDatePicker
                                 selectedDate={value}
-                                onSelectDate={(dueDate) => handleUpdateRow(row.id, { [col.id]: dueDate.toISOString() })}
-                                onClear={() => handleUpdateRow(row.id, { [col.id]: null })}
+                                onSelectDate={(dueDate) => handleUpdateRow(row.id, { [col.id]: dueDate.toISOString() }, row.groupId)}
+                                onClear={() => handleUpdateRow(row.id, { [col.id]: null }, row.groupId)}
                                 onClose={() => setActiveCell(null)}
                             />
                         </PortalPopup>
@@ -2330,7 +2471,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             onBlur={() => setActiveCell(null)}
                             onKeyDown={(e) => { if (e.key === 'Enter') setActiveCell(null); }}
                             value={value || ''}
-                            onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.value })}
+                            onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.value }, row.groupId)}
                             className="w-full h-full bg-stone-50 dark:bg-stone-800 border-none outline-none px-3 text-sm text-stone-700 dark:text-stone-300 placeholder:text-stone-400"
                         />
                     </div>
@@ -2375,7 +2516,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         <SelectPicker
                             options={col.options || []}
                             current={value}
-                            onSelect={(s) => handleUpdateRow(row.id, { [col.id]: s })}
+                            onSelect={(s) => handleUpdateRow(row.id, { [col.id]: s }, row.groupId)}
                             onClose={() => setActiveCell(null)}
                             triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
                         />
@@ -2408,7 +2549,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         <DocPicker
                             current={value}
                             currentBoardId={roomId}
-                            onSelect={(doc) => handleUpdateRow(row.id, { [col.id]: doc })}
+                            onSelect={(doc) => handleUpdateRow(row.id, { [col.id]: doc }, row.groupId)}
                             onClose={() => setActiveCell(null)}
                             triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
                         />
@@ -2440,7 +2581,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
                         <PeoplePicker
                             current={value}
-                            onSelect={(person) => handleUpdateRow(row.id, { [col.id]: person })}
+                            onSelect={(person) => handleUpdateRow(row.id, { [col.id]: person }, row.groupId)}
                             onClose={() => setActiveCell(null)}
                             triggerRect={activeCell.rect || activeCell.trigger.getBoundingClientRect()}
                         />
@@ -2604,7 +2745,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                             end: end?.toISOString()
                                         }
                                     });
-                                    // Only close if we have both? Or user clicks Done. The DatePicker handles calling onClose usually when done, 
+                                    // Only close if we have both? Or user clicks Done. The DatePicker handles calling onClose usually when done,
                                     // OR we just update state and let user close.
                                     // The updated SharedDatePicker has "Done" button.
                                 }}
@@ -2640,7 +2781,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                     col.options!.map(opt => (
                                         <button
                                             key={opt.id}
-                                            onClick={() => { handleUpdateRow(row.id, { [col.id]: opt.label }); setActiveCell(null); }}
+                                            onClick={() => { handleUpdateRow(row.id, { [col.id]: opt.label }, row.groupId); setActiveCell(null); }}
                                             className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300"
                                         >
                                             {opt.label}
@@ -2651,7 +2792,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                     ['To Do', 'In Progress', 'Done'].map(s => (
                                         <button
                                             key={s}
-                                            onClick={() => { handleUpdateRow(row.id, { [col.id]: s }); setActiveCell(null); }}
+                                            onClick={() => { handleUpdateRow(row.id, { [col.id]: s }, row.groupId); setActiveCell(null); }}
                                             className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 flex items-center gap-2"
                                         >
                                             {getStatusIcon(s)}
@@ -2693,9 +2834,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                         [col.id]: isoDate,
                                         date: isoDate,
                                         dueDate: isoDate
-                                    });
+                                    }, row.groupId);
                                 }}
-                                onClear={() => handleUpdateRow(row.id, { [col.id]: null, date: null, dueDate: null })}
+                                onClear={() => handleUpdateRow(row.id, { [col.id]: null, date: null, dueDate: null }, row.groupId)}
                                 onClose={() => setActiveCell(null)}
                             />
                         </PortalPopup>
@@ -2813,11 +2954,14 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="group/name relative h-full flex items-center px-3 overflow-hidden gap-1.5 w-full">
                     {row.priority && <span className={`shrink-0 w-2 h-2 rounded-full mt-0.5 ${getPriorityDot(row.priority)}`} />}
                     <input
+                        ref={row.id === CREATION_ROW_ID ? creationRowInputRef : undefined}
                         type="text"
                         value={value || ''}
-                        onChange={(e) => handleTextChange(row.id, col.id, e.target.value)}
+                        onChange={(e) => handleTextChange(row.id, col.id, e.target.value, row.groupId)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && row.id === CREATION_ROW_ID) {
+                                e.preventDefault();
+                                e.stopPropagation();
                                 handleCommitCreationRow(row.groupId!);
                             }
                         }}
@@ -3041,7 +3185,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             style={{
                                 width: col.width,
                                 ...(isSticky && { left: leftPos, position: 'sticky', transform: 'translateZ(0)' }),
-                                backgroundColor: !isSticky ? (col.backgroundColor || undefined) : undefined
+                                backgroundColor: col.backgroundColor || undefined
                             }}
                             onContextMenu={(e) => {
                                 if (col.id === 'select') {
@@ -3120,7 +3264,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                             let color = 'bg-stone-400';
                                             if (col.type === 'priority') {
                                                 const pClasses = getPriorityClasses(key);
-                                                // Extract bg color from classes if possible, or use hardcoded map. 
+                                                // Extract bg color from classes if possible, or use hardcoded map.
                                                 // getPriorityClasses returns text/dot/bg. dot usually has text color.
                                                 // Let's use a mapping based on key
                                                 if (key === 'Urgent') color = 'bg-rose-500';
@@ -3678,104 +3822,115 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
-                        onDragStart={handleColumnDragStart}
-                        onDragOver={handleColumnDragOver}
-                        onDragEnd={handleColumnDragEnd}
+                        onDragStart={handleStructureDragStart}
+                        onDragOver={handleStructureDragOver}
+                        onDragEnd={handleStructureDragEnd}
                     >
-                        {filteredTableGroups.map((group, groupIndex) => {
-                            const totalWidth = columns.reduce((acc, col) => acc + col.width, 0);
-                            return (
-                                <div key={group.id} className="mb-4">
-                                    {/* Group Header - wrapper spans full width, content is sticky left */}
-                                    <div
-                                        className="shrink-0 bg-white dark:bg-[#1a1c22] border-b border-stone-100 dark:border-stone-800/50 sticky top-0 z-50"
-                                        style={{ minWidth: totalWidth }}
-                                    >
-                                        <div className="flex items-center gap-2 px-4 py-3 sticky left-0 z-10 w-fit bg-white dark:bg-[#1a1c22]">
-                                            {/* Color accent bar */}
-                                            <div className={`w-1 h-6 rounded-full ${group.color.bg}`} />
-                                            <button
-                                                onClick={() => handleToggleGroupCollapse(group.id)}
-                                                className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-md transition-colors text-stone-500 hover:text-stone-700"
+                        <SortableContext
+                            items={filteredTableGroups.map(g => g.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            {filteredTableGroups.map((group, groupIndex) => {
+                                const totalWidth = columns.reduce((acc, col) => acc + col.width, 0);
+                                return (
+                                    <SortableGroupWrapper key={group.id} group={group}>
+                                        <div className="mb-4">
+                                            {/* Group Header - wrapper spans full width, content is sticky left */}
+                                            <div
+                                                className="shrink-0 bg-white dark:bg-[#1a1c22] border-b border-stone-100 dark:border-stone-800/50 sticky top-0 z-50"
+                                                style={{ minWidth: totalWidth }}
                                             >
-                                                {group.isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                                            </button>
-                                            <EditableName
-                                                name={group.name}
-                                                onRename={(newName) => handleUpdateGroupName(group.id, newName)}
-                                                className={`${group.color.text} text-[24px]`}
-                                            />
-                                            <span className="text-xs text-stone-400 ml-2">
-                                                {group.rows.length} {group.rows.length === 1 ? 'item' : 'items'}
-                                            </span>
-                                            {/* 3-dot menu */}
-                                            <div className="relative ml-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        const menu = e.currentTarget.nextElementSibling;
-                                                        if (menu) {
-                                                            menu.classList.toggle('hidden');
-                                                        }
-                                                    }}
-                                                    className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-colors"
-                                                >
-                                                    <MoreHorizontal size={16} className="text-stone-400" />
-                                                </button>
-                                                <div className="hidden absolute left-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-xl z-50 min-w-[120px] py-1">
+                                                <div className="flex items-center gap-2 px-4 py-3 sticky left-0 z-10 w-fit bg-white dark:bg-[#1a1c22]">
+                                                    {/* Color accent bar (Drag Handle) */}
+                                                    <GroupDragHandle colorClass={group.color.bg} />
                                                     <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setDeleteConfig({
-                                                                isOpen: true,
-                                                                title: `Delete "${group.name}" and all its items?`,
-                                                                description: "This will permanently remove the group and all tasks within it.",
-                                                                onConfirm: () => handleDeleteGroup(group.id)
-                                                            });
-                                                            const menu = e.currentTarget.parentElement;
-                                                            if (menu) menu.classList.add('hidden');
-                                                        }}
-                                                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                                        onClick={() => handleToggleGroupCollapse(group.id)}
+                                                        className="p-1 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-md transition-colors text-stone-500 hover:text-stone-700"
                                                     >
-                                                        <Trash2 size={14} />
-                                                        Delete
+                                                        {group.isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                                                     </button>
+
+                                                    {/* Pin Button */}
+                                                    <button
+                                                        onClick={() => handleToggleGroupPin(group.id)}
+                                                        className={`p-1 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-md transition-colors ${group.isPinned ? 'text-blue-600 dark:text-blue-400 rotate-45' : 'text-stone-400 hover:text-stone-600'}`}
+                                                        title={group.isPinned ? "Unpin Group" : "Pin Group"}
+                                                    >
+                                                        <Pin size={16} className={group.isPinned ? "fill-current" : ""} />
+                                                    </button>
+                                                    <EditableName
+                                                        name={group.name}
+                                                        onRename={(newName) => handleUpdateGroupName(group.id, newName)}
+                                                        className={`${group.color.text} text-[24px]`}
+                                                    />
+                                                    <span className="text-xs text-stone-400 ml-2">
+                                                        {group.rows.length} {group.rows.length === 1 ? 'item' : 'items'}
+                                                    </span>
+                                                    {/* 3-dot menu */}
+                                                    <div className="relative ml-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const menu = e.currentTarget.nextElementSibling;
+                                                                if (menu) {
+                                                                    menu.classList.toggle('hidden');
+                                                                }
+                                                            }}
+                                                            className="p-1 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-colors"
+                                                        >
+                                                            <MoreHorizontal size={16} className="text-stone-400" />
+                                                        </button>
+                                                        <div className="hidden absolute left-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-xl z-50 min-w-[120px] py-1">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDeleteConfig({
+                                                                        isOpen: true,
+                                                                        title: `Delete "${group.name}" and all its items?`,
+                                                                        description: "This will permanently remove the group and all tasks within it.",
+                                                                        onConfirm: () => handleDeleteGroup(group.id)
+                                                                    });
+                                                                    const menu = e.currentTarget.parentElement;
+                                                                    if (menu) menu.classList.add('hidden');
+                                                                }}
+                                                                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
+                                            {!group.isCollapsed && (
+                                                <>
+                                                    {/* Table Header - show for ALL groups */}
+                                                    {/* Table Header - show for ALL groups */}
+                                                    <SortableContext items={columns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
+                                                        <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky top-[57px] z-[35]">
+                                                            {columns.map((col, index) => {
+                                                                const uniqueId = `${group.id}__${col.id}`;
+                                                                const isSticky = index === 0 || index === 1;
+                                                                const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
 
-                                        </div>
-                                    </div>
+                                                                // Check if All Selected (for 'select' column header)
+                                                                const isSelectCol = col.id === 'select';
+                                                                let isAllSelected = false;
+                                                                if (isSelectCol) {
+                                                                    // Calculate across ALL visible rows for a "Global" select all
+                                                                    // We use 'rows' which is the flattened list of all rows in the component scope
+                                                                    const allRowsCount = rows.length;
+                                                                    const selectedCount = rows.filter(r => !!r['select']).length;
+                                                                    isAllSelected = allRowsCount > 0 && selectedCount === allRowsCount;
+                                                                }
 
-                                    {/* Group Body (Table Header + Rows + Input) */}
-                                    {!group.isCollapsed && (
-                                        <>
-                                            {/* Table Header - show for ALL groups */}
-                                            {/* Table Header - show for ALL groups */}
-                                            <SortableContext items={columns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
-                                                <div className="flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky top-[57px] z-[35]">
-                                                    {columns.map((col, index) => {
-                                                        const uniqueId = `${group.id}__${col.id}`;
-                                                        const isSticky = index === 0 || index === 1;
-                                                        const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
-
-                                                        // Check if All Selected (for 'select' column header)
-                                                        const isSelectCol = col.id === 'select';
-                                                        let isAllSelected = false;
-                                                        if (isSelectCol) {
-                                                            // Calculate across ALL visible rows for a "Global" select all
-                                                            // We use 'rows' which is the flattened list of all rows in the component scope
-                                                            const allRowsCount = rows.length;
-                                                            const selectedCount = rows.filter(r => !!r['select']).length;
-                                                            isAllSelected = allRowsCount > 0 && selectedCount === allRowsCount;
-                                                        }
-
-                                                        return (
-                                                            <SortableHeader
-                                                                key={uniqueId}
-                                                                col={{ ...col, id: uniqueId }}
-                                                                index={index}
-                                                                className={`
+                                                                return (
+                                                                    <SortableHeader
+                                                                        key={uniqueId}
+                                                                        col={{ ...col, id: uniqueId }}
+                                                                        index={index}
+                                                                        className={`
                                                                 h-full flex items-center text-xs font-sans font-medium text-stone-500 dark:text-stone-400 shrink-0
                                                                 ${col.id === 'select' ? 'justify-center px-0' : col.id === 'name' ? 'px-3' : 'justify-center px-3'}
                                                                 ${index !== columns.length - 1 ? 'border-e border-stone-200/50 dark:border-stone-800' : ''}
@@ -3784,185 +3939,187 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                 ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.1)]' : ''}
                                                                 ${activeColumnDragId === col.id ? 'opacity-30' : ''}
                                                             `}
-                                                                style={{
-                                                                    width: col.width,
-                                                                    ...(isSticky && { left: leftPos, position: 'sticky' }),
-                                                                    backgroundColor: col.headerColor || col.backgroundColor || (isSticky ? undefined : undefined) // fallback handled by classes
-                                                                }}
-                                                                onClick={() => col.id !== 'select' ? handleSort(col.id) : undefined}
-                                                                onContextMenu={(e) => {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    setActiveHeaderMenu({
-                                                                        colId: col.id,
-                                                                        position: { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY }
-                                                                    });
-                                                                }}
-                                                            >
-                                                                {isSelectCol ? (
-                                                                    <div className="flex items-center justify-center w-full h-full">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={isAllSelected}
-                                                                            onChange={(e) => handleSelectAll(e.target.checked)}
-                                                                            className="rounded border-stone-300 dark:border-stone-600 cursor-pointer w-4 h-4 accent-blue-600"
-                                                                            onClick={(e) => e.stopPropagation()}
-                                                                        />
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className={`flex items-center ${col.id === 'name' ? 'justify-between' : 'justify-center'} w-full px-2`}>
-                                                                        <span className="truncate flex-1 text-center">{col.label}</span>
-                                                                        {!['name', 'select'].includes(col.id) && (
-                                                                            <button
-                                                                                onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
-                                                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
-                                                                                title="Delete Column"
-                                                                            >
-                                                                                <Trash2 size={12} />
-                                                                            </button>
+                                                                        style={{
+                                                                            width: col.width,
+                                                                            ...(isSticky && { left: leftPos, position: 'sticky' }),
+                                                                            backgroundColor: col.headerColor || col.backgroundColor || (isSticky ? undefined : undefined) // fallback handled by classes
+                                                                        }}
+                                                                        onClick={() => col.id !== 'select' ? handleSort(col.id) : undefined}
+                                                                        onContextMenu={(e) => {
+                                                                            e.preventDefault();
+                                                                            e.stopPropagation();
+                                                                            setActiveHeaderMenu({
+                                                                                colId: col.id,
+                                                                                position: { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY }
+                                                                            });
+                                                                        }}
+                                                                    >
+                                                                        {isSelectCol ? (
+                                                                            <div className="flex items-center justify-center w-full h-full">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={isAllSelected}
+                                                                                    onChange={(e) => handleSelectAll(e.target.checked)}
+                                                                                    className="rounded border-stone-300 dark:border-stone-600 cursor-pointer w-4 h-4 accent-blue-600"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                />
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className={`flex items-center ${col.id === 'name' ? 'justify-between' : 'justify-center'} w-full px-2`}>
+                                                                                <span className="truncate flex-1 text-center">{col.label}</span>
+                                                                                {!['name', 'select'].includes(col.id) && (
+                                                                                    <button
+                                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteColumn(col.id); }}
+                                                                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 text-stone-400 hover:text-red-600 rounded transition-all"
+                                                                                        title="Delete Column"
+                                                                                    >
+                                                                                        <Trash2 size={12} />
+                                                                                    </button>
+                                                                                )}
+                                                                                <div
+                                                                                    className="w-1 h-3/4 mx-1 cursor-col-resize hover:bg-stone-300 dark:hover:bg-stone-600 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2"
+                                                                                    onPointerDown={(e) => e.stopPropagation()}
+                                                                                    onMouseDown={(e) => { e.stopPropagation(); startResize(e, col.id, col.width); }}
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                />
+                                                                            </div>
                                                                         )}
+                                                                    </SortableHeader>
+                                                                );
+                                                            })}
+                                                            {/* Add Column Button */}
+                                                            <div className="relative h-full flex flex-col justify-center shrink-0">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                                        setActiveColumnMenu({ rect });
+                                                                    }}
+                                                                    className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+                                                                >
+                                                                    <Plus size={14} />
+                                                                </button>
+                                                                {activeColumnMenu && createPortal(
+                                                                    <>
+                                                                        {/* Backdrop */}
                                                                         <div
-                                                                            className="w-1 h-3/4 mx-1 cursor-col-resize hover:bg-stone-300 dark:hover:bg-stone-600 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute right-0 top-1/2 -translate-y-1/2"
-                                                                            onPointerDown={(e) => e.stopPropagation()}
-                                                                            onMouseDown={(e) => { e.stopPropagation(); startResize(e, col.id, col.width); }}
-                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            className="fixed inset-0 z-[90] bg-transparent"
+                                                                            onClick={() => setActiveColumnMenu(null)}
                                                                         />
-                                                                    </div>
-                                                                )}
-                                                            </SortableHeader>
-                                                        );
-                                                    })}
-                                                    {/* Add Column Button */}
-                                                    <div className="relative h-full flex flex-col justify-center shrink-0">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                const rect = e.currentTarget.getBoundingClientRect();
-                                                                setActiveColumnMenu({ rect });
-                                                            }}
-                                                            className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-                                                        >
-                                                            <Plus size={14} />
-                                                        </button>
-                                                        {activeColumnMenu && createPortal(
-                                                            <>
-                                                                {/* Backdrop */}
-                                                                <div
-                                                                    className="fixed inset-0 z-[90] bg-transparent"
-                                                                    onClick={() => setActiveColumnMenu(null)}
-                                                                />
-                                                                {/* Dropdown Menu */}
-                                                                <div
-                                                                    className="fixed z-[100]"
-                                                                    style={{
-                                                                        top: `${activeColumnMenu.rect.bottom + 8}px`,
-                                                                        right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
-                                                                    }}
-                                                                >
-                                                                    <ColumnMenu
-                                                                        onClose={() => setActiveColumnMenu(null)}
-                                                                        onSelect={(type, label, options) => { handleAddColumn(type, label, options); setActiveColumnMenu(null); }}
-                                                                    />
-                                                                </div>
-                                                            </>,
-                                                            document.body
-                                                        )}
-                                                    </div>
-                                                    {/* Right spacer */}
-                                                    <div className="w-24 shrink-0" />
-                                                </div>
-                                            </SortableContext>
-
-                                            {/* Group Rows */}
-                                            <DndContext
-                                                sensors={sensors}
-                                                collisionDetection={closestCenter}
-                                                onDragStart={handleDragStart}
-                                                onDragEnd={handleDragEnd}
-                                            >
-                                                {/* Creation Row (Draft) at Top */}
-                                                {/* We manually render a row-like structure for the creation row */}
-
-
-                                                <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 bg-white dark:bg-stone-900 min-w-max relative z-20">
-                                                    {/* Simulate Row Data for Helpers */}
-                                                    {(() => {
-                                                        const creationRowData: Row = {
-                                                            id: CREATION_ROW_ID,
-                                                            groupId: group.id,
-                                                            status: null,
-                                                            dueDate: null,
-                                                            date: new Date().toISOString(),
-                                                            priority: null,
-                                                            ...creationRow,
-                                                        } as Row; // Cast as partial row is handled
-
-                                                        return columns.map((col, index) => {
-                                                            const isSticky = index === 0 || index === 1;
-                                                            const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
-
-                                                            return (
-                                                                <div
-                                                                    key={col.id}
-                                                                    style={{
-                                                                        width: col.width,
-                                                                        ...(isSticky && { left: leftPos, position: 'sticky' })
-                                                                    }}
-                                                                    className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-white dark:bg-stone-900' : ''} ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
-                                                                >
-                                                                    {col.id === 'select' ? (
-                                                                        <div className="w-full h-full flex items-center justify-center px-2">
-                                                                            {/* Empty */}
+                                                                        {/* Dropdown Menu */}
+                                                                        <div
+                                                                            className="fixed z-[100]"
+                                                                            style={{
+                                                                                top: `${activeColumnMenu.rect.bottom + 8}px`,
+                                                                                right: `${window.innerWidth - activeColumnMenu.rect.right}px`,
+                                                                            }}
+                                                                        >
+                                                                            <ColumnMenu
+                                                                                onClose={() => setActiveColumnMenu(null)}
+                                                                                onSelect={(type, label, options) => { handleAddColumn(type, label, options); setActiveColumnMenu(null); }}
+                                                                            />
                                                                         </div>
-                                                                    ) : col.id === 'name' ? (
-                                                                        renderCellContent(col, creationRowData)
-                                                                    ) : null}
-                                                                </div>
-                                                            );
-                                                        });
-                                                    })()}
-                                                </div>
+                                                                    </>,
+                                                                    document.body
+                                                                )}
+                                                            </div>
+                                                            {/* Right spacer */}
+                                                            <div className="w-24 shrink-0" />
+                                                        </div>
+                                                    </SortableContext>
 
-                                                <SortableContext items={group.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                                                    {group.rows.map((row) => (
-                                                        <SortableRow
-                                                            key={row.id}
-                                                            row={row}
-                                                            className={`
+                                                    {/* Group Rows */}
+                                                    <DndContext
+                                                        sensors={sensors}
+                                                        collisionDetection={closestCenter}
+                                                        onDragStart={handleDragStart}
+                                                        onDragEnd={handleDragEnd}
+                                                    >
+                                                        {/* Creation Row (Draft) at Top */}
+                                                        {/* We manually render a row-like structure for the creation row */}
+
+
+                                                        <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 bg-white dark:bg-stone-900 min-w-max relative z-20">
+                                                            {/* Simulate Row Data for Helpers */}
+                                                            {(() => {
+                                                                const creationRowData: Row = {
+                                                                    id: CREATION_ROW_ID,
+                                                                    groupId: group.id,
+                                                                    status: null,
+                                                                    dueDate: null,
+                                                                    date: new Date().toISOString(),
+                                                                    priority: null,
+                                                                    ...creationRows[group.id],
+                                                                } as Row; // Cast as partial row is handled
+
+                                                                return columns.map((col, index) => {
+                                                                    const isSticky = index === 0 || index === 1;
+                                                                    const leftPos = index === 0 ? 0 : index === 1 ? columns[0].width : undefined;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={col.id}
+                                                                            style={{
+                                                                                width: col.width,
+                                                                                ...(isSticky && { left: leftPos, position: 'sticky' })
+                                                                            }}
+                                                                            className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-white dark:bg-stone-900' : ''} ${index === 1 ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
+                                                                        >
+                                                                            {col.id === 'select' ? (
+                                                                                <div className="w-full h-full flex items-center justify-center px-2">
+                                                                                    {/* Empty */}
+                                                                                </div>
+                                                                            ) : col.id === 'name' ? (
+                                                                                renderCellContent(col, creationRowData)
+                                                                            ) : null}
+                                                                        </div>
+                                                                    );
+                                                                });
+                                                            })()}
+                                                        </div>
+
+                                                        <SortableContext items={group.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
+                                                            {group.rows.map((row) => (
+                                                                <SortableRow
+                                                                    key={row.id}
+                                                                    row={row}
+                                                                    className={`
                                                     group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 
                                                     hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors relative min-w-max
                                                     ${activeDragId === row.id ? 'opacity-30' : ''}
                                                     ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}
                                                 `}
-                                                        >
-                                                            {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
-                                                        </SortableRow>
-                                                    ))}
-                                                </SortableContext>
+                                                                >
+                                                                    {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
+                                                                </SortableRow>
+                                                            ))}
+                                                        </SortableContext>
 
-                                                {/* Creation Row (Draft) at Bottom */}
-                                                {/* We manually render a row-like structure for the creation row */}
+                                                        {/* Creation Row (Draft) at Bottom */}
+                                                        {/* We manually render a row-like structure for the creation row */}
 
 
-                                                {createPortal(
-                                                    <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
-                                                        {activeDragId ? (
-                                                            <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
-                                                                {(() => {
-                                                                    const row = rows.find(r => r.id === activeDragId);
-                                                                    if (!row) return null;
-                                                                    return renderRowContent(row, null, true);
-                                                                })()}
-                                                            </div>
-                                                        ) : null}
-                                                    </DragOverlay>,
-                                                    document.body
-                                                )}
-                                            </DndContext>
-                                        </>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                                        {createPortal(
+                                                            <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
+                                                                {activeDragId ? (
+                                                                    <div className="flex items-center h-10 border border-indigo-500 bg-white dark:bg-stone-800 shadow-xl rounded pointer-events-none opacity-90 scale-105 overflow-hidden min-w-max">
+                                                                        {(() => {
+                                                                            const row = rows.find(r => r.id === activeDragId);
+                                                                            if (!row) return null;
+                                                                            return renderRowContent(row, null, true);
+                                                                        })()}
+                                                                    </div>
+                                                                ) : null}
+                                                            </DragOverlay>,
+                                                            document.body
+                                                        )}
+                                                    </DndContext>
+                                                </>
+                                            )}
+                                        </div>
+                                    </SortableGroupWrapper>
+                                );
+                            })}
+                        </SortableContext>
                         {createPortal(
                             <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.4' } } }) }}>
                                 {activeColumnDragId ? (
@@ -4040,15 +4197,17 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     onSuccess={handleSaveVaultSuccess}
                 />
 
-                {deleteConfig && (
-                    <DeleteConfirmationModal
-                        isOpen={deleteConfig.isOpen}
-                        onClose={() => setDeleteConfig(null)}
-                        onConfirm={deleteConfig.onConfirm}
-                        title={deleteConfig.title}
-                        description={deleteConfig.description}
-                    />
-                )}
+                {
+                    deleteConfig && (
+                        <DeleteConfirmationModal
+                            isOpen={deleteConfig.isOpen}
+                            onClose={() => setDeleteConfig(null)}
+                            onConfirm={deleteConfig.onConfirm}
+                            title={deleteConfig.title}
+                            description={deleteConfig.description}
+                        />
+                    )
+                }
 
                 <RowDetailPanel
                     isOpen={!!activeRowDetail}

@@ -116,7 +116,7 @@ const SortableTab: React.FC<SortableTabProps> = ({ viewId, isActive, label, icon
             {...listeners}
             onClick={onClick}
             onContextMenu={onContextMenu}
-            className={`flex items-center gap-2 py-1.5 border-b-2 text-[13px] font-medium transition-colors whitespace-nowrap select-none ${isActive
+            className={`flex items-center justify-start text-left gap-2 py-1.5 border-b-2 text-[10.5px] font-medium transition-colors whitespace-nowrap select-none ${isActive
                 ? 'border-slate-900 text-slate-900 dark:text-slate-100'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
@@ -130,7 +130,7 @@ const SortableTab: React.FC<SortableTabProps> = ({ viewId, isActive, label, icon
                 )}
             </div>
             <span>{label}</span>
-            {isActive && viewId !== 'overview' && (
+            {/* {isActive && viewId !== 'overview' && (
                 <div className="ml-1 p-0.5 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-400 hover:text-blue-600 transition-colors"
                     // onMouseDown to prevent drag start on the menu button
                     onMouseDown={(e) => e.stopPropagation()}
@@ -140,7 +140,7 @@ const SortableTab: React.FC<SortableTabProps> = ({ viewId, isActive, label, icon
                     }}>
                     <MoreHorizontal size={14} />
                 </div>
-            )}
+            )} */}
         </div>
     );
 };
@@ -831,7 +831,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
                         {/* Tabs Row */}
                         <div className="flex items-center gap-0 pr-6 border-b border-gray-200 dark:border-gray-800">
-                            <div className="flex items-center justify-start gap-6 overflow-x-auto no-scrollbar max-w-full">
+                            <div className="flex items-center justify-start gap-[23px] overflow-x-auto no-scrollbar max-w-full">
                                 {/* Fixed "Overview" Tab */}
                                 {sanitizedAvailableViews.includes('overview') && (() => {
                                     const overviewOption = effectiveViewOptions.find(v => v.id === 'overview');
@@ -842,7 +842,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                         <button
                                             onClick={() => setActiveView('overview')}
                                             onContextMenu={(e) => handleContextMenu(e, 'overview')}
-                                            className={`flex items-center gap-2 py-1.5 border-b-2 text-[13px] font-medium transition-colors whitespace-nowrap ${activeView === 'overview'
+                                            className={`flex items-center justify-start text-left gap-2 py-1.5 border-b-2 text-[10.5px] font-medium transition-colors whitespace-nowrap ${activeView === 'overview'
                                                 ? 'border-slate-900 text-slate-900 dark:text-slate-100'
                                                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                                                 }`}

@@ -1,7 +1,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check } from 'lucide-react';
 import { useClickOutside } from '../../../../../hooks/useClickOutside';
+import { Palette } from 'lucide-react';
 
 interface HeaderContextMenuProps {
     onClose: () => void;
@@ -13,13 +13,23 @@ interface HeaderContextMenuProps {
 }
 
 const COLORS = [
-    { label: 'Default', value: '', class: 'border-stone-200' },
-    { label: 'White', value: '#ffffff', class: 'bg-white border-stone-200' },
-    { label: 'Subtle Grey', value: '#f5f5f4', class: 'bg-stone-100' },
-    { label: 'Warm Sand', value: '#fdfbf7', class: 'bg-[#fdfbf7] border-stone-100' },
-    { label: 'Muted Blue', value: '#f0f4f8', class: 'bg-slate-50' },
-    { label: 'Soft Sage', value: '#f2f7f5', class: 'bg-emerald-50/50' },
-    { label: 'Slate', value: '#e2e8f0', class: 'bg-slate-200' },
+    { label: 'Default', value: '' },
+    // Soft / Pastels
+    { label: 'White', value: '#ffffff' },
+    { label: 'Subtle Grey', value: '#f5f5f4' },
+    { label: 'Warm Sand', value: '#fdfbf7' },
+    { label: 'Muted Blue', value: '#eff6ff' }, // blue-50
+    { label: 'Soft Sage', value: '#ecfdf5' }, // emerald-50
+    { label: 'Pale Rose', value: '#fff1f2' }, // rose-50
+    { label: 'Lavender', value: '#faf5ff' }, // purple-50
+    // Vibrant / Richer
+    { label: 'Sky Blue', value: '#bae6fd' }, // sky-200
+    { label: 'Mint', value: '#a7f3d0' }, // emerald-200
+    { label: 'Peach', value: '#fed7aa' }, // orange-200
+    { label: 'Blossom', value: '#fbcfe8' }, // pink-200
+    { label: 'Periwinkle', value: '#c7d2fe' }, // indigo-200
+    { label: 'Canary', value: '#fef08a' }, // yellow-200
+    { label: 'Mist', value: '#e2e8f0' }, // slate-200
 ];
 
 export const HeaderContextMenu: React.FC<HeaderContextMenuProps> = ({ onClose, onHeaderColorSelect, onColumnColorSelect, currentHeaderColor, currentColumnColor, position }) => {
@@ -36,7 +46,7 @@ export const HeaderContextMenu: React.FC<HeaderContextMenuProps> = ({ onClose, o
         if (menuRef.current) {
             const menuRect = menuRef.current.getBoundingClientRect();
             const spaceBelow = window.innerHeight - position.y;
-            const menuHeight = menuRect.height || 300;
+            const menuHeight = menuRect.height || 400;
 
             let top = position.y;
             let left = position.x;
@@ -45,8 +55,10 @@ export const HeaderContextMenu: React.FC<HeaderContextMenuProps> = ({ onClose, o
                 top = Math.max(10, position.y - menuHeight);
             }
 
-            if (left + menuRect.width > window.innerWidth) {
-                left = window.innerWidth - menuRect.width - 10;
+            if (left + menuRect.width > window.innerWidth - 20) {
+                // Anchor to the left of the cursor
+                left = position.x - menuRect.width;
+                if (left < 10) left = 10;
             }
 
             setMenuStyle({
@@ -57,66 +69,65 @@ export const HeaderContextMenu: React.FC<HeaderContextMenuProps> = ({ onClose, o
         }
     }, [position.x, position.y]);
 
+    const renderColorGrid = (current: string | undefined, onSelect: (c: string) => void) => (
+        <div className="grid grid-cols-5 gap-1.5 p-2">
+            {COLORS.map((color) => (
+                <button
+                    key={color.label}
+                    onClick={() => {
+                        onSelect(color.value);
+                        onClose();
+                    }}
+                    title={color.label}
+                    className={`
+                        w-7 h-7 rounded-md flex items-center justify-center transition-all border shadow-sm
+                        ${color.value ? '' : 'bg-white dark:bg-stone-800'}
+                        ${(current === color.value || (!current && !color.value))
+                            ? 'border-blue-500 ring-2 ring-blue-500/20 z-10 scale-110'
+                            : 'border-stone-200 dark:border-stone-700 hover:scale-105 hover:border-stone-400'}
+                    `}
+                    style={{ backgroundColor: color.value || undefined }}
+                >
+                    {!color.value && <div className="w-full h-[1px] bg-red-400 rotate-45" />}
+                </button>
+            ))}
+            {/* Native Color Picker trigger */}
+            <div className="relative w-7 h-7">
+                <input
+                    type="color"
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    onChange={(e) => {
+                        onSelect(e.target.value);
+                        onClose();
+                    }}
+                    title="Custom Color"
+                />
+                <div className={`
+                    w-full h-full rounded-md flex items-center justify-center transition-all border shadow-sm bg-stone-100 dark:bg-stone-800
+                    hover:scale-105 hover:border-stone-400 border-stone-200 dark:border-stone-700
+                `}>
+                    <Palette size={14} className="text-stone-500" />
+                </div>
+            </div>
+        </div>
+    );
+
     return createPortal(
         <div
             ref={menuRef}
             onClick={(e) => e.stopPropagation()}
-            className="fixed z-[9999] w-56 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col py-1"
+            className="fixed z-[9999] w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col py-1"
             style={menuStyle}
         >
             <div className="px-3 py-2 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 mb-1">
-                <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Header Background</span>
+                <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Header Background</span>
             </div>
+            {renderColorGrid(currentHeaderColor, onHeaderColorSelect)}
 
-            <div className="grid grid-cols-4 gap-1 p-2">
-                {COLORS.map((color) => (
-                    <button
-                        key={`head-${color.label}`}
-                        onClick={() => {
-                            onHeaderColorSelect(color.value);
-                            onClose();
-                        }}
-                        title={color.label}
-                        className={`
-                            h-8 rounded-md flex items-center justify-center transition-all border
-                            ${color.value ? '' : 'bg-white dark:bg-stone-800'}
-                            ${(currentHeaderColor === color.value || (!currentHeaderColor && !color.value))
-                                ? 'border-blue-500 ring-1 ring-blue-500'
-                                : 'border-transparent hover:border-stone-300 dark:hover:border-stone-700'}
-                        `}
-                        style={{ backgroundColor: color.value || undefined }}
-                    >
-                        {!color.value && <div className="w-full h-[1px] bg-red-400 rotate-45" />}
-                    </button>
-                ))}
+            <div className="px-3 py-2 bg-stone-50 dark:bg-stone-800/50 border-y border-stone-100 dark:border-stone-800 my-1 mt-2">
+                <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Column Background</span>
             </div>
-
-            <div className="px-3 py-2 bg-stone-50 dark:bg-stone-800/50 border-y border-stone-100 dark:border-stone-800 my-1">
-                <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Column Background</span>
-            </div>
-
-            <div className="grid grid-cols-4 gap-1 p-2">
-                {COLORS.map((color) => (
-                    <button
-                        key={`col-${color.label}`}
-                        onClick={() => {
-                            onColumnColorSelect(color.value);
-                            onClose();
-                        }}
-                        title={color.label}
-                        className={`
-                            h-8 rounded-md flex items-center justify-center transition-all border
-                            ${color.value ? '' : 'bg-white dark:bg-stone-800'}
-                            ${(currentColumnColor === color.value || (!currentColumnColor && !color.value))
-                                ? 'border-blue-500 ring-1 ring-blue-500'
-                                : 'border-transparent hover:border-stone-300 dark:hover:border-stone-700'}
-                        `}
-                        style={{ backgroundColor: color.value || undefined }}
-                    >
-                        {!color.value && <div className="w-full h-[1px] bg-red-400 rotate-45" />}
-                    </button>
-                ))}
-            </div>
+            {renderColorGrid(currentColumnColor, onColumnColorSelect)}
         </div>,
         document.body
     );
