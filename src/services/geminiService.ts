@@ -48,6 +48,29 @@ export async function* chatWithGemini(message: string, history: { role: string, 
 }
 
 /**
+ * Simple single-shot response generation for the AI command bar.
+ * @param prompt User prompt
+ * @returns Generated response text
+ */
+export async function generateResponse(prompt: string): Promise<string> {
+    if (!genAI) {
+        return "Gemini API Key is missing. Please add VITE_GEMINI_API_KEY to your .env file.";
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const result = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            systemInstruction: "You are a helpful, concise, and futuristic AI assistant for NABD - a business management platform. Keep responses brief and elegant.",
+        });
+        return result.response.text() || "I processed that, but have no words.";
+    } catch (error) {
+        console.error("Gemini API Error:", error);
+        return "I encountered a disturbance in the data stream.";
+    }
+}
+
+/**
  * Generates subtasks for a given task title using Gemini.
  * @param taskTitle The title of the main task
  * @returns Array of subtask strings

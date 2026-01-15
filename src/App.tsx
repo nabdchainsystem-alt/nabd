@@ -6,7 +6,7 @@ import { Dashboard } from './features/dashboard/Dashboard';
 import { BoardView } from './features/board/BoardView';
 import { InboxView } from './features/inbox/InboxView';
 import { VaultView } from './features/vault/VaultView';
-import { NabdFab } from './components/ui/NabdFab';
+import { NabdSmartBar } from './components/ui/NabdSmartBar';
 import FlowHubPage from './features/flowHub/FlowHubPage';
 import ProcessMapPage from './features/flowHub/ProcessMapPage';
 import { MyWorkPage } from './features/myWork/MyWorkPage';
@@ -724,6 +724,7 @@ const AppContent: React.FC = () => {
   const HRPage = lazyWithRetry(() => import('./features/business_support/hr/HRPage'));
   const MarketingPage = lazyWithRetry(() => import('./features/business_support/marketing/MarketingPage'));
   const CornellNotesPage = lazyWithRetry(() => import('./features/tools/cornell/CornellNotesPage'));
+  const QuickNotesPage = lazyWithRetry(() => import('./features/quick_notes/QuickNotesPage'));
   const SettingsPage = lazyWithRetry(() => import('./features/settings/SettingsPage'));
 
   const FullScreenLoader = () => (
@@ -957,6 +958,8 @@ const AppContent: React.FC = () => {
               <ForeignMarketplacePage />
             ) : activeView === 'cornell_notes' ? (
               <CornellNotesPage />
+            ) : activeView === 'quick_notes' ? (
+              <QuickNotesPage />
             ) : activeView === 'settings' ? (
               <SettingsPage visibility={pageVisibility} onVisibilityChange={setPageVisibility} />
             ) : activeView === 'talk' ? (
@@ -970,7 +973,7 @@ const AppContent: React.FC = () => {
         </main>
       </div>
       {/* <FocusWidget /> */}
-      <NabdFab />
+      <NabdSmartBar boards={boards} onCreateTask={handleCreateTaskOnBoard} onNavigate={handleNavigate} />
     </div>
   );
 };
