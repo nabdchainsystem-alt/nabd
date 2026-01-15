@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 interface GTDInboxColumnProps {
     title: string;
@@ -11,10 +10,8 @@ interface GTDInboxColumnProps {
 
 export const GTDInboxColumn: React.FC<GTDInboxColumnProps> = ({ title, subtitle, count, delay = 0, children }) => {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, duration: 0.5, ease: "easeOut" }}
+
+        <div
             className="flex flex-col h-[400px] border border-gray-100 dark:border-white/5 rounded-[2rem] p-8 bg-white dark:bg-[#111111] shadow-[0_2px_40px_-10px_rgba(0,0,0,0.05)] relative overflow-hidden group hover:shadow-[0_8px_40px_-5px_rgba(0,0,0,0.1)] transition-all duration-500"
         >
             <div className="flex justify-between items-start mb-2">
@@ -44,6 +41,6 @@ export const GTDInboxColumn: React.FC<GTDInboxColumnProps> = ({ title, subtitle,
 
             {/* Subtle Texture */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-gray-50/50 dark:to-white/5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        </motion.div>
+        </div>
     );
 };

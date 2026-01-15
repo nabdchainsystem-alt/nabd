@@ -25,7 +25,7 @@ const INITIAL_BOARD: IBoard = {
         {
             id: 'Stuck',
             title: 'Stuck',
-            color: '#e2445c',
+            color: '#f97316',
             tasks: [],
             columns: [],
             isPinned: false
@@ -46,7 +46,9 @@ const INITIAL_BOARD: IBoard = {
             columns: [],
             isPinned: false
         }
-    ]
+    ],
+    defaultView: 'overview',
+    availableViews: ['overview', 'table', 'kanban']
 };
 
 import { Board } from '../../../types';
@@ -96,7 +98,7 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
                 if (parsed && parsed.id) {
                     // FIX: Ensure new default statuses are present if missing
                     const requiredGroups = [
-                        { id: 'Stuck', title: 'Stuck', color: '#e2445c' },
+                        { id: 'Stuck', title: 'Stuck', color: '#f97316' },
                         { id: 'Rejected', title: 'Rejected', color: '#333333' }
                     ];
 
@@ -194,7 +196,7 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
 
                     // FIX: Ensure new default statuses are present if missing
                     const requiredGroups = [
-                        { id: 'Stuck', title: 'Stuck', color: '#e2445c' },
+                        { id: 'Stuck', title: 'Stuck', color: '#f97316' },
                         { id: 'Rejected', title: 'Rejected', color: '#333333' }
                     ];
 
@@ -358,13 +360,13 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
 
 
     // Group Actions
-    const addGroup = useCallback(() => {
+    const addGroup = useCallback((id?: string, title?: string, color?: string) => {
         setBoard(prev => ({
             ...prev,
             groups: [...prev.groups, {
-                id: uuidv4(),
-                title: 'New Group',
-                color: '#579bfc',
+                id: id || uuidv4(),
+                title: title || 'New Group',
+                color: color || ['#579bfc', '#e11d48', '#16a34a', '#d97706', '#9333ea', '#db2777'][Math.floor(Math.random() * 6)],
                 tasks: [],
                 columns: [],
                 isPinned: false
@@ -454,13 +456,29 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
     const handleAnalyzeBoard = useCallback(() => { }, []);
 
     // Flatten tasks from all groups for views that need a flat list
-    const tasks = board.groups.flatMap(g => g.tasks.map(t => ({ ...t, groupId: g.id })));
+    const tasks = board.groups.flatMap(g => g.tasks.map(t => ({
+        ...t,
+        groupId: g.id
+    })));
 
     // Update tasks from a flat list (reconcile with groups)
     const onUpdateTasks = useCallback((updatedTasks: any[]) => {
         setBoard(prev => {
+            // Pre-process: If task has status change but no groupId, map status to groupId if valid
+            const knownGroupIds = new Set(prev.groups.map(g => g.id));
+            const refinedUpdates = updatedTasks.map(t => {
+                if (!t.groupId && (t.statusId || t.status)) {
+                    const targetStatus = t.statusId || t.status;
+                    // Check if status matches a group ID (case-insensitive check could be better but let's stick to exact for now as IDs are stable)
+                    if (knownGroupIds.has(targetStatus)) {
+                        return { ...t, groupId: targetStatus };
+                    }
+                }
+                return t;
+            });
+
             // Create a map for faster lookup of updated task data
-            const updatedTaskMap = new Map(updatedTasks.map(t => [t.id, t]));
+            const updatedTaskMap = new Map(refinedUpdates.map(t => [t.id, t]));
 
             const newGroups = prev.groups.map(g => {
                 // 1. Reconstruct the group's tasks.
@@ -469,7 +487,7 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
                 // matches an ID in this group, it belongs here. 
                 // If it has a groupId property, we respect that.
 
-                const newGroupTasks = updatedTasks
+                const newGroupTasks = refinedUpdates
                     .filter(t => {
                         // If the task explicitly has a groupId matching this group
                         if (t.groupId === g.id) return true;
@@ -499,7 +517,7 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
             // 1.5 Handle "Orphan" tasks (e.g. created in Table view with internal IDs)
             // Any task in updatedTasks that wasn't placed in a group above should go to the first group.
             const placedTaskIds = new Set(newGroups.flatMap(g => g.tasks.map(t => t.id)));
-            const orphans = updatedTasks.filter(t => !placedTaskIds.has(t.id));
+            const orphans = refinedUpdates.filter(t => !placedTaskIds.has(t.id));
 
             if (orphans.length > 0 && newGroups.length > 0) {
                 // Assign to first group

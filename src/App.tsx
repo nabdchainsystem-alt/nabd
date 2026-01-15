@@ -52,7 +52,9 @@ const INITIAL_BOARDS: Board[] = [
       { id: 't2', name: 'Approve Budget', person: 'Bob', status: 'Done', date: '2023-10-01', priority: 'Medium' },
       { id: 't3', name: 'Launch Social Ads', person: 'Charlie', status: 'Stuck', date: '2023-10-20', priority: 'Low' },
       { id: 't4', name: 'Review Analytics', person: 'Alice', status: '', date: '2023-11-01', priority: null }
-    ]
+    ],
+    defaultView: 'overview',
+    availableViews: ['overview', 'table', 'kanban']
   },
   {
     id: 'default-2',
@@ -64,7 +66,9 @@ const INITIAL_BOARDS: Board[] = [
       { id: 'c2', title: 'Status', type: 'status' }
     ],
     tasks: [],
-    isFavorite: false
+    isFavorite: false,
+    defaultView: 'overview',
+    availableViews: ['overview', 'table']
   }
 ];
 
@@ -471,8 +475,8 @@ const AppContent: React.FC = () => {
       workspaceId: activeWorkspaceId,
       columns: initialColumns,
       tasks: [],
-      defaultView: defaultView,
-      availableViews: [defaultView],
+      defaultView: 'overview', // Standard start with Overview
+      availableViews: ['overview', defaultView], // Overview + Selected Tool
       icon: icon,
       parentId: parentId
     };
@@ -559,6 +563,9 @@ const AppContent: React.FC = () => {
           setWorkspaces(prev => prev.map(w => w.id === tempId ? newWorkspaceReal : w));
           setActiveWorkspaceId(newWorkspaceReal.id);
 
+          // CRITICAL FIX: Update any boards that were created while workspace was in optimistic state
+          setBoards(prev => prev.map(b => b.workspaceId === tempId ? { ...b, workspaceId: newWorkspaceReal.id } : b));
+
           // Auto-create a default "Table Plan" board for the new workspace
           const defaultBoardId = `board-${Date.now()}`;
           const defaultBoard: Board = {
@@ -589,6 +596,9 @@ const AppContent: React.FC = () => {
             setBoards(prev => [...prev, defaultBoard]);
             setActiveBoardId(defaultBoardId);
             setActiveView('board');
+
+            // Track as unsynced
+            setUnsyncedBoardIds(prev => new Set(prev).add(defaultBoardId));
           }
         } else {
           console.error("Failed to add workspace backend, keeping local");
@@ -600,6 +610,8 @@ const AppContent: React.FC = () => {
       // Keep optimistic update since we want offline support
     }
   }, [getToken]);
+
+
 
   const handleDeleteWorkspace = React.useCallback(async (id: string) => {
     if (workspaces.length <= 1) return; // Prevent deleting last workspace
@@ -628,17 +640,15 @@ const AppContent: React.FC = () => {
           // Revert optimistic update
           if (workspaceToDelete) {
             setWorkspaces(prev => [...prev, workspaceToDelete]);
-            // We might not need to revert activeWorkspaceId immediately as it's less critical?
-            // But strictly we should. For now, let's just log.
+            // Revert active workspace if needed
+            if (activeWorkspaceId !== id && workspaceToDelete.id === id) {
+              // If we switched away, maybe we don't force switch back, but having it available is enough
+            }
           }
         }
       }
     } catch (error) {
       console.error("Failed to delete workspace", error);
-      // Revert optimistic update? Or keep it deleted locally?
-      // For "Offline Support", we usually keep the user intent.
-      // But if we can't sync the deletion, it might reappear later.
-      // Let's assume for now we keep the deletion locally to satisfy the "I can't delete" user complaint immediately.
     }
   }, [workspaces, activeWorkspaceId, getToken]);
 
@@ -653,13 +663,32 @@ const AppContent: React.FC = () => {
 
     // Optimistic update - remove from local state IMMEDIATELY
     setBoards(prev => prev.filter(b => b.id !== boardId));
+
+    // CRITICAL FIX: Stop tracking as unsynced so it doesn't resurrect on refresh
+    setUnsyncedBoardIds(prev => {
+      const next = new Set(prev);
+      next.delete(boardId);
+      return next;
+    });
+
     // Mark as deleted to prevent zombie reappearance (persisted to localStorage)
     setDeletedBoardIds(prev => new Set(prev).add(boardId));
+
     // Also update localStorage immediately to ensure it's persisted before any async operations
     const currentDeleted = localStorage.getItem('app-deleted-boards');
     const deletedSet = currentDeleted ? new Set(JSON.parse(currentDeleted)) : new Set();
     deletedSet.add(boardId);
     localStorage.setItem('app-deleted-boards', JSON.stringify(Array.from(deletedSet)));
+
+    // Update unsynced storage too
+    const currentUnsynced = localStorage.getItem('app-unsynced-boards');
+    if (currentUnsynced) {
+      const unsyncedSet = new Set(JSON.parse(currentUnsynced));
+      if (unsyncedSet.has(boardId)) {
+        unsyncedSet.delete(boardId);
+        localStorage.setItem('app-unsynced-boards', JSON.stringify(Array.from(unsyncedSet)));
+      }
+    }
 
     if (activeBoardId === boardId) {
       setActiveBoardId(null);
@@ -673,7 +702,7 @@ const AppContent: React.FC = () => {
         console.log('[Delete Board] Calling backend with token...');
         await boardService.deleteBoard(token, boardId);
         console.log('[Delete Board] Backend delete successful');
-        // On success, we can remove from deletedBoardIds since server no longer has it
+        // On success, we can remove from `deletedBoardIds` since server no longer has it
         setDeletedBoardIds(prev => {
           const next = new Set(prev);
           next.delete(boardId);
@@ -681,12 +710,9 @@ const AppContent: React.FC = () => {
         });
       } else {
         console.error("[Delete Board] No auth token available - keeping local deletion");
-        // Keep the board in deletedBoardIds so it stays filtered out on refresh
       }
     } catch (e) {
       console.error("[Delete Board] Backend call failed:", e);
-      // Keep the board in deletedBoardIds so it stays filtered out on refresh
-      // The user will see immediate feedback, and on next successful sync it will be deleted
     }
   }, [activeBoardId, getToken, boards]);
 

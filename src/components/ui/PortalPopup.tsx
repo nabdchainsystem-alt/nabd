@@ -133,7 +133,10 @@ export const PortalPopup: React.FC<PortalPopupProps> = ({
 
     return createPortal(
         <>
-            <div className="fixed inset-0 z-[2147483640] w-screen h-screen bg-transparent" onClick={onClose} />
+            <div className="fixed inset-0 z-[2147483640] w-screen h-screen bg-transparent" onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+            }} />
             <div
                 ref={contentRef}
                 style={{

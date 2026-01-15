@@ -75,7 +75,7 @@ export const INITIAL_DATA: BoardData = {
         { id: 'In Progress', title: 'In Progress', color: 'blue' },
         { id: 'Done', title: 'Done', color: 'emerald' },
         { id: 'Rejected', title: 'Rejected', color: 'rose' },
-        { id: 'Stuck', title: 'Stuck', color: 'rose' },
+        { id: 'Stuck', title: 'Stuck', color: 'orange' },
     ],
     tasks: []
 };
@@ -480,8 +480,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onUpdateTask, on
             {/* Status Color Line */}
             {/* Status Color Line */}
             <div className={`absolute right-0 top-0 bottom-0 w-1.5 rounded-r-xl ${priorityKey === 'urgent' ? 'bg-red-500' :
-                priorityKey === 'high' ? 'bg-blue-500' :
-                    priorityKey === 'medium' ? 'bg-amber-500' :
+                priorityKey === 'high' ? 'bg-orange-500' :
+                    priorityKey === 'medium' ? 'bg-blue-500' :
                         priorityKey === 'low' ? 'bg-emerald-500' :
                             (statusColor.startsWith('#') ? '' : `bg-${statusColor}-500`)
                 }`} style={
@@ -605,7 +605,7 @@ const TaskCreationForm = ({ onSave, onCancel, columnColor = 'gray' }: { onSave: 
 
                 <button
                     onClick={() => setActivePopup(activePopup === 'priority' ? 'none' : 'priority')}
-                    className={`flex items-center gap-2 text-xs font-medium transition-colors ${priority !== 'none' ? 'text-purple-600' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex items-center gap-2 text-xs font-medium transition-colors ${priority !== 'none' ? priorityConfig[priority].color : 'text-gray-500 hover:text-gray-700'}`}
                 >
                     <Flag size={14} fill={priority !== 'none' && priority !== 'low' ? "currentColor" : "none"} />
                     {priority !== 'none' ? priorityConfig[priority].label : 'Add priority'}
@@ -809,7 +809,7 @@ const Column: React.FC<ColumnProps> = ({
                                 backgroundColor:
                                     column.title.toLowerCase().includes('done') ? '#22c55e' :
                                         column.title.toLowerCase().includes('progress') ? '#3b82f6' :
-                                            column.title.toLowerCase().includes('stuck') ? '#e11d48' :
+                                            column.title.toLowerCase().includes('stuck') ? '#f97316' :
                                                 column.title.toLowerCase().includes('rejected') ? '#be123c' :
                                                     column.title.toLowerCase().includes('review') ? '#a855f7' :
                                                         column.color.startsWith('#') ? column.color :
@@ -942,7 +942,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                             let color = 'gray';
                             if (lower.includes('done') || lower.includes('complete') || lower.includes('finished')) color = 'emerald';
                             else if (lower.includes('progress') || lower.includes('working') || lower.includes('active')) color = 'blue';
-                            else if (lower.includes('stuck') || lower.includes('block') || lower.includes('error')) color = 'rose';
+                            else if (lower.includes('stuck') || lower.includes('block') || lower.includes('error')) color = 'orange';
                             else if (lower.includes('rejected')) color = 'rose';
                             else if (lower.includes('review') || lower.includes('teat')) color = 'purple';
                             else if (lower.includes('hold') || lower.includes('wait')) color = 'yellow';
@@ -955,7 +955,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                             let color = s.color || 'gray';
                             if (lower.includes('done') || lower.includes('complete')) color = 'emerald';
                             else if (lower.includes('progress') || lower.includes('working')) color = 'blue';
-                            else if (lower.includes('stuck') || lower.includes('error')) color = 'rose';
+                            else if (lower.includes('stuck') || lower.includes('error')) color = 'orange';
                             else if (lower.includes('rejected')) color = 'rose';
                             else if (lower.includes('review')) color = 'purple';
                             else if (lower.includes('hold') || lower.includes('wait')) color = 'yellow';
@@ -980,7 +980,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
 
             const missingColumns: ColumnType[] = [];
             if (!hasRejected) missingColumns.push({ id: 'Rejected', title: 'Rejected', color: 'rose' });
-            if (!hasStuck) missingColumns.push({ id: 'Stuck', title: 'Stuck', color: 'rose' });
+            if (!hasStuck) missingColumns.push({ id: 'Stuck', title: 'Stuck', color: 'orange' });
 
             newColumns.splice(insertIndex, 0, ...missingColumns);
             return newColumns;
@@ -1021,10 +1021,20 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                 }
             }
 
+            // Robust Status Resolution
+            let targetStatusId = row.statusId || row.status || 'To Do';
+
+            // If the resolved status string matches a column ID (case-insensitive), use that column ID
+            // This fixes issues where 'Stuck' might be 'stuck' or 'Status.Stuck'
+            // We need access to columns here, but columns are state. 
+            // NOTE: We cannot easily access 'columns' state here as it's defined after. 
+            // However, we can perform basic normalization.
+
             return {
                 id: row.id,
                 title: row.name || 'Untitled',
-                statusId: row.statusId || row.status || 'To Do',
+                statusId: targetStatusId,
+                originalStatus: row.status, // Keep original for debugging or write-back
                 priority: row.priority ? row.priority.toLowerCase() : 'none',
                 dueDate: row.dueDate || row.date,
                 tags: [],
@@ -1355,7 +1365,16 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                             <Column
                                 key={col.id}
                                 column={col}
-                                tasks={filteredTasks.filter(t => t.statusId === col.id)}
+                                tasks={filteredTasks.filter(t => {
+                                    // Robust matching: ID match, Title match, or fuzzy text match
+                                    if (t.statusId === col.id) return true;
+                                    if (t.statusId === col.title) return true;
+
+                                    // Fallback: Check original status string if available
+                                    if (t.originalStatus && typeof t.originalStatus === 'string' && t.originalStatus.toLowerCase() === col.title.toLowerCase()) return true;
+
+                                    return false;
+                                })}
                                 onTaskMove={handleTaskMove}
                                 onAddTask={handleAddTask}
                                 onUpdateTask={handleUpdateTask}

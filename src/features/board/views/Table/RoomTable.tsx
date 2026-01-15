@@ -99,7 +99,7 @@ const STATUS_STYLES: Record<string, string> = {
     'Done': 'bg-emerald-600 text-white',
     'Working on it': 'bg-amber-500 text-white',
     'In Progress': 'bg-blue-600 text-white',
-    'Stuck': 'bg-rose-600 text-white',
+    'Stuck': 'bg-orange-500 text-white',
     'To Do': 'bg-gray-100 text-gray-700',
     'Rejected': 'bg-rose-600 text-white',
 };
@@ -134,8 +134,8 @@ export interface Column {
 }
 
 const DEFAULT_COLUMNS: Column[] = [
-    { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false },
-    { id: 'name', label: 'Name', type: 'text', width: 320, minWidth: 200, resizable: true },
+    { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false, pinned: true },
+    { id: 'name', label: 'Name', type: 'text', width: 320, minWidth: 200, resizable: true, pinned: true },
     { id: 'people', label: 'People', type: 'people', width: 120, minWidth: 100, resizable: true },
     { id: 'status', label: 'Status', type: 'status', width: 140, minWidth: 100, resizable: true },
     { id: 'priority', label: 'Priority', type: 'priority', width: 140, minWidth: 100, resizable: true },
@@ -208,6 +208,10 @@ interface RoomTableProps {
     onUpdateTasks?: (tasks: any[]) => void;
     onDeleteTask?: (groupId: string, taskId: string) => void;
     onNavigate?: (view: string) => void;
+
+    onAddGroup?: (id: string, title: string, color?: string) => void;
+    onUpdateGroup?: (id: string, title: string) => void;
+    onDeleteGroup?: (id: string) => void;
     onRename?: (newName: string) => void;
     renderCustomActions?: (props: {
         setRows: React.Dispatch<React.SetStateAction<Row[]>>;
@@ -218,6 +222,7 @@ interface RoomTableProps {
     enableImport?: boolean;
     hideGroupHeader?: boolean;
     showPagination?: boolean;
+    tasksVersion?: string;
 }
 
 // --- Filter and Sort Types ---
@@ -410,9 +415,9 @@ const SortableGroupWrapper: React.FC<{ group: TableGroup; children: React.ReactN
     } = useSortable({ id: group.id, data: { type: 'group', group } });
 
     const style = {
-        transform: CSS.Translate.toString(transform),
-        transition,
-        zIndex: isDragging ? 50 : undefined, // Lower z-index than columns but high enough
+        transform: isDragging ? CSS.Translate.toString(transform) : undefined,
+        transition: isDragging ? transition : undefined,
+        zIndex: isDragging ? 50 : undefined,
         position: 'relative' as const,
     };
 
@@ -833,7 +838,7 @@ const EditableName: React.FC<{ name: string; onRename?: (name: string) => void; 
 };
 
 // --- Main RoomTable Component ---
-const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, name: initialName, columns: externalColumns, onUpdateTasks, onDeleteTask, renderCustomActions, onRename, onNavigate, enableImport, hideGroupHeader, showPagination }) => {
+const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, name: initialName, columns: externalColumns, onUpdateTasks, onDeleteTask, renderCustomActions, onRename, onNavigate, onAddGroup, onUpdateGroup, onDeleteGroup, enableImport, hideGroupHeader, showPagination, tasksVersion }) => {
     // Keys for persistence
     const storageKeyColumns = `room-table-columns-v7-${roomId}-${viewId}`;
     const storageKeyRows = `room-table-rows-v7-${roomId}-${viewId}`;
@@ -854,7 +859,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const [activeColorMenu, setActiveColorMenu] = useState<{ rect: DOMRect; colId?: string; rowId?: string } | null>(null);
     const [activeHeaderMenu, setActiveHeaderMenu] = useState<{ colId: string; position: { x: number; y: number } } | null>(null);
     const [renamingColId, setRenamingColId] = useState<string | null>(null);
-    const creationRowInputRef = useRef<HTMLInputElement>(null);
+    const creationRowInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
     // --- State ---
     const [columns, setColumns] = useState<Column[]>(() => {
@@ -863,7 +868,15 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             const saved = localStorage.getItem(storageKeyColumns);
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (parsed.length > 0) return parsed;
+                if (parsed.length > 0) {
+                    // Ensure select and name are pinned (migration)
+                    return parsed.map((col: Column) => {
+                        if (col.id === 'select' || col.id === 'name') {
+                            return { ...col, pinned: true };
+                        }
+                        return col;
+                    });
+                }
             }
             // Use prop defaultColumns if available, otherwise internal default
             return defaultColumns && defaultColumns.length > 0 ? defaultColumns : DEFAULT_COLUMNS;
@@ -876,46 +889,106 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     const storageKeyGroups = `room-table-groups-v1-${roomId}-${viewId}`;
 
     const [tableGroups, setTableGroups] = useState<TableGroup[]>(() => {
-        // Try to load from new groups storage first
+        // Core Logic:
+        // 1. If we have externalTasks, they are the SOURCE OF TRUTH for data (rows).
+        // 2. We use localStorage ONLY for view states (isCollapsed, colors, order of groups?).
+        // 3. We merge them.
+
+        // Load saved view state
+        let savedGroupsMap: Record<string, Partial<TableGroup>> = {};
         try {
             const savedGroups = localStorage.getItem(storageKeyGroups);
             if (savedGroups) {
                 const parsed = JSON.parse(savedGroups);
-                if (parsed.length > 0) {
-                    // Migration: Add colors to groups that don't have them
-                    // Note: Removed sortRowsWithDoneAtBottom to preserve saved order
-                    return parsed.map((g: TableGroup, idx: number) => ({
-                        ...g,
-                        color: g.color || getGroupColor(idx),
-                        rows: g.rows || []
-                    }));
+                if (Array.isArray(parsed)) {
+                    parsed.forEach((g: TableGroup) => {
+                        savedGroupsMap[g.id] = {
+                            isCollapsed: g.isCollapsed,
+                            color: g.color,
+                            isPinned: g.isPinned,
+                            // We do NOT trust g.rows or g.name from storage if we have externalTasks? 
+                            // Actually name might be local? No, name should come from board if synced.
+                            // But for now, let's assume externalTasks doesn't carry group names easily unless we look at board.groups.
+                            // Limitation: externalTasks is flat. Group Names are not in generic ITask strictly speaking?
+                            // Actually ITask has groupId.
+                            // We need IBoard to get Group Names. But we only have externalTasks here.
+                            // We trust local storage for Group Names and View State.
+                            name: g.name
+                        };
+                    });
                 }
             }
         } catch { }
 
-        // Migration: If we have old rows data, convert to single group
-        let initialRows: Row[] = [];
+        // If no external source, return empty or default
         if (externalTasks && externalTasks.length > 0) {
-            initialRows = externalTasks;
-        } else {
+            const tasksByGroup: Record<string, Row[]> = {};
+            // Keep track of order found in tasks if possible, or just unique IDs
+            const uniqueGroupIds: string[] = [];
+
+            externalTasks.forEach(t => {
+                const gid = t.groupId || 'default-group';
+                if (!tasksByGroup[gid]) {
+                    tasksByGroup[gid] = [];
+                    uniqueGroupIds.push(gid);
+                }
+                tasksByGroup[gid].push(t);
+            });
+
+            // We want to preserve the ORDER from specific savedGroups if possible?
+            // Or just use the order of appearance / existing savedGroups keys?
+            // Best attempt: Use savedGroups order for existing ones, append new ones.
+
+            // Get all known IDs from saved items + new items
+            const savedIds = Object.keys(savedGroupsMap);
+            // We can't easily know the original sorted order of savedIds unless we parse array.
+            // Let's re-parse array order.
+            let orderedIds: string[] = [];
             try {
-                const saved = localStorage.getItem(storageKeyRows);
-                if (saved) initialRows = JSON.parse(saved);
+                const saved = localStorage.getItem(storageKeyGroups);
+                if (saved) {
+                    orderedIds = JSON.parse(saved).map((g: any) => g.id);
+                }
             } catch { }
+
+            // Merge with found IDs
+            const allIds = Array.from(new Set([...orderedIds, ...uniqueGroupIds]));
+
+            return allIds
+                .filter(id => tasksByGroup[id] !== undefined || savedGroupsMap[id] !== undefined) // Only show if has tasks or existed
+                .filter(id => tasksByGroup[id] && tasksByGroup[id].length > 0) // OPTIONAL: Filter out empty groups if that's desired behavior? No, keep empty groups if they exist.
+                // Actually, if we restrict to only groups present in externalTasks? 
+                // BoardView passes ALL tasks. If a group is empty in Board, it has NO tasks.
+                // So externalTasks will NOT have that group ID.
+                // Does RoomTable support empty groups synced from Board?
+                // Only if onUpdateTasks/onAddGroup logic handles it.
+                // For now, let's just show groups that have tasks in the view.
+                .filter(id => tasksByGroup[id] !== undefined)
+                .map((id, idx) => {
+                    const saved = savedGroupsMap[id] || {};
+                    return {
+                        id: id,
+                        name: saved.name || `Group ${idx + 1}`,
+                        rows: tasksByGroup[id] || [],
+                        isCollapsed: saved.isCollapsed || false,
+                        color: saved.color || getGroupColor(idx),
+                        isPinned: saved.isPinned || false
+                    };
+                });
         }
 
-        // Get old table name for migration
-        let initialName = 'Group 1';
+        // Fallback to legacy loading if no external tasks (or empty)
+        // ... (Keep existing logic or simplify to empty)
         try {
-            const savedName = localStorage.getItem(storageKeyName);
-            if (savedName) initialName = savedName;
+            if (externalTasks) return []; // If passed but empty, return empty.
+            // Only load from storage if externalTasks is UNDEFINED (not just empty array)
+            // But usually it is defined.
         } catch { }
 
-        // Return initial group with migrated data
         return [{
             id: 'group-1',
-            name: initialName,
-            rows: initialRows,
+            name: 'Group 1',
+            rows: [],
             isCollapsed: false,
             color: GROUP_COLORS[0]
         }];
@@ -938,7 +1011,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const [rowsPerPage, setRowsPerPage] = useState(showPagination ? 10 : -1);
+    const [rowsPerPage, setRowsPerPage] = useState(showPagination ? 50 : -1);
 
     // Pinned Charts State
     const storageKeyPinnedCharts = `room-table-pinned-charts-${roomId}-${viewId}`;
@@ -974,74 +1047,61 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
     }, [externalColumns]);
 
     // Sync externalTasks to tableGroups if they change
+    // Sync externalTasks to tableGroups if they change
     useEffect(() => {
-        if (!externalTasks || externalTasks.length === 0) return;
+        // If externalTasks is undefined, we assume we are in standalone mode or loading?
+        if (externalTasks === undefined) return;
 
         setTableGroups(prevGroups => {
-            // If the incoming tasks are exactly the same as current rows, skip update to avoid loops/jitter
-            const currentRows = prevGroups.flatMap(g => g.rows);
-            // Simple title/status/priority comparison logic
-            const isSame = externalTasks.length === currentRows.length &&
-                externalTasks.every((et, i) => {
-                    const cr = currentRows[i];
-                    return cr && et.id === cr.id && et.name === cr.name && et.status === cr.status && et.priority === cr.priority;
-                });
-
-            // If strictly same count and essential fields, skip. 
-            // BUT: If a new task was added in Kanban, length will be different, so we proceed.
-            if (isSame) return prevGroups;
-
-            // Create a map for fast lookup of external task updates
-            const externalTaskMap = new Map(externalTasks.map(t => [t.id, t]));
-            const processedIds = new Set<string>();
-
-            // 1. Update existing rows in their *current* groups (preserve groupId)
-            // We NO LONGER filter out rows missing from externalTasks to prevent data loss on refresh 
-            // if external persistence is slower or empty.
-            // This favors "keeping local data" over "strict sync deletion".
-            const updatedGroups = prevGroups.map(group => {
-                const updatedGroupRows = group.rows.map(row => {
-                    const externalUpdate = externalTaskMap.get(row.id);
-                    if (externalUpdate) {
-                        processedIds.add(row.id);
-                        // Merge external update but exclude groupId to keep it in this TableGroup
-                        const { groupId, ...updateWithoutGroupId } = externalUpdate as any;
-                        // SYNC: Ensure incoming dueDate updates date as well
-                        if (updateWithoutGroupId.dueDate) {
-                            (updateWithoutGroupId as any).date = updateWithoutGroupId.dueDate;
-                        }
-                        return { ...row, ...updateWithoutGroupId };
-                    }
-                    return row;
-                });
-                return { ...group, rows: updatedGroupRows };
+            // Group external tasks
+            const tasksByGroup: Record<string, Row[]> = {};
+            externalTasks.forEach(t => {
+                const gid = t.groupId || 'default-group';
+                if (!tasksByGroup[gid]) tasksByGroup[gid] = [];
+                tasksByGroup[gid].push(t);
             });
 
-            // 2. Identify new tasks (in externalTasks but not in any TableGroup)
-            // We ignore tasks that mistakenly claim to belong to a group if we haven't seen them yet,
-            // or simply just put them in the first group.
-            const newTasksRaw = externalTasks.filter(t => !processedIds.has(t.id));
+            // If we have existing groups, we update their rows
+            const updatedGroups = prevGroups.map(g => {
+                const groupTasks = tasksByGroup[g.id] || [];
+                // Check if rows actually changed to avoid unnecessary re-renders or state updates?
+                // But setTableGroups replacement always triggers render unless we return same object ref.
+                // For deep check, we can skip if identical. But for now, simple replacement is safer for sync.
+                return { ...g, rows: groupTasks };
+            });
 
-            if (newTasksRaw.length > 0 && updatedGroups.length > 0) {
-                // Add new tasks to the FIRST group by default
-                // This ensures they appear in the table. User can move them later.
-                const taskToAdd = newTasksRaw.map(t => {
-                    // Ensure the new row has the correct groupId for the table group
-                    return { ...t, groupId: updatedGroups[0].id };
-                });
+            // Identify any NEW groups that appeared in tasks but are not in our list
+            const existingIds = new Set(prevGroups.map(g => g.id));
+            const newIds = Object.keys(tasksByGroup).filter(id => !existingIds.has(id));
 
-                updatedGroups[0] = {
-                    ...updatedGroups[0],
-                    rows: [...taskToAdd, ...updatedGroups[0].rows]
-                };
+            if (newIds.length > 0) {
+                // If we have a single 'group-1' that is empty or local-only, and we receive EXACTLY one new group ID,
+                // we assume it's the initial "conversion" from local Group 1 to Server Group ID.
+                if (updatedGroups.length === 1 && updatedGroups[0].id === 'group-1' &&
+                    (!updatedGroups[0].rows || updatedGroups[0].rows.length === 0) &&
+                    newIds.length === 1) {
+                    const gid = newIds[0];
+                    return [{
+                        ...updatedGroups[0],
+                        id: gid,
+                        rows: tasksByGroup[gid]
+                    }];
+                }
+
+                const newGroups = newIds.map((gid, idx) => ({
+                    id: gid,
+                    name: 'New Group', // We rely on Board for names, but here we don't have metadata prop.
+                    rows: tasksByGroup[gid],
+                    isCollapsed: false,
+                    color: GROUP_COLORS[(updatedGroups.length + idx) % GROUP_COLORS.length]
+                }));
+                return [...updatedGroups, ...newGroups];
             }
 
-            return updatedGroups.map(g => ({
-                ...g,
-                rows: sortRowsWithDoneAtBottom(g.rows)
-            }));
+            return updatedGroups;
         });
-    }, [externalTasks]);
+
+    }, [externalTasks, tasksVersion]);
 
     const { groupedByItem: remindersByItem, addReminder, updateReminder, deleteReminder } = useReminders(roomId);
     const [activeReminderTarget, setActiveReminderTarget] = useState<{ rowId: string; rect: DOMRect } | null>(null);
@@ -1192,10 +1252,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         XLSX.writeFile(wb, `Table_Export_${dateStr}.xlsx`);
     }, [tableGroups, columns]);
 
-    const [scrollTop, setScrollTop] = useState(0);
     // creationRowInputRef is already defined at line 854
     const tableBodyRef = useRef<HTMLDivElement>(null);
-    const ROW_HEIGHT = 40; // h-10 = 40px
 
     // Persistence Effects
     useEffect(() => {
@@ -1216,13 +1274,21 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         setTableGroups(prev => {
             const newGroupId = `group-${Date.now()}`;
             const colorIndex = prev.length % GROUP_COLORS.length;
+            const color = GROUP_COLORS[colorIndex];
             const newGroup: TableGroup = {
                 id: newGroupId,
                 name: nameToUse,
                 rows: [],
                 isCollapsed: false,
-                color: GROUP_COLORS[colorIndex]
+                color: color
             };
+
+            // Sync with parent
+            if (onAddGroup) {
+                // Pass a hash or undefined for color to let parent decide, or pass string if parent supports it
+                onAddGroup(newGroupId, nameToUse, undefined);
+            }
+
             return [...prev, newGroup];
         });
     }, []);
@@ -1232,6 +1298,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         setTableGroups(prev => prev.map(g =>
             g.id === groupId ? { ...g, name: newName } : g
         ));
+        if (onUpdateGroup) {
+            onUpdateGroup(groupId, newName);
+        }
     }, []);
 
     // Handler to toggle group collapse
@@ -1260,6 +1329,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             }
             return prev.filter(g => g.id !== groupId);
         });
+        if (onDeleteGroup) {
+            onDeleteGroup(groupId);
+        }
     }, []);
 
     // Handler to add a row to a specific group
@@ -1361,8 +1433,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
         // Keep focus on the creation row input for continuous entry
         requestAnimationFrame(() => {
-            if (creationRowInputRef.current) {
-                creationRowInputRef.current.focus();
+            const inputEl = creationRowInputRefs.current[groupId];
+            if (inputEl) {
+                inputEl.focus();
             }
         });
     };
@@ -1877,19 +1950,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
 
 
-    // Virtualization Calculation
-    const { visibleRows, paddingTop, paddingBottom } = useMemo(() => {
-        const totalRows = paginatedRows.length;
-        const containerHeight = tableBodyRef.current?.clientHeight || 800; // Estimate
-        const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 5); // 5 rows buffer above
-        const endIndex = Math.min(totalRows, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + 5); // 5 rows buffer below
 
-        const visible = paginatedRows.slice(startIndex, endIndex);
-        const paddingTop = startIndex * ROW_HEIGHT;
-        const paddingBottom = (totalRows - endIndex) * ROW_HEIGHT;
-
-        return { visibleRows: visible, paddingTop, paddingBottom };
-    }, [paginatedRows, scrollTop]);
 
     const handleAddPinnedChart = (config: ChartBuilderConfig) => {
         setPinnedCharts(prev => [...prev, config]);
@@ -3124,7 +3185,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 <div className="group/name relative h-full flex items-center px-3 overflow-hidden gap-1.5 w-full">
                     {row.priority && <span className={`shrink-0 w-2 h-2 rounded-full mt-0.5 ${getPriorityDot(row.priority)}`} />}
                     <input
-                        ref={row.id === CREATION_ROW_ID ? creationRowInputRef : undefined}
+                        ref={row.id === CREATION_ROW_ID ? (el) => {
+                            if (row.groupId) creationRowInputRefs.current[row.groupId] = el;
+                        } : undefined}
                         type="text"
                         value={value || ''}
                         onChange={(e) => handleTextChange(row.id, col.id, e.target.value, row.groupId)}
@@ -3343,18 +3406,15 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         return (
             <>
                 {/* Columns */}
-                {columns.map((col, index) => {
-                    // ... (rest of renderRowContent)
-
+                {visibleColumns.map((col, index) => {
                     const isSticky = !!col.pinned && !isOverlay;
 
                     // Calculate left position for sticky columns
-                    // Note: This matches the header logic we need to ensure is consistent
                     let leftPos = 0;
                     if (isSticky) {
                         for (let i = 0; i < index; i++) {
-                            if (columns[i].pinned) {
-                                leftPos += columns[i].width;
+                            if (visibleColumns[i].pinned) {
+                                leftPos += visibleColumns[i].width;
                             }
                         }
                     }
@@ -3362,10 +3422,14 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     return (
                         <div
                             key={col.id}
-                            className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? `z-10 ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}` : ''} ${isSticky && !columns[index + 1]?.pinned && !isOverlay ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
+                            className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? `z-10 ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}` : ''} ${isSticky && !visibleColumns[index + 1]?.pinned && !isOverlay ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
                             style={{
                                 width: col.width,
-                                ...(isSticky && { left: leftPos, position: 'sticky', transform: 'translateZ(0)' }),
+                                ...(isSticky && {
+                                    left: leftPos,
+                                    position: 'sticky',
+                                    willChange: 'transform, left',
+                                }),
                                 backgroundColor: col.backgroundColor || undefined
                             }}
                             onContextMenu={(e) => {
@@ -3385,7 +3449,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                         type="checkbox"
                                         checked={checkedRows.has(row.id)}
                                         onChange={() => toggleRowSelection(row.id)}
-                                        style={{ accentColor: columns.find(c => c.id === 'select')?.color || DEFAULT_CHECKBOX_COLOR }}
+                                        style={{
+                                            accentColor: columns.find(c => c.id === 'select')?.color || DEFAULT_CHECKBOX_COLOR,
+                                            willChange: 'transform'
+                                        }}
                                         className="rounded border-stone-300 dark:border-stone-600 cursor-pointer w-4 h-4"
                                         onPointerDown={(e) => e.stopPropagation()}
                                     />
@@ -3412,68 +3479,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         );
     };
 
-    const renderSummaryRow = () => {
-        return (
-            <div className="flex items-center h-10 border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 min-w-max">
-                {/* Spacer for Select - Sticky */}
-                <div style={{ width: columns[0].width, left: 0, position: 'sticky', transform: 'translateZ(0)' }} className="h-full border-e border-transparent z-10 bg-stone-50 dark:bg-stone-900" />
-                {/* Name Column Spacer - Sticky */}
-                <div style={{ width: columns[1].width, left: columns[0].width, position: 'sticky', transform: 'translateZ(0)' }} className="h-full border-e border-transparent flex items-center px-3 z-10 bg-stone-50 dark:bg-stone-900 after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]">
-                    <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Summary</span>
-                </div>
-
-                {columns.slice(2).map(col => {
-                    if (col.type === 'status' || col.type === 'priority') {
-                        // Calculate distribution
-                        const counts: Record<string, number> = {};
-                        let total = 0;
-                        rows.forEach(r => {
-                            const val = r[col.id];
-                            if (val) {
-                                const key = col.type === 'priority' ? formatPriorityLabel(val) || 'None' : val;
-                                counts[key] = (counts[key] || 0) + 1;
-                                total++;
-                            }
-                        });
-
-                        return (
-                            <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent px-2 flex items-center">
-                                {total > 0 ? (
-                                    <div className="flex w-full h-1.5 rounded-full overflow-hidden bg-stone-200 dark:bg-stone-800">
-                                        {Object.entries(counts).map(([key, count], idx) => {
-                                            const width = (count / total) * 100;
-                                            let color = 'bg-stone-400';
-                                            if (col.type === 'priority') {
-                                                const pClasses = getPriorityClasses(key);
-                                                // Extract bg color from classes if possible, or use hardcoded map.
-                                                // getPriorityClasses returns text/dot/bg. dot usually has text color.
-                                                // Let's use a mapping based on key
-                                                if (key === 'Urgent') color = 'bg-rose-500';
-                                                else if (key === 'High') color = 'bg-amber-500';
-                                                else if (key === 'Medium') color = 'bg-blue-500';
-                                                else if (key === 'Low') color = 'bg-stone-500';
-                                            } else {
-                                                if (key === 'Done') color = 'bg-emerald-500';
-                                                else if (key === 'In Progress') color = 'bg-amber-500';
-                                                else if (key === 'To Do') color = 'bg-stone-400';
-                                            }
-
-                                            return (
-                                                <div key={key} style={{ width: `${width}%` }} className={`h-full ${color}`} title={`${key}: ${count}`} />
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <span className="text-[10px] text-stone-300">No data</span>
-                                )}
-                            </div>
-                        );
-                    }
-                    return <div key={col.id} style={{ width: col.width }} className="h-full border-e border-transparent" />;
-                })}
-            </div>
-        );
-    };
 
     return (
         <div className="flex flex-col w-full h-full bg-stone-50 dark:bg-stone-900/50 font-sans">
@@ -3485,15 +3490,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 {/* Secondary Toolbar */}
                 <div className="flex items-center h-[52px] border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-[#1a1c22] pl-0 pr-4 shrink-0 transition-colors z-20 gap-4">
                     {/* Left: New Table */}
-                    <div className="flex items-center group">
-                        <button
-                            onClick={handleAddTableGroup}
-                            className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 px-0 py-1.5 text-[13px] font-semibold flex items-center gap-2 transition-colors scale-90 origin-left"
-                        >
-                            <Plus size={16} strokeWidth={3} />
-                            New Table
-                        </button>
-                    </div>
+
 
                     {/* Left: Action Icons */}
                     <div className="flex items-center gap-3 text-stone-500 dark:text-stone-400 relative">
@@ -3993,12 +3990,12 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 {/* Table Scrollable Area */}
                 <div
                     ref={tableBodyRef}
-                    onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-                    className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-stone-900 relative overscroll-none"
+                    className="flex-1 overflow-y-auto overflow-x-auto bg-white dark:bg-stone-900 relative"
                     style={{
                         WebkitOverflowScrolling: 'touch',
-                        transform: 'translateZ(0)',
-                        willChange: 'scroll-position'
+                        paddingBottom: '20vh',
+                        overscrollBehavior: 'none',
+                        isolation: 'isolate',
                     }}
                 >
                     {/* Pinned Charts Section */}
@@ -4036,10 +4033,12 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                     <SortableGroupWrapper key={group.id} group={group}>
                                         <div className={hideGroupHeader && groupIndex > 0 ? "" : "mb-4"}>
                                             {/* Group Header - wrapper spans full width, content is sticky left */}
-                                            {!hideGroupHeader && (
+                                            {(!hideGroupHeader || paginatedGroups.length > 1) && (
                                                 <div
                                                     className="shrink-0 bg-white dark:bg-[#1a1c22] border-b border-stone-100 dark:border-stone-800/50 sticky top-0 z-50"
-                                                    style={{ minWidth: totalWidth }}
+                                                    style={{
+                                                        minWidth: totalWidth,
+                                                    }}
                                                 >
                                                     <div className="flex items-center gap-2 px-4 py-3 sticky left-0 z-10 w-fit bg-white dark:bg-[#1a1c22]">
                                                         {/* Color accent bar (Drag Handle) */}
@@ -4110,17 +4109,19 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                     {/* Table Header - show for ALL groups */}
                                                     {/* Table Header - show for ALL groups unless hidden for simplified view (Data Table) */}
                                                     {(groupIndex === 0 || !hideGroupHeader) && (
-                                                        <SortableContext items={columns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
+                                                        <SortableContext items={visibleColumns.map(c => `${group.id}__${c.id}`)} strategy={horizontalListSortingStrategy}>
                                                             <div
                                                                 className="group flex items-center border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 h-10 flex-shrink-0 min-w-max sticky z-[35]"
-                                                                style={{ top: hideGroupHeader ? 0 : '57px' }}
+                                                                style={{
+                                                                    top: hideGroupHeader ? 0 : '57px',
+                                                                }}
                                                             >
-                                                                {columns.map((col, index) => {
+                                                                {visibleColumns.map((col, index) => {
                                                                     const isSticky = !!col.pinned;
                                                                     let leftPos = 0;
                                                                     if (isSticky) {
                                                                         for (let i = 0; i < index; i++) {
-                                                                            if (columns[i].pinned) leftPos += columns[i].width;
+                                                                            if (visibleColumns[i].pinned) leftPos += visibleColumns[i].width;
                                                                         }
                                                                     }
 
@@ -4129,7 +4130,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                             key={`${group.id}__${col.id}`}
                                                                             col={col}
                                                                             index={index}
-                                                                            columnsLength={columns.length}
+                                                                            columnsLength={visibleColumns.length}
                                                                             group={group}
                                                                             rows={rows}
                                                                             renamingColId={renamingColId}
@@ -4144,10 +4145,14 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                             // Pass styling props directly
                                                                             style={{
                                                                                 width: col.width,
-                                                                                ...(isSticky && { left: leftPos, position: 'sticky' }),
+                                                                                ...(isSticky && {
+                                                                                    left: leftPos,
+                                                                                    position: 'sticky',
+                                                                                    willChange: 'transform, left',
+                                                                                }),
                                                                                 backgroundColor: col.headerColor || col.backgroundColor || (isSticky ? undefined : undefined)
                                                                             }}
-                                                                            showRightShadow={isSticky && !columns[index + 1]?.pinned}
+                                                                            showRightShadow={isSticky && !visibleColumns[index + 1]?.pinned}
                                                                         />
                                                                     );
                                                                 })}
@@ -4187,30 +4192,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                 </div>
 
                                                                 {/* Context Menus */}
-                                                                {
-                                                                    activeHeaderMenu && (
-                                                                        <HeaderContextMenu
-                                                                            onClose={() => setActiveHeaderMenu(null)}
-                                                                            onHeaderColorSelect={(color) => {
-                                                                                const newCols = columns.map(c => c.id === activeHeaderMenu.colId ? { ...c, headerColor: color } : c);
-                                                                                setColumns(newCols);
-                                                                                setActiveHeaderMenu(null);
-                                                                            }}
-                                                                            onColumnColorSelect={(color) => {
-                                                                                const newCols = columns.map(c => c.id === activeHeaderMenu.colId ? { ...c, backgroundColor: color, headerColor: color } : c);
-                                                                                setColumns(newCols);
-                                                                                setActiveHeaderMenu(null);
-                                                                            }}
-                                                                            onRename={() => {
-                                                                                setRenamingColId(activeHeaderMenu.colId);
-                                                                                setActiveHeaderMenu(null);
-                                                                            }}
-                                                                            currentHeaderColor={columns.find(c => c.id === activeHeaderMenu.colId)?.headerColor}
-                                                                            currentColumnColor={columns.find(c => c.id === activeHeaderMenu.colId)?.backgroundColor}
-                                                                            position={activeHeaderMenu.position}
-                                                                        />
-                                                                    )
-                                                                }
+                                                                {/* Right spacer */}
                                                                 {/* Right spacer */}
                                                                 <div className="w-24 shrink-0" />
                                                             </div>
@@ -4227,8 +4209,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                         {/* Creation Row (Draft) at Top */}
                                                         {/* We manually render a row-like structure for the creation row */}
 
-                                                        {/* Creation Row (Draft) at Top - Only show for first group in Data Table mode */}
-                                                        {(!hideGroupHeader || groupIndex === 0) && (
+                                                        {/* Creation Row (Draft) at Top - Only show for first group in Data Table mode, OR if multiple groups exist */}
+                                                        {(!hideGroupHeader || groupIndex === 0 || paginatedGroups.length > 1) && (
                                                             <div className="group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 bg-white dark:bg-stone-900 min-w-max relative z-20">
                                                                 {/* Simulate Row Data for Helpers */}
                                                                 {(() => {
@@ -4242,12 +4224,12 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                         ...creationRows[group.id],
                                                                     } as Row; // Cast as partial row is handled
 
-                                                                    return columns.map((col, index) => {
+                                                                    return visibleColumns.map((col, index) => {
                                                                         const isSticky = !!col.pinned;
                                                                         let leftPos = 0;
                                                                         if (isSticky) {
                                                                             for (let i = 0; i < index; i++) {
-                                                                                if (columns[i].pinned) leftPos += columns[i].width;
+                                                                                if (visibleColumns[i].pinned) leftPos += visibleColumns[i].width;
                                                                             }
                                                                         }
 
@@ -4256,9 +4238,13 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                                 key={col.id}
                                                                                 style={{
                                                                                     width: col.width,
-                                                                                    ...(isSticky && { left: leftPos, position: 'sticky' })
+                                                                                    ...(isSticky && {
+                                                                                        left: leftPos,
+                                                                                        position: 'sticky',
+                                                                                        willChange: 'transform, left',
+                                                                                    })
                                                                                 }}
-                                                                                className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-white dark:bg-stone-900' : ''} ${isSticky && !columns[index + 1]?.pinned ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
+                                                                                className={`h-full border-e border-stone-100 dark:border-stone-800 ${col.id === 'select' ? 'flex items-center justify-center cursor-default' : ''} ${isSticky ? 'z-10 bg-white dark:bg-stone-900 shadow-sm' : ''} ${isSticky && !visibleColumns[index + 1]?.pinned ? 'after:absolute after:right-0 after:top-0 after:h-full after:w-[1px] after:shadow-[2px_0_4px_rgba(0,0,0,0.08)]' : ''}`}
                                                                             >
                                                                                 {col.id === 'select' ? (
                                                                                     <div className="w-full h-full flex items-center justify-center px-2">
@@ -4273,6 +4259,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                 })()}
                                                             </div>
                                                         )}
+
+
 
                                                         <SortableContext items={group.rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
                                                             {group.rows.map((row) => (
@@ -4290,10 +4278,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                 </SortableRow>
                                                             ))}
                                                         </SortableContext>
-
-                                                        {/* Creation Row (Draft) at Bottom */}
-                                                        {/* We manually render a row-like structure for the creation row */}
-
 
                                                         {createPortal(
                                                             <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
@@ -4338,7 +4322,14 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             document.body
                         )}
                     </DndContext>
-                    {showPagination && (
+
+                    {!showPagination && (
+                        <div className="h-32 shrink-0" />
+                    )}
+                </div>
+
+                {showPagination && (
+                    <div className="shrink-0 border-t border-stone-200 dark:border-stone-800 bg-white dark:bg-[#1a1c22]">
                         <TablePagination
                             totalItems={rows.length}
                             pageSize={rowsPerPage}
@@ -4349,11 +4340,8 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                 setCurrentPage(1);
                             }}
                         />
-                    )}
-                    {!showPagination && (
-                        <div className="h-32 shrink-0" />
-                    )}
-                </div>
+                    </div>
+                )}
 
                 {
                     activeReminderTarget && (
@@ -4510,8 +4498,8 @@ const SortableRow: React.FC<SortableRowProps> = ({ row, children, className }) =
     } = useSortable({ id: row.id });
 
     const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
+        transform: isDragging ? CSS.Transform.toString(transform) : 'none',
+        transition: isDragging ? transition : undefined,
         zIndex: isDragging ? 50 : 'auto',
         opacity: isDragging ? 0 : 1,
     };

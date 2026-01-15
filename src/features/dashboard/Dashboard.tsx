@@ -316,8 +316,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
             { id: 'priority', title: 'Priority', type: 'priority' }
           ],
           tasks: [],
-          defaultView: 'table',
-          availableViews: ['table'],
+          defaultView: 'overview',
+          availableViews: ['overview', 'table'],
           icon: 'assignment'
         };
 

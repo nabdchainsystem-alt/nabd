@@ -15,7 +15,7 @@ const DataTable: React.FC<DataTableProps & { viewId?: string }> = ({ roomId, vie
         { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false, pinned: true },
         // Requirement: "keep only the first two Column only and name them Data 1 , Data 2"
         // We reuse the 'name' column for Data 1 to keep text editing
-        { id: 'name', label: 'Data 1', type: 'text', width: 200, minWidth: 100, resizable: true },
+        { id: 'name', label: 'Data 1', type: 'text', width: 200, minWidth: 100, resizable: true, pinned: true },
         // Data 2 - generic text column
         { id: 'data2', label: 'Data 2', type: 'text', width: 200, minWidth: 100, resizable: true }
     ];
@@ -68,7 +68,8 @@ const DataTable: React.FC<DataTableProps & { viewId?: string }> = ({ roomId, vie
                         type: 'text',
                         width: 200,
                         minWidth: 100,
-                        resizable: true
+                        resizable: true,
+                        pinned: true
                     });
                 } else {
                     newCols.push({

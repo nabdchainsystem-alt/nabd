@@ -1,11 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Row } from '../Table/RoomTable';
 import {
-    ChevronLeft,
-    ChevronRight,
-    Calendar as CalendarIcon,
-    Filter,
-    MoreHorizontal,
     ChevronDown,
     Plus,
     Search,
@@ -19,30 +14,21 @@ import {
 interface GanttViewProps {
     roomId: string;
     boardName?: string;
+    tasks: Row[];
+    onUpdateTasks: (tasks: any[]) => void;
 }
 
 type ViewMode = 'day' | 'week' | 'month';
 
-export const GanttView: React.FC<GanttViewProps> = ({ roomId, boardName = 'Board' }) => {
-    const storageKeyRows = `board-tasks-${roomId}`;
-    const [rows, setRows] = useState<Row[]>([]);
+export const GanttView: React.FC<GanttViewProps> = ({ roomId, boardName = 'Board', tasks, onUpdateTasks }) => {
+    // Remove local storage logic
+    // const storageKeyRows = `board-tasks-${roomId}`;
+    // const [rows, setRows] = useState<Row[]>([]); -> Use tasks prop
+
     const [viewMode, setViewMode] = useState<ViewMode>('week');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isGroupOpen, setIsGroupOpen] = useState(true);
     const [zoom, setZoom] = useState(1);
-
-    // Load Data
-    useEffect(() => {
-        try {
-            const saved = localStorage.getItem(storageKeyRows);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                setRows(parsed);
-            }
-        } catch (e) {
-            console.error('Failed to load tasks for gantt', e);
-        }
-    }, [storageKeyRows]);
 
     // --- Helpers ---
     const getStartOfWeek = (d: Date) => {
@@ -93,17 +79,27 @@ export const GanttView: React.FC<GanttViewProps> = ({ roomId, boardName = 'Board
 
     // --- Task Processing ---
     const processedTasks = useMemo(() => {
-        return rows.map(row => {
+        // Use tasks prop instead of rows state
+        return (tasks || []).map(row => {
+            // Safe date handling
             let end = row.dueDate ? new Date(row.dueDate) : new Date();
-            let start = row.startDate ? new Date(row.startDate) : new Date(end);
+            let start = row.startDate ? new Date(row.startDate) : row.date ? new Date(row.date) : new Date(end); // Fallback to 'date' or end
 
-            if (!row.startDate && row.dueDate) {
+            if (isNaN(end.getTime())) end = new Date();
+            if (isNaN(start.getTime())) {
+                start = new Date(end);
+                // Default duration if only end date exists
+                if (!row.startDate && row.dueDate) {
+                    start.setDate(end.getDate() - 2);
+                }
+            } else if (!row.startDate && row.dueDate) {
+                // Logic from before: if no start date but due date, assume 2 days
                 start.setDate(end.getDate() - 2);
             }
 
             if (start > end) {
                 const temp = start;
-                start = end;
+                start = end; // Correct order
                 end = temp;
             }
 
@@ -113,12 +109,12 @@ export const GanttView: React.FC<GanttViewProps> = ({ roomId, boardName = 'Board
                 _end: end
             };
         });
-    }, [rows]);
+    }, [tasks]);
 
     const handleUpdateTask = (taskId: string, updates: Partial<Row>) => {
-        const updatedRows = rows.map(r => r.id === taskId ? { ...r, ...updates } : r);
-        setRows(updatedRows);
-        localStorage.setItem(storageKeyRows, JSON.stringify(updatedRows));
+        // Use onUpdateTasks prop
+        const updatedTasks = tasks.map(r => r.id === taskId ? { ...r, ...updates } : r);
+        onUpdateTasks(updatedTasks);
     };
 
     // --- Drag Interaction (Tasks & Panning) ---
@@ -209,19 +205,12 @@ export const GanttView: React.FC<GanttViewProps> = ({ roomId, boardName = 'Board
 
                 const updates = {
                     startDate: newStart.toISOString(),
-                    dueDate: newEnd.toISOString()
+                    dueDate: newEnd.toISOString(),
+                    date: newStart.toISOString() // Also update the 'date' field if it exists fallback
                 };
 
-                setRows(prevRows => {
-                    const newRows = prevRows.map(r => {
-                        if (r.id === taskId) {
-                            return { ...r, ...updates };
-                        }
-                        return r;
-                    });
-                    localStorage.setItem(storageKeyRows, JSON.stringify(newRows));
-                    return newRows;
-                });
+                // Use the prop function
+                handleUpdateTask(taskId!, updates);
             }
         }
 
@@ -229,7 +218,7 @@ export const GanttView: React.FC<GanttViewProps> = ({ roomId, boardName = 'Board
         document.body.style.cursor = 'default';
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
-    }, [CELL_WIDTH, storageKeyRows]);
+    }, [CELL_WIDTH, tasks]); // Removed storageKeyRows dep
 
     const getPosition = (date: Date) => {
         const diffTime = date.getTime() - timelineStart.getTime();
@@ -323,22 +312,6 @@ export const GanttView: React.FC<GanttViewProps> = ({ roomId, boardName = 'Board
                     <div className="flex-1 overflow-hidden relative">
                         <div className="flex absolute left-0 top-0 h-full" style={{ transform: `translateX(0px)` }}>
                             {/* We need to sync scroll here with body. For now, simple standard scroll sync via container. */}
-                            {/* Actually, it's better to put sidebar and body in one scroller or sync them. 
-                                Standard Gantt: 
-                                - Top Header Scroller (Horizontal only)
-                                - Left Sidebar Scroller (Vertical only)
-                                - Main Body (Both)
-                                OR:
-                                - Main Container (Vertical Scroll)
-                                  - Header Row (Sticky Top)
-                                    - Left Header (Sticky Left)
-                                    - Right Header (Scrolls Horizontal)
-                                  - Body Rows
-                                    - Left Sidebar Cell (Sticky Left)
-                                    - Right Body Cell (Scrolls Horizontal)
-                                
-                                Let's go with Sticky Header + Sticky Sidebar approach inside a single overflow-auto container.
-                             */}
                         </div>
                     </div>
                 </div>
@@ -369,10 +342,6 @@ export const GanttView: React.FC<GanttViewProps> = ({ roomId, boardName = 'Board
                                 {days.map((d, i) => {
                                     // Group by weeks for the top row
                                     // For simplicity in this loop, we render per-day, but visuals can simulate grouped headers or we use exact logic
-                                    // The design shows:
-                                    // Top Row: "W50   Dec 14 - 20" spanning 7 days
-                                    // Bottom Row: "Mo 15", "Tu 16" ...
-
                                     const isMonday = d.getDay() === 1;
                                     const isFirstDay = i === 0;
                                     const isToday = d.toDateString() === new Date().toDateString();

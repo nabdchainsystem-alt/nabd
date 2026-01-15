@@ -43,6 +43,8 @@ export const HeaderContextMenu: React.FC<HeaderContextMenuProps> = ({ onClose, o
         opacity: 0
     });
 
+    const [activeTab, setActiveTab] = useState<'header' | 'column'>('header');
+
     useLayoutEffect(() => {
         if (menuRef.current) {
             const menuRect = menuRef.current.getBoundingClientRect();
@@ -134,15 +136,37 @@ export const HeaderContextMenu: React.FC<HeaderContextMenuProps> = ({ onClose, o
                     <div className="h-px bg-stone-100 dark:bg-stone-800 my-1" />
                 </div>
             )}
-            <div className="px-3 py-2 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-800 mb-1">
-                <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Header Background</span>
-            </div>
-            {renderColorGrid(currentHeaderColor, onHeaderColorSelect)}
 
-            <div className="px-3 py-2 bg-stone-50 dark:bg-stone-800/50 border-y border-stone-100 dark:border-stone-800 my-1 mt-2">
-                <span className="text-[11px] font-sans font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400">Column Background</span>
+            {/* Tabs */}
+            <div className="flex p-1 mx-2 bg-stone-100 dark:bg-stone-800 rounded-lg mb-2">
+                <button
+                    onClick={() => setActiveTab('header')}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === 'header'
+                        ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm'
+                        : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
+                        }`}
+                >
+                    Header
+                </button>
+                <button
+                    onClick={() => setActiveTab('column')}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === 'column'
+                        ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm'
+                        : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
+                        }`}
+                >
+                    Column
+                </button>
             </div>
-            {renderColorGrid(currentColumnColor, onColumnColorSelect)}
+
+            {/* Content */}
+            <div className="px-1">
+                {activeTab === 'header' ? (
+                    renderColorGrid(currentHeaderColor, onHeaderColorSelect)
+                ) : (
+                    renderColorGrid(currentColumnColor, onColumnColorSelect)
+                )}
+            </div>
         </div>,
         document.body
     );

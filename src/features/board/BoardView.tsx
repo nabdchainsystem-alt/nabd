@@ -174,7 +174,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
         }
     }, [initialOnUpdateTasks]);
 
-    const { board, tasks, addTask, updateTask, deleteTask, onUpdateTasks } = useRoomBoardData(effectiveKey, initialBoard, handleBoardSave);
+    const { board, tasks, addTask, updateTask, deleteTask, onUpdateTasks, addGroup, deleteGroup, updateGroupTitle } = useRoomBoardData(effectiveKey, initialBoard, handleBoardSave);
 
     // Use the prop 'onUpdateBoard' if it exists, otherwise we might need a local handler if the hook provided one (it doesn't currently).
     // The hook provides 'setBoard'.
@@ -185,10 +185,13 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
     const DEFAULT_VIEWS: BoardViewType[] = ['overview', 'table', 'kanban'];
 
     const sanitizedAvailableViews = useMemo(() => {
-        const views = board.availableViews;
-        const base = (views && views.length > 0 ? views : DEFAULT_VIEWS) as BoardViewType[];
-        const filtered = base.filter(view => (view as any) !== 'listboard' && (view as any) !== 'list_board') as BoardViewType[];
-        return filtered.length ? filtered : DEFAULT_VIEWS;
+        let views = board.availableViews || [];
+
+        // Ensure 'overview' is always present and at the start
+        const viewsWithoutOverview = views.filter(v => (v as any) !== 'overview' && (v as any) !== 'listboard' && (v as any) !== 'list_board');
+        const finalViews = ['overview', ...viewsWithoutOverview] as BoardViewType[];
+
+        return finalViews;
     }, [board.availableViews]);
 
     const normalizeViewId = (viewId?: string | null): BoardViewType | null => {
@@ -207,7 +210,8 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
         if (normalizedDefaultView && sanitizedAvailableViews.includes(normalizedDefaultView)) {
             return normalizedDefaultView;
         }
-        return 'kanban';
+        // Default to overview if it exists, otherwise first available
+        return sanitizedAvailableViews.includes('overview' as any) ? 'overview' as any : (sanitizedAvailableViews[0] || 'kanban');
     });
     const [showAddViewMenu, setShowAddViewMenu] = useState(false);
     const [activeDragId, setActiveDragId] = useState<string | null>(null);
@@ -332,7 +336,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
     }, [activeView, storageKey]);
 
     // Track previous views to detect deletions vs additions
-    const prevAvailableViewsRef = useRef<BoardViewType[]>(board.availableViews || []);
+    const prevAvailableViewsRef = useRef<BoardViewType[]>(sanitizedAvailableViews);
 
     // Sync active view when board changes
     React.useEffect(() => {
@@ -344,7 +348,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             localStorage.setItem(migrationKey, 'true');
         }
 
-        const currentViews = board.availableViews || [];
+        const currentViews = sanitizedAvailableViews;
         const prevViews = prevAvailableViewsRef.current;
 
         // 1. Handle Board Switch
@@ -359,7 +363,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             } else if (currentViews.length > 0) {
                 setActiveView(currentViews[0]);
             } else {
-                setActiveView('kanban');
+                setActiveView(currentViews[0] || 'overview');
             }
             prevBoardIdRef.current = board.id;
         }
@@ -370,12 +374,12 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             } else if (currentViews.length > 0) {
                 setActiveView(currentViews[0]);
             } else {
-                setActiveView('kanban');
+                setActiveView('overview');
             }
         }
 
         prevAvailableViewsRef.current = currentViews;
-    }, [board.id, board.defaultView, board.availableViews, activeView]);
+    }, [board.id, board.defaultView, sanitizedAvailableViews, activeView]);
 
     // Local state for editing to avoid jumpy UI
     const [editName, setEditName] = useState(board.name);
@@ -455,34 +459,71 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
         });
     };
 
+    const clearViewStorage = (boardId: string, vid: string) => {
+        try {
+            // 1. Precise Keys (Current Version)
+            const keys = [
+                `room-table-columns-v3-${boardId}-${vid}`,
+                `room-table-columns-v4-${boardId}-${vid}`,
+                `room-table-columns-v7-${boardId}-${vid}`,
+                `room-table-groups-v1-${boardId}-${vid}`,
+                `room-table-rows-v7-${boardId}-${vid}`,
+                `room-table-name-v7-${boardId}-${vid}`,
+                `room-table-pinned-charts-${boardId}-${vid}`,
+                `datatable-rows-${boardId}-${vid}`,
+                `doc-data-${boardId}-${vid}`,
+                `doc-data-${boardId}-1`, // Legacy
+                `room-statuses-${boardId}`,
+                `board-statuses-${boardId}`,
+            ];
+
+            // 2. Pattern Matching Cleanup (Scan all localstorage for this view)
+            const allKeys = Object.keys(localStorage);
+            const patterns = [
+                `-${boardId}-${vid}`,
+                `-${vid}-${boardId}`,
+                `-${vid}`
+            ];
+
+            allKeys.forEach(key => {
+                if (patterns.some(p => key.includes(p)) && key.includes(boardId)) {
+                    localStorage.removeItem(key);
+                }
+            });
+
+            keys.forEach(k => localStorage.removeItem(k));
+        } catch (e) {
+            console.error('Failed to clear view storage', e);
+        }
+    };
+
     const handleDeleteView = () => {
         if (!contextMenu || !onUpdateBoard) return;
 
         const viewToDelete = contextMenu.viewId;
+        if ((viewToDelete as any) === 'overview') return; // Cannot delete overview
         const currentViews = board.availableViews || [];
-        const newViews = currentViews.filter(v => v !== viewToDelete);
+
+        // Find index to remove only ONE instance if multiple exist
+        const indexToRemove = currentViews.indexOf(viewToDelete);
+        if (indexToRemove === -1) return;
+
+        const newViews = [...currentViews];
+        newViews.splice(indexToRemove, 1);
 
         onUpdateBoard(board.id, {
             availableViews: newViews
         });
 
         // Cleanup storage for the deleted view
-        try {
-            // 1. Clear Columns Config (v3 legacy + v4 current)
-            const colsKeyV4 = viewToDelete === 'table'
-                ? `room-table-columns-v4-${board.id}-table-main`
-                : `room-table-columns-v4-${board.id}-${viewToDelete}`;
+        clearViewStorage(board.id, viewToDelete);
 
-            localStorage.removeItem(colsKeyV4);
-            localStorage.removeItem(`room-table-columns-v3-${board.id}-${viewToDelete}`);
-
-            // 2. Clear Rows only if it's a DataTable (isolated storage)
-            if (viewToDelete.startsWith('datatable')) {
-                const rowsKey = `datatable-rows-${board.id}-${viewToDelete}`;
-                localStorage.removeItem(rowsKey);
-            }
-        } catch (e) {
-            console.error('Failed to clear view storage', e);
+        // Also clear custom name for this view
+        if (viewNames[viewToDelete]) {
+            const updatedNames = { ...viewNames };
+            delete updatedNames[viewToDelete];
+            setViewNames(updatedNames);
+            localStorage.setItem(viewNamesStorageKey, JSON.stringify(updatedNames));
         }
 
         // If we deleted the active view, switch to the first available one
@@ -589,22 +630,64 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
         onUpdateBoard?.(board.id, { name: newName });
     };
 
+    const handleAddView = (option: { id: string; label: string; icon?: any }) => {
+        setShowAddViewMenu(false);
+        const viewType = option.id as BoardViewType;
+
+        // Check if a view of this type already exists
+        const currentAvailable = sanitizedAvailableViews;
+        const existingViewId = currentAvailable.find(vid => getBaseViewType(vid) === viewType);
+
+        if (existingViewId) {
+            // If exists, just switch to it
+            setActiveView(existingViewId);
+            return;
+        }
+
+        // If not, create new one
+        const uniqueId = `${viewType}-${Date.now()}` as any;
+
+        // Ensure it's blank when created
+        clearViewStorage(board.id, uniqueId);
+
+        if (onUpdateBoard) {
+            const newViews = [...sanitizedAvailableViews, uniqueId];
+            onUpdateBoard(board.id, { availableViews: newViews });
+        }
+        setActiveView(uniqueId);
+    };
+
+    const getBaseViewType = (vid: string): string => {
+        // First try exact match
+        if (effectiveViewOptions.find(opt => opt.id === vid)) return vid;
+        // Then try prefix match (for unique IDs like table-170...)
+        const found = effectiveViewOptions.find(opt => vid.startsWith(`${opt.id}-`));
+        if (found) return found.id;
+        // Fallback for legacy IDs
+        if (vid === 'table-main') return 'table';
+        if (vid === 'kanban-main') return 'kanban';
+        if (vid === 'list-main') return 'list';
+        return vid;
+    };
+
     const renderView = () => {
-        switch (activeView) {
+        const baseViewType = getBaseViewType(activeView);
+
+        switch (baseViewType) {
             case 'overview':
                 return board.id === 'procurement-main' ? (
                     <div className="w-full h-full overflow-hidden">
                         <ProcurementOverview />
                     </div>
                 ) : (
-                    <OverviewView boardId={board.id} />
+                    <OverviewView boardId={board.id} tasks={tasks} />
                 );
             case 'kanban':
                 return (
                     <KanbanBoard
-                        key={board.id}
+                        key={`${board.id}-${activeView}`}
                         boardId={board.id}
-                        viewId="kanban-main"
+                        viewId={activeView}
                         tasks={tasks}
                         onUpdateTasks={onUpdateTasks}
                         onDeleteTask={deleteTask}
@@ -613,40 +696,49 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             case 'table':
                 return (
                     <RoomTable
-                        key={board.id}
+                        key={`${board.id}-${activeView}`}
                         roomId={board.id}
-                        viewId="table-main"
+                        viewId={activeView}
                         name={board.name}
                         tasks={tasks}
+                        tasksVersion={tasks.map(t => t.id + t.status + t.name + t.date + t.dueDate).join('')}
                         onUpdateTasks={onUpdateTasks}
                         onDeleteTask={deleteTask}
                         onNavigate={onNavigate}
-
-                    // Global full screen button is now in BoardView header/overlay
+                        onAddGroup={addGroup}
+                        onUpdateGroup={updateGroupTitle}
+                        onDeleteGroup={deleteGroup}
                     />
                 );
             case 'datatable':
-                // Keeping it for legacy but maybe redirect or hide?
-                return <DataTable key={board.id} roomId={board.id} />;
+                return <DataTable key={`${board.id}-${activeView}`} roomId={board.id} />;
             case 'doc':
-                return <DocView key={board.id} roomId={board.id} />;
+                return <DocView key={`${board.id}-${activeView}`} roomId={board.id} />;
 
 
             case 'list':
                 return (
                     <Lists
                         roomId={board.id}
-                        viewId="list-main"
+                        viewId={activeView}
                         tasks={tasks}
                         onUpdateTasks={onUpdateTasks}
                     />
                 );
             case 'calendar':
-                return <CalendarView key={board.id} roomId={board.id} />;
+                return (
+                    <CalendarView
+                        key={`${board.id}-${activeView}`}
+                        roomId={board.id}
+                        board={board}
+                        onUpdateTask={updateTask}
+                        onAddTask={addTask}
+                    />
+                );
             case 'pivot_table':
-                return <PivotTable key={board.id} roomId={board.id} />;
+                return <PivotTable key={`${board.id}-${activeView}`} roomId={board.id} />;
             case 'gantt':
-                return <GanttView key={board.id} roomId={board.id} boardName={board.name} />;
+                return <GanttView key={`${board.id}-${activeView}`} roomId={board.id} boardName={board.name} tasks={tasks} onUpdateTasks={onUpdateTasks} />;
             case 'dashboards':
                 return <DashboardsView boardId={board.id} boardName={board.name} fallbackTasks={board.tasks} />;
             case 'whiteboard':
@@ -656,7 +748,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             case 'spreadsheet':
                 return <SmartSheetView boardId={board.id} />;
             case 'gtd':
-                return <GTDDashboard key={board.id} boardId={board.id} onBoardCreated={() => { }} />;
+                return <GTDDashboard key={`${board.id}-${activeView}`} boardId={board.id} onBoardCreated={() => { }} />;
             case 'cornell':
                 return <CornellNotesPage roomId={board.id} />;
             case 'automation_rules':
@@ -668,7 +760,6 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             case 'warehouse_capacity_map':
                 return renderCustomView ? renderCustomView('warehouse_capacity_map') : null;
             default:
-                // Handle custom views
                 if (renderCustomView) {
                     const custom = renderCustomView(activeView);
                     if (custom) return custom;
@@ -676,9 +767,9 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
                 return (
                     <KanbanBoard
-                        key={board.id}
+                        key={`${board.id}-${activeView}`}
                         boardId={board.id}
-                        viewId="kanban-main"
+                        viewId={activeView}
                         tasks={board.tasks}
                         onUpdateTasks={onUpdateTasks}
                         onDeleteTask={deleteTask}
@@ -834,7 +925,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                         <div className="flex items-center gap-0 pr-6 border-b border-gray-200 dark:border-gray-800">
                             <div className="flex items-center justify-start gap-[11.5px] overflow-x-auto no-scrollbar max-w-full">
                                 {/* Fixed "Overview" Tab */}
-                                {sanitizedAvailableViews.includes('overview') && (() => {
+                                {sanitizedAvailableViews.includes('overview' as any) && (() => {
                                     const overviewOption = effectiveViewOptions.find(v => v.id === 'overview');
                                     if (!overviewOption) return null;
                                     const Icon = overviewOption.icon;
@@ -865,8 +956,9 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                         items={sanitizedAvailableViews.filter(v => v !== 'overview')}
                                         strategy={horizontalListSortingStrategy}
                                     >
-                                        {sanitizedAvailableViews.filter(v => v !== 'overview').map((viewId) => {
-                                            const option = effectiveViewOptions.find(v => v.id === viewId);
+                                        {sanitizedAvailableViews.filter(v => v !== 'overview' as any).map((viewId) => {
+                                            const baseType = getBaseViewType(viewId);
+                                            const option = effectiveViewOptions.find(v => v.id === baseType);
                                             if (!option) return null;
 
                                             const label = viewNames[viewId] || option.label;
@@ -888,10 +980,10 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                         })}
                                     </SortableContext>
 
-                                    {/* Drag Overlay for smooth visual feedback */}
                                     <DragOverlay adjustScale={false}>
                                         {activeDragId ? (() => {
-                                            const option = effectiveViewOptions.find(v => v.id === activeDragId);
+                                            const baseType = getBaseViewType(activeDragId);
+                                            const option = effectiveViewOptions.find(v => v.id === baseType);
                                             if (!option) return null;
                                             const label = viewNames[activeDragId] || option.label;
                                             return (
@@ -939,19 +1031,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                                     {VIEW_OPTIONS.filter(opt => !['list', 'gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet'].includes(opt.id)).map((option) => (
                                                         <button
                                                             key={option.id}
-                                                            onClick={() => {
-                                                                setShowAddViewMenu(false);
-                                                                const viewId = option.id as BoardViewType;
-                                                                if (onUpdateBoard) {
-                                                                    const currentAvailable = board.availableViews && board.availableViews.length > 0
-                                                                        ? board.availableViews
-                                                                        : DEFAULT_VIEWS;
-                                                                    if (!currentAvailable.includes(viewId)) {
-                                                                        onUpdateBoard(board.id, { availableViews: [...currentAvailable, viewId] });
-                                                                    }
-                                                                }
-                                                                setActiveView(viewId);
-                                                            }}
+                                                            onClick={() => handleAddView(option)}
                                                             className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
                                                         >
                                                             <option.icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
@@ -969,19 +1049,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                                         {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet'].includes(opt.id)).map((option) => (
                                                             <button
                                                                 key={option.id}
-                                                                onClick={() => {
-                                                                    setShowAddViewMenu(false);
-                                                                    const viewId = option.id as BoardViewType;
-                                                                    if (onUpdateBoard) {
-                                                                        const currentAvailable = board.availableViews && board.availableViews.length > 0
-                                                                            ? board.availableViews
-                                                                            : DEFAULT_VIEWS;
-                                                                        if (!currentAvailable.includes(viewId)) {
-                                                                            onUpdateBoard(board.id, { availableViews: [...currentAvailable, viewId] });
-                                                                        }
-                                                                    }
-                                                                    setActiveView(viewId);
-                                                                }}
+                                                                onClick={() => handleAddView(option)}
                                                                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
                                                             >
                                                                 <option.icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
@@ -1003,19 +1071,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                                                 return (
                                                                     <button
                                                                         key={option.id}
-                                                                        onClick={() => {
-                                                                            setShowAddViewMenu(false);
-                                                                            const viewId = option.id as BoardViewType;
-                                                                            if (onUpdateBoard) {
-                                                                                const currentAvailable = board.availableViews && board.availableViews.length > 0
-                                                                                    ? board.availableViews
-                                                                                    : DEFAULT_VIEWS;
-                                                                                if (!currentAvailable.includes(viewId)) {
-                                                                                    onUpdateBoard(board.id, { availableViews: [...currentAvailable, viewId] });
-                                                                                }
-                                                                            }
-                                                                            setActiveView(viewId);
-                                                                        }}
+                                                                        onClick={() => handleAddView(option)}
                                                                         className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
                                                                     >
                                                                         <Icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
@@ -1121,17 +1177,19 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
                             <div className="my-1 border-t border-gray-100/50 dark:border-gray-800/50 mx-2"></div>
 
-                            <div
-                                className="flex items-center gap-3 px-4 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer text-gray-700 dark:text-gray-200 hover:text-rose-600 dark:hover:text-rose-400 transition-all font-medium"
-                                onClick={handleDeleteView}
-                            >
-                                <Trash2 size={16} />
-                                <span className="text-[13px]">Delete view</span>
-                            </div>
+                            {contextMenu.viewId !== 'overview' as any && (
+                                <div
+                                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer text-gray-700 dark:text-gray-200 hover:text-rose-600 dark:hover:text-rose-400 transition-all font-medium"
+                                    onClick={handleDeleteView}
+                                >
+                                    <Trash2 size={16} />
+                                    <span className="text-[13px]">Delete view</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )
             }
-        </div>
+        </div >
     );
 };

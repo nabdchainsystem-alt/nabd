@@ -29,7 +29,7 @@ export const DropdownConfigModal: React.FC<DropdownConfigModalProps> = ({ isOpen
     const [options, setOptions] = useState<DropdownOption[]>([
         { id: '1', label: 'Done', color: '#00c875' },
         { id: '2', label: 'Working on it', color: '#fdab3d' },
-        { id: '3', label: 'Stuck', color: '#e2445c' }
+        { id: '3', label: 'Stuck', color: '#f97316' }
     ]);
     const [activeColorPicker, setActiveColorPicker] = useState<{ id: string; rect: DOMRect } | null>(null);
 

@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     Table, LayoutTemplate, PieChart, Trash2, GripHorizontal, TrendingUp, TrendingDown,
     Maximize2, Minimize2, LineChart, BarChart, AreaChart, ScatterChart, Radar, Activity, Gauge
 } from 'lucide-react';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
+import { Priority } from '../../types/boardTypes';
+import { Bell, AlertCircle, Clock } from 'lucide-react';
 
 // DnD Kit Imports
 import {
@@ -29,6 +31,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface OverviewViewProps {
     boardId: string;
+    tasks?: any[];
 }
 
 type WidgetType = 'kpi' | 'chart' | 'table';
@@ -47,17 +50,19 @@ interface Widget {
     trendLabel?: string;
 }
 
-// --- Sortable Widget Wrapper ---
-const SortableWidget = ({
-    widget,
-    children,
-    onResize,
-    onDelete
-}: {
+interface SortableWidgetProps {
     widget: Widget;
     children: React.ReactNode;
     onResize?: (id: string, span: number) => void;
     onDelete: (id: string) => void;
+}
+
+// --- Sortable Widget Wrapper ---
+const SortableWidget: React.FC<SortableWidgetProps> = ({
+    widget,
+    children,
+    onResize,
+    onDelete
 }) => {
     const {
         attributes,
@@ -205,8 +210,8 @@ const TableContent = ({ widget, boardId }: { widget: Widget, boardId: string }) 
     // Minimal columns for the widget view
     const widgetColumns = [
         { id: 'select', label: '', type: 'select', width: 40, minWidth: 40, resizable: false, pinned: true },
-        // Unpin 'Name' to allow full flexibility (renaming, moving if reorder enabled in future)
-        { id: 'name', label: 'Name', type: 'text', width: 300, minWidth: 200, resizable: true, pinned: false },
+        // Pin 'Name' as well to ensure it freezes
+        { id: 'name', label: 'Name', type: 'text', width: 300, minWidth: 200, resizable: true, pinned: true },
     ];
 
     return (
@@ -224,8 +229,43 @@ const TableContent = ({ widget, boardId }: { widget: Widget, boardId: string }) 
 };
 
 // --- Main Component ---
-export const OverviewView: React.FC<OverviewViewProps> = ({ boardId }) => {
-    const [widgets, setWidgets] = useState<Widget[]>([]);
+export const OverviewView: React.FC<OverviewViewProps> = ({ boardId, tasks = [] }) => {
+    const storageKey = `overview-widgets-${boardId}`;
+
+    const [widgets, setWidgets] = useState<Widget[]>(() => {
+        try {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) return JSON.parse(saved);
+        } catch (e) { }
+
+        // Default workspace
+        return [
+            { id: 'kpi-total', type: 'kpi', title: 'Total Tasks', value: String(tasks.length), trend: 0, colSpan: 3 },
+            { id: 'kpi-urgent', type: 'kpi', title: 'Urgent Tasks', value: '0', trend: 0, colSpan: 3 },
+            { id: 'kpi-overdue', type: 'kpi', title: 'Overdue', value: '0', trend: 0, colSpan: 3 },
+            { id: 'reminders', type: 'kpi', title: 'Notifications', value: 'Board active', colSpan: 3 },
+        ];
+    });
+
+    // Save widgets on change
+    useEffect(() => {
+        localStorage.setItem(storageKey, JSON.stringify(widgets));
+    }, [widgets, storageKey]);
+
+    // Update KPI values based on real tasks
+    const urgentCount = tasks.filter(t => t.priority === 'High' || t.priority === 'Urgent' || t.priority === Priority.High || t.priority === Priority.Urgent).length;
+    const overdueCount = tasks.filter(t => {
+        if (!t.dueDate || t.status === 'Done') return false;
+        try {
+            const dueDate = new Date(t.dueDate);
+            return !isNaN(dueDate.getTime()) && dueDate < new Date();
+        } catch (e) {
+            return false;
+        }
+    }).length;
+
+    const [showKPIMenu, setShowKPIMenu] = useState(false);
+    const [showChartMenu, setShowChartMenu] = useState(false);
 
     // DnD Sensors
     const sensors = useSensors(
@@ -316,18 +356,57 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ boardId }) => {
                         strategy={rectSortingStrategy}
                     >
                         <div className="grid grid-cols-12 gap-6">
-                            {widgets.map((widget) => (
-                                <SortableWidget
-                                    key={widget.id}
-                                    widget={widget}
-                                    onResize={handleResize}
-                                    onDelete={handleDelete}
-                                >
-                                    {widget.type === 'kpi' && <KPIContent widget={widget} />}
-                                    {widget.type === 'chart' && <ChartContent widget={widget} />}
-                                    {widget.type === 'table' && <TableContent widget={widget} boardId={boardId} />}
-                                </SortableWidget>
-                            ))}
+                            {widgets.map((widget) => {
+                                let content;
+                                if (widget.id === 'kpi-total') {
+                                    content = <KPIContent widget={{ ...widget, value: String(tasks.length) }} />;
+                                } else if (widget.id === 'kpi-urgent') {
+                                    content = <KPIContent widget={{ ...widget, title: 'Urgent Tasks', value: String(urgentCount) }} />;
+                                } else if (widget.id === 'kpi-overdue') {
+                                    content = <KPIContent widget={{ ...widget, title: 'Overdue', value: String(overdueCount) }} />;
+                                } else if (widget.id === 'reminders') {
+                                    content = (
+                                        <div className="flex flex-col gap-2">
+                                            {urgentCount > 0 ? (
+                                                <div className="flex items-center gap-2 text-rose-500 text-[11px] font-medium animate-pulse">
+                                                    <AlertCircle size={14} />
+                                                    <span>{urgentCount} urgent items require attention</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 text-emerald-500 text-[11px] font-medium">
+                                                    <Bell size={14} />
+                                                    <span>All items are on track</span>
+                                                </div>
+                                            )}
+                                            {overdueCount > 0 && (
+                                                <div className="flex items-center gap-2 text-amber-500 text-[11px] font-medium">
+                                                    <Clock size={14} />
+                                                    <span>{overdueCount} items are past their deadline</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                } else {
+                                    content = (
+                                        <>
+                                            {widget.type === 'kpi' && <KPIContent widget={widget} />}
+                                            {widget.type === 'chart' && <ChartContent widget={widget} />}
+                                            {widget.type === 'table' && <TableContent widget={widget} boardId={boardId} />}
+                                        </>
+                                    );
+                                }
+
+                                return (
+                                    <SortableWidget
+                                        key={widget.id}
+                                        widget={widget}
+                                        onResize={handleResize}
+                                        onDelete={handleDelete}
+                                    >
+                                        {content}
+                                    </SortableWidget>
+                                );
+                            })}
                         </div>
                     </SortableContext>
                 </div>

@@ -3,7 +3,7 @@ import { ITask, IGroup, Status } from '../../types/boardTypes';
 export const statusColorMap: Record<Status, string> = {
     [Status.Done]: '#33D995',
     [Status.Working]: '#FFBE66',
-    [Status.Stuck]: '#FF7085',
+    [Status.Stuck]: '#f97316',
     [Status.Pending]: '#FFD940',
     [Status.AlmostFinish]: '#C48AF0',
     [Status.New]: '#A0A5B9',

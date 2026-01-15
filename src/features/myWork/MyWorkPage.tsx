@@ -530,7 +530,9 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                 { id: 'dueDate', title: 'Due date', type: 'date' },
                 { id: 'priority', title: 'Priority', type: 'priority' }
             ],
-            workspaceId: boards[0]?.workspaceId // Attach to first available workspace for now
+            workspaceId: boards[0]?.workspaceId, // Attach to first available workspace for now
+            defaultView: 'overview',
+            availableViews: ['overview', 'table']
         };
 
         onAddBoard(newBoard);

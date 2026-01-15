@@ -5,8 +5,10 @@ import {
     Search,
     Plus,
     ChevronDown,
+    X,
     Calendar as CalendarIcon
 } from 'lucide-react';
+import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import {
     DndContext,
     closestCenter,
@@ -21,7 +23,7 @@ import {
     useDroppable
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ITask, Status, PEOPLE } from '../../types/boardTypes';
+import { ITask, Status, PEOPLE, IBoard } from '../../types/boardTypes';
 import { useRoomBoardData } from '../../hooks/useRoomBoardData';
 import { useClickOutside } from '../../../../hooks/useClickOutside';
 import { CalendarEventModal } from './components/CalendarEventModal';
@@ -99,6 +101,20 @@ const DroppableDay: React.FC<DroppableDayProps> = ({ date, dateKey, tasks, isTod
         data: { dateKey, date }
     });
 
+    const [isMoreOpen, setIsMoreOpen] = useState(false);
+    const moreTriggerRef = useRef<HTMLButtonElement>(null);
+
+    const MAX_VISIBLE = isMonthView ? 3 : 9999;
+
+    let visibleTasks = tasks;
+    let hiddenCount = 0;
+
+    if (tasks.length > MAX_VISIBLE) {
+        // If we overflow, we show (MAX-1) items + 1 button to keep total elements <= MAX
+        visibleTasks = tasks.slice(0, MAX_VISIBLE - 1);
+        hiddenCount = tasks.length - (MAX_VISIBLE - 1);
+    }
+
     return (
         <div
             ref={setNodeRef}
@@ -120,15 +136,10 @@ const DroppableDay: React.FC<DroppableDayProps> = ({ date, dateKey, tasks, isTod
                 `}>
                     {date.getDate()}
                 </span>
-
-                {/* Optional: Add button visible on hover */}
-                {/* <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Plus size={14} className="text-gray-400" />
-                </div> */}
             </div>
 
             <div className="flex-1 px-1.5 pb-2 overflow-y-auto space-y-0.5 no-scrollbar">
-                {tasks.map(({ task, groupId }) => (
+                {visibleTasks.map(({ task, groupId }) => (
                     <DraggableTask
                         key={task.id}
                         task={task}
@@ -138,6 +149,57 @@ const DroppableDay: React.FC<DroppableDayProps> = ({ date, dateKey, tasks, isTod
                         }}
                     />
                 ))}
+
+                {hiddenCount > 0 && (
+                    <>
+                        <button
+                            ref={moreTriggerRef}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsMoreOpen(true);
+                            }}
+                            className="w-full text-left text-[10px] font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 px-1 py-0.5 rounded transition-colors"
+                        >
+                            + {hiddenCount} more
+                        </button>
+
+                        {isMoreOpen && (
+                            <PortalPopup
+                                triggerRef={moreTriggerRef}
+                                onClose={() => setIsMoreOpen(false)}
+                                align="start"
+                                side="bottom"
+                            >
+                                <div className="w-64 bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 flex flex-col gap-2 max-h-80 overflow-y-auto z-50">
+                                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                            {date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                                        </span>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setIsMoreOpen(false); }}
+                                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        {tasks.map(({ task, groupId }) => (
+                                            <DraggableTask
+                                                key={`popup-${task.id}`}
+                                                task={task}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onTaskClick(task, groupId);
+                                                    setIsMoreOpen(false);
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </PortalPopup>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );
@@ -148,11 +210,26 @@ const DroppableDay: React.FC<DroppableDayProps> = ({ date, dateKey, tasks, isTod
 interface CalendarViewProps {
     roomId?: string;
     storageKey?: string;
+    board?: IBoard;
+    onUpdateTask?: (groupId: string, taskId: string, updates: Partial<ITask>) => void;
+    onAddTask?: (groupId: string, name: string, defaults?: Partial<ITask>) => void;
 }
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }) => {
-    const effectiveKey = storageKey || (roomId ? `board-${roomId}` : 'demo-board');
-    const { board, addTask, updateTask } = useRoomBoardData(effectiveKey);
+export const CalendarView: React.FC<CalendarViewProps> = (props) => {
+    const { roomId, storageKey, board: propBoard, onUpdateTask, onAddTask } = props;
+
+    // If we are receiving properties from a parent (BoardView), we use a dummy key for the hook
+    // to prevent it from overwriting the shared localStorage with potentially stale state.
+    // If we are standalone, we use the roomId/storageKey to load data.
+    const effectiveKey = propBoard
+        ? `shadow-${roomId || 'calendar'}`
+        : (storageKey || roomId || 'demo-board');
+
+    const { board: hookBoard, addTask: hookAddTask, updateTask: hookUpdateTask } = useRoomBoardData(effectiveKey);
+
+    const board = propBoard || hookBoard;
+    const addTask = onAddTask || hookAddTask;
+    const updateTask = onUpdateTask || hookUpdateTask;
 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [calendarView, setCalendarView] = useState<CalendarViewMode>('monthly');
@@ -181,7 +258,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
         useSensor(KeyboardSensor)
     );
 
-    const isScheduleView = calendarView === '5days' || calendarView === 'weekly';
+    const isScheduleView = calendarView === '5days' || calendarView === 'weekly' || calendarView === 'daily';
 
     const prev = () => {
         if (calendarView === 'daily') setCurrentDate(addDays(currentDate, -1));
@@ -192,7 +269,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
 
     const next = () => {
         if (calendarView === 'daily') setCurrentDate(addDays(currentDate, 1));
-        else if (calendarView === '5days' || calendarView === 'weekly') setCurrentDate(addDays(currentDate, 7));
+        else if (calendarView === '5days') setCurrentDate(addDays(currentDate, 5));
+        else if (calendarView === 'weekly') setCurrentDate(addDays(currentDate, 7));
         else if (calendarView === 'yearly') setCurrentDate(new Date(currentDate.getFullYear() + 1, 0, 1));
         else setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
     };
@@ -204,7 +282,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
         if (board && board.groups) {
             board.groups.forEach(group => {
                 group.tasks.forEach(task => {
-                    if (!task.dueDate) return;
+                    const dateStr = task.dueDate || task.date;
+                    if (!dateStr) return;
 
                     // Filters
                     if (isClosedFilterActive) {
@@ -222,7 +301,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
                         if (task.personId !== selectedAssigneeId) return;
                     }
 
-                    const dateObj = new Date(task.dueDate);
+                    const dateObj = new Date(dateStr);
                     const key = formatKey(dateObj);
                     if (!map[key]) map[key] = [];
                     map[key].push({ task, groupId: group.id });
@@ -259,6 +338,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
     }, [currentDate]);
 
     const weekDays = useMemo(() => {
+        if (calendarView === 'daily') return [currentDate];
         const start = startOfWeek(currentDate);
         return Array.from({ length: calendarView === '5days' ? 5 : 7 }, (_, i) => addDays(start, i));
     }, [currentDate, calendarView]);
@@ -286,7 +366,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
         }
 
         if (groupId && task) {
-            updateTask(groupId, taskId, { dueDate: newDate.toISOString() });
+            const dateStr = newDate.toISOString();
+            updateTask(groupId, taskId, {
+                dueDate: dateStr,
+                date: dateStr // Sync both fields for compatibility
+            });
         }
     };
 
@@ -303,15 +387,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ roomId, storageKey }
     };
 
     const handleSaveTask = (updates: Partial<ITask>) => {
+        // Sync date field if dueDate is present
+        const finalUpdates = { ...updates };
+        if (finalUpdates.dueDate) {
+            finalUpdates.date = finalUpdates.dueDate;
+        }
+
         if (editingTask) {
-            updateTask(editingTask.groupId, editingTask.task.id, updates);
+            updateTask(editingTask.groupId, editingTask.task.id, finalUpdates);
         } else {
             // New task - add to first group or a default "Inbox" group if distinct
             const targetGroupId = board.groups[0]?.id;
             if (targetGroupId) {
-                addTask(targetGroupId, updates.name || 'New Event', {
-                    ...updates,
-                    dueDate: updates.dueDate // Ensure date is passed
+                addTask(targetGroupId, finalUpdates.name || 'New Event', {
+                    ...finalUpdates,
+                    dueDate: finalUpdates.dueDate // Ensure date is passed
                 });
             }
         }
