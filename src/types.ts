@@ -8,14 +8,41 @@ export enum StatusColor {
 
 export type PriorityLevel = 'High' | 'Medium' | 'Low';
 
-export interface Task {
+// Common task statuses - can be extended
+export type TaskStatus =
+  | 'Not Started'
+  | 'In Progress'
+  | 'Working on it'
+  | 'Stuck'
+  | 'Done'
+  | 'Pending'
+  | 'Almost Done'
+  | string; // Allow custom statuses
+
+// Person/assignee type
+export interface Person {
   id: string;
   name: string;
-  person: string;
-  status: string;
+  avatar?: string;
+  color?: string;
+}
+
+// Base task properties
+export interface TaskBase {
+  id: string;
+  name: string;
+  person: string | Person;
+  status: TaskStatus;
   date: string;
   priority?: PriorityLevel | null;
-  [key: string]: any;
+  description?: string;
+  type?: 'task' | 'event';
+}
+
+// Task with dynamic column values (for table rows)
+export interface Task extends TaskBase {
+  // Allow additional dynamic properties for custom columns
+  [key: string]: unknown;
 }
 
 export interface BoardColumn {

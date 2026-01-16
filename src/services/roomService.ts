@@ -1,8 +1,10 @@
+import { Room, CreateRoomData, Row, CreateRowData, UpdateRowData, Column } from './types';
+
 const API_URL = 'http://localhost:3001';
 
 export const roomService = {
     // Rooms
-    async getAllRooms() {
+    async getAllRooms(): Promise<Room[]> {
         try {
             const response = await fetch(`${API_URL}/rooms`);
             if (!response.ok) throw new Error('Failed to fetch rooms');
@@ -13,7 +15,7 @@ export const roomService = {
         }
     },
 
-    async getRoom(id: string) {
+    async getRoom(id: string): Promise<Room | null> {
         try {
             const response = await fetch(`${API_URL}/rooms/${id}`);
             if (!response.ok) throw new Error('Failed to fetch room');
@@ -24,7 +26,7 @@ export const roomService = {
         }
     },
 
-    async createRoom(room: any) {
+    async createRoom(room: CreateRoomData): Promise<Room> {
         try {
             const response = await fetch(`${API_URL}/rooms`, {
                 method: 'POST',
@@ -40,7 +42,7 @@ export const roomService = {
     },
 
     // Rows
-    async getRows(roomId: string) {
+    async getRows(roomId: string): Promise<Row[]> {
         try {
             const response = await fetch(`${API_URL}/rows?roomId=${roomId}`);
             if (!response.ok) throw new Error('Failed to fetch rows');
@@ -51,7 +53,7 @@ export const roomService = {
         }
     },
 
-    async createRow(row: any) {
+    async createRow(row: CreateRowData): Promise<Row> {
         try {
             const response = await fetch(`${API_URL}/rows`, {
                 method: 'POST',
@@ -66,7 +68,7 @@ export const roomService = {
         }
     },
 
-    async updateRow(id: string, updates: any) {
+    async updateRow(id: string, updates: UpdateRowData): Promise<Row> {
         try {
             const response = await fetch(`${API_URL}/rows/${id}`, {
                 method: 'PATCH',
@@ -81,7 +83,7 @@ export const roomService = {
         }
     },
 
-    async deleteRow(id: string) {
+    async deleteRow(id: string): Promise<boolean> {
         try {
             const response = await fetch(`${API_URL}/rows/${id}`, {
                 method: 'DELETE',
@@ -95,7 +97,7 @@ export const roomService = {
     },
 
     // Columns
-    async getColumns(roomId: string) {
+    async getColumns(roomId: string): Promise<Column[]> {
         try {
             const response = await fetch(`${API_URL}/columns?roomId=${roomId}`);
             if (!response.ok) throw new Error('Failed to fetch columns');
@@ -107,7 +109,7 @@ export const roomService = {
         }
     },
 
-    async updateColumns(roomId: string, columns: any[]) {
+    async updateColumns(roomId: string, columns: Column[]): Promise<{ id: string; roomId: string; columns: Column[] }> {
         try {
             // First, check if columns already exist for this room
             const existing = await fetch(`${API_URL}/columns?roomId=${roomId}`);

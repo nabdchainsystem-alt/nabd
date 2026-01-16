@@ -1,3 +1,14 @@
+import {
+    ProcurementRequest,
+    CreateProcurementRequestData,
+    UpdateProcurementRequestData,
+    RFQ,
+    CreateRFQData,
+    UpdateRFQData,
+    Order,
+    CreateOrderData,
+    UpdateOrderData
+} from './types';
 
 const API_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 'http://localhost:3001';
 
@@ -9,7 +20,7 @@ const LOCAL_KEYS: Record<CollectionKey, CollectionKey> = {
     orders: 'orders'
 };
 
-const readLocal = (key: CollectionKey) => {
+const readLocal = <T>(key: CollectionKey): T[] => {
     if (typeof localStorage === 'undefined') return [];
     try {
         return JSON.parse(localStorage.getItem(key) || '[]') || [];
@@ -18,7 +29,7 @@ const readLocal = (key: CollectionKey) => {
     }
 };
 
-const writeLocal = (key: CollectionKey, data: any[]) => {
+const writeLocal = <T>(key: CollectionKey, data: T[]): void => {
     if (typeof localStorage === 'undefined') return;
     try {
         localStorage.setItem(key, JSON.stringify(data));
@@ -27,18 +38,20 @@ const writeLocal = (key: CollectionKey, data: any[]) => {
     }
 };
 
-const upsertLocal = (key: CollectionKey, item: any) => {
-    const next = [item, ...readLocal(key).filter((entry: any) => entry.id !== item.id)];
+const upsertLocal = <T extends { id: string }>(key: CollectionKey, item: T): T => {
+    const existing = readLocal<T>(key);
+    const next = [item, ...existing.filter((entry) => entry.id !== item.id)];
     writeLocal(key, next);
     return item;
 };
 
-const removeLocal = (key: CollectionKey, id: string) => {
-    writeLocal(key, readLocal(key).filter((entry: any) => entry.id !== id));
+const removeLocal = (key: CollectionKey, id: string): void => {
+    const existing = readLocal<{ id: string }>(key);
+    writeLocal(key, existing.filter((entry) => entry.id !== id));
 };
 
 export const procurementService = {
-    async getAllRequests() {
+    async getAllRequests(): Promise<ProcurementRequest[]> {
         try {
             const response = await fetch(`${API_URL}/procurementRequests`);
             if (!response.ok) throw new Error('Failed to fetch requests');
@@ -47,11 +60,11 @@ export const procurementService = {
             return data;
         } catch (error) {
             console.error('Error fetching requests:', error);
-            return readLocal(LOCAL_KEYS.procurementRequests);
+            return readLocal<ProcurementRequest>(LOCAL_KEYS.procurementRequests);
         }
     },
 
-    async createRequest(request: any) {
+    async createRequest(request: CreateProcurementRequestData): Promise<ProcurementRequest> {
         try {
             const response = await fetch(`${API_URL}/procurementRequests`, {
                 method: 'POST',
@@ -66,11 +79,12 @@ export const procurementService = {
             return created;
         } catch (error) {
             console.error('Error creating request:', error);
-            return upsertLocal(LOCAL_KEYS.procurementRequests, request);
+            const fallback = { ...request, id: `local-${Date.now()}`, status: 'Draft' as const };
+            return upsertLocal(LOCAL_KEYS.procurementRequests, fallback);
         }
     },
 
-    async updateRequest(id: string, updates: any) {
+    async updateRequest(id: string, updates: UpdateProcurementRequestData): Promise<ProcurementRequest> {
         try {
             const response = await fetch(`${API_URL}/procurementRequests/${id}`, {
                 method: 'PATCH',
@@ -85,12 +99,13 @@ export const procurementService = {
             return updated;
         } catch (error) {
             console.error('Error updating request:', error);
-            const merged = { ...(readLocal(LOCAL_KEYS.procurementRequests).find((r: any) => r.id === id) || {}), ...updates, id };
+            const existing = readLocal<ProcurementRequest>(LOCAL_KEYS.procurementRequests).find(r => r.id === id);
+            const merged = { ...existing, ...updates, id } as ProcurementRequest;
             return upsertLocal(LOCAL_KEYS.procurementRequests, merged);
         }
     },
 
-    async deleteRequest(id: string) {
+    async deleteRequest(id: string): Promise<boolean> {
         try {
             const response = await fetch(`${API_URL}/procurementRequests/${id}`, {
                 method: 'DELETE',
@@ -104,7 +119,7 @@ export const procurementService = {
         }
     },
 
-    async getAllRfqs() {
+    async getAllRfqs(): Promise<RFQ[]> {
         try {
             const response = await fetch(`${API_URL}/rfqs`);
             if (!response.ok) throw new Error('Failed to fetch RFQs');
@@ -113,11 +128,11 @@ export const procurementService = {
             return data;
         } catch (error) {
             console.error('Error fetching RFQs:', error);
-            return readLocal(LOCAL_KEYS.rfqs);
+            return readLocal<RFQ>(LOCAL_KEYS.rfqs);
         }
     },
 
-    async createRfq(rfq: any) {
+    async createRfq(rfq: CreateRFQData): Promise<RFQ> {
         try {
             const response = await fetch(`${API_URL}/rfqs`, {
                 method: 'POST',
@@ -132,11 +147,12 @@ export const procurementService = {
             return created;
         } catch (error) {
             console.error('Error creating RFQ:', error);
-            return upsertLocal(LOCAL_KEYS.rfqs, rfq);
+            const fallback = { ...rfq, id: `local-${Date.now()}`, status: 'Draft' as const };
+            return upsertLocal(LOCAL_KEYS.rfqs, fallback);
         }
     },
 
-    async updateRfq(id: string, updates: any) {
+    async updateRfq(id: string, updates: UpdateRFQData): Promise<RFQ> {
         try {
             const response = await fetch(`${API_URL}/rfqs/${id}`, {
                 method: 'PATCH',
@@ -151,12 +167,13 @@ export const procurementService = {
             return updated;
         } catch (error) {
             console.error('Error updating RFQ:', error);
-            const merged = { ...(readLocal(LOCAL_KEYS.rfqs).find((r: any) => r.id === id) || {}), ...updates, id };
+            const existing = readLocal<RFQ>(LOCAL_KEYS.rfqs).find(r => r.id === id);
+            const merged = { ...existing, ...updates, id } as RFQ;
             return upsertLocal(LOCAL_KEYS.rfqs, merged);
         }
     },
 
-    async deleteRfq(id: string) {
+    async deleteRfq(id: string): Promise<boolean> {
         try {
             const response = await fetch(`${API_URL}/rfqs/${id}`, {
                 method: 'DELETE',
@@ -170,7 +187,7 @@ export const procurementService = {
         }
     },
 
-    async getAllOrders() {
+    async getAllOrders(): Promise<Order[]> {
         try {
             const response = await fetch(`${API_URL}/orders`);
             if (!response.ok) throw new Error('Failed to fetch orders');
@@ -179,11 +196,11 @@ export const procurementService = {
             return data;
         } catch (error) {
             console.error('Error fetching orders:', error);
-            return readLocal(LOCAL_KEYS.orders);
+            return readLocal<Order>(LOCAL_KEYS.orders);
         }
     },
 
-    async createOrder(order: any) {
+    async createOrder(order: CreateOrderData): Promise<Order> {
         try {
             const response = await fetch(`${API_URL}/orders`, {
                 method: 'POST',
@@ -198,11 +215,12 @@ export const procurementService = {
             return created;
         } catch (error) {
             console.error('Error creating order:', error);
-            return upsertLocal(LOCAL_KEYS.orders, order);
+            const fallback = { ...order, id: `local-${Date.now()}`, status: 'Pending' as const };
+            return upsertLocal(LOCAL_KEYS.orders, fallback);
         }
     },
 
-    async updateOrder(id: string, updates: any) {
+    async updateOrder(id: string, updates: UpdateOrderData): Promise<Order> {
         try {
             const response = await fetch(`${API_URL}/orders/${id}`, {
                 method: 'PATCH',
@@ -217,12 +235,13 @@ export const procurementService = {
             return updated;
         } catch (error) {
             console.error('Error updating order:', error);
-            const merged = { ...(readLocal(LOCAL_KEYS.orders).find((o: any) => o.id === id) || {}), ...updates, id };
+            const existing = readLocal<Order>(LOCAL_KEYS.orders).find(o => o.id === id);
+            const merged = { ...existing, ...updates, id } as Order;
             return upsertLocal(LOCAL_KEYS.orders, merged);
         }
     },
 
-    async deleteOrder(id: string) {
+    async deleteOrder(id: string): Promise<boolean> {
         try {
             const response = await fetch(`${API_URL}/orders/${id}`, {
                 method: 'DELETE',

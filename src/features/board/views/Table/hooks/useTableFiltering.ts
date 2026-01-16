@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Row, Column, FilterRule, SortRule } from '../types';
 
 // Condition options by column type

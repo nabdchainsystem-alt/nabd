@@ -106,7 +106,7 @@ const QuickNavIcons: React.FC<{
     };
 
     return (
-        <div className="flex flex-col items-center gap-3 relative">
+        <div className="flex flex-col items-center gap-4 relative">
             {/* Page navigation items */}
             {visiblePageItems.map((item) => {
                 const Icon = item.icon;
@@ -1798,9 +1798,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 message={t('Are you sure you want to delete this workspace? All boards within it will be deleted. This action cannot be undone.')}
             />
 
-            {/* Quick Navigation Icons - Floating absolutely positioned when collapsed */}
+            {/* Quick Navigation Icons - Shown inside sidebar when collapsed */}
             {isCollapsed && (
-                <div className="absolute top-1/2 -translate-y-1/2 left-full ml-3 z-40">
+                <div className="flex flex-col items-center justify-center flex-1 py-4">
                     <QuickNavIcons
                         activeView={activeView}
                         activeBoardId={activeBoardId}

@@ -105,6 +105,15 @@ export const InboxView: React.FC<InboxViewProps> = ({ logActivity }) => {
   // Memoize selected mail - must be before early returns to follow hooks rules
   const selectedMail = useMemo(() => mails.find(m => m.id === selectedMailId), [mails, selectedMailId]);
 
+  // Memoize unread count to avoid recalculation on every render
+  const unreadCount = useMemo(() => mails.filter(m => m.isUnread).length, [mails]);
+
+  // Memoize filtered folders to avoid recalculation on every render
+  const customFolders = useMemo(() =>
+    folders.filter(f => !['INBOX', 'SENT', 'TRASH', 'DRAFT', 'IMPORTANT', 'STARRED', 'deleteditems', 'junk', 'sentitems'].includes(f.id.toLowerCase())),
+    [folders]
+  );
+
   useEffect(() => {
     checkConnection();
   }, []);
@@ -386,7 +395,7 @@ export const InboxView: React.FC<InboxViewProps> = ({ logActivity }) => {
               label="Inbox"
               isActive={activeFolder === 'INBOX' || !activeFolder}
               onClick={() => setActiveFolder('INBOX')}
-              count={mails.filter(m => m.isUnread).length || undefined}
+              count={unreadCount || undefined}
             />
             <NavItem
               icon={<Send size={18} />}
@@ -408,16 +417,14 @@ export const InboxView: React.FC<InboxViewProps> = ({ logActivity }) => {
                 </div>
 
                 <div className="space-y-1">
-                  {folders
-                    .filter(f => !['INBOX', 'SENT', 'TRASH', 'DRAFT', 'IMPORTANT', 'STARRED', 'deleteditems', 'junk', 'sentitems'].includes(f.id.toLowerCase()))
-                    .map(folder => (
-                      <FolderItem
-                        key={folder.id}
-                        label={folder.name}
-                        onClick={() => setActiveFolder(folder.id)}
-                        isActive={activeFolder === folder.id}
-                      />
-                    ))}
+                  {customFolders.map(folder => (
+                    <FolderItem
+                      key={folder.id}
+                      label={folder.name}
+                      onClick={() => setActiveFolder(folder.id)}
+                      isActive={activeFolder === folder.id}
+                    />
+                  ))}
                 </div>
               </div>
             </div>

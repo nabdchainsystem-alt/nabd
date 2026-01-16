@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Column } from '../../../../types/boardTypes';
+import { Column } from '../types';
 import { SortableHeader } from './SortableHeader';
 import { Trash as Trash2, Plus } from 'phosphor-react';
 import { HeaderContextMenu } from './HeaderContextMenu';
@@ -11,6 +11,7 @@ interface TableHeaderCellProps {
     group: any;
     rows: any[];
     renamingColId: string | null;
+    setRenamingColId: (id: string | null) => void;
     handleRenameColumn: (colId: string, newName: string) => void;
     handleSort: (colId: string) => void;
     handleDeleteColumn: (colId: string) => void;

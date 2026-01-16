@@ -25,6 +25,24 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Vendor chunks - split large dependencies
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+            'vendor-ui': ['framer-motion', 'lucide-react', 'phosphor-react'],
+            'vendor-xlsx': ['xlsx'],
+            // Feature chunks - split large features from BoardView
+            'feature-chart': [
+              './src/features/board/components/chart-builder/ChartBuilderModal.tsx',
+              './src/features/board/components/AIChartCard.tsx',
+            ],
+          }
+        }
+      }
     }
   };
 });

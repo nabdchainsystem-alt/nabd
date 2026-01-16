@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { MagnifyingGlass as Search, GridFour as LayoutGrid, List as ListIcon, Sliders as SlidersHorizontal, Folder, CaretRight as ChevronRight, Plus, FileText, Globe, Upload, Image, File, ArrowUp, ArrowDown, Check } from 'phosphor-react';
+import { storageLogger } from '../../utils/logger';
 import { VaultSidebar } from './components/VaultSidebar';
 import { VaultGrid } from './components/VaultGrid';
 import { VaultList } from './components/VaultList';
@@ -76,19 +77,19 @@ export const VaultView: React.FC = () => {
         setIsLoading(true);
         setError(null);
         try {
-            console.log("VaultView: Starting loadItems");
+            storageLogger.info("VaultView: Starting loadItems");
             const token = await getToken();
             if (!token) {
-                console.warn("VaultView: No token");
+                storageLogger.warn("VaultView: No token");
                 throw new Error("No authentication token available");
             }
 
-            console.log("VaultView: Fetching from service");
+            storageLogger.info("VaultView: Fetching from service");
             const data = await vaultService.getAll(token, userId || "user-1");
-            console.log("VaultView: Data received", data);
+            storageLogger.info("VaultView: Data received", data);
 
             if (!Array.isArray(data)) {
-                console.error("VaultView: Data is not an array", data);
+                storageLogger.error("VaultView: Data is not an array", data);
                 throw new Error("Invalid data received from server");
             }
 
@@ -119,7 +120,7 @@ export const VaultView: React.FC = () => {
             });
             setItems(transformedItems);
         } catch (error: any) {
-            console.error("Failed to load vault items", error);
+            storageLogger.error("Failed to load vault items", error);
             setError(error.message || "Failed to load items");
         } finally {
             setIsLoading(false);
@@ -205,7 +206,7 @@ export const VaultView: React.FC = () => {
             setCurrentFolderId(item.id);
             setSearchQuery(''); // Clear search on navigation
         } else {
-            console.log('Clicked item:', item);
+            storageLogger.info('Clicked item:', item);
             setSelectedItem(item);
             // Future: Open detail modal
         }
@@ -227,7 +228,7 @@ export const VaultView: React.FC = () => {
             await loadItems(); // Refresh to ensure sync
             setIsCreateFolderModalOpen(false);
         } catch (e) {
-            console.error("Failed to create folder", e);
+            storageLogger.error("Failed to create folder", e);
         }
     };
 
@@ -247,7 +248,7 @@ export const VaultView: React.FC = () => {
             await loadItems();
             setIsMenuOpen(false);
         } catch (e) {
-            console.error("Failed to create note", e);
+            storageLogger.error("Failed to create note", e);
         }
     }
 
@@ -255,7 +256,7 @@ export const VaultView: React.FC = () => {
         if (type === 'folder' || type === 'document') {
             setIsCreateFolderModalOpen(true);
         } else {
-            console.log('Create item', type);
+            storageLogger.info('Create item', type);
         }
     };
 
@@ -285,7 +286,7 @@ export const VaultView: React.FC = () => {
             await loadItems();
             setIsCreateLinkModalOpen(false);
         } catch (e) {
-            console.error("Failed to create link", e);
+            storageLogger.error("Failed to create link", e);
         }
     };
 
@@ -306,7 +307,7 @@ export const VaultView: React.FC = () => {
                 setCurrentFolderId(null);
             }
         } catch (e) {
-            console.error("Failed to delete item", e);
+            storageLogger.error("Failed to delete item", e);
         }
     };
 
@@ -321,7 +322,7 @@ export const VaultView: React.FC = () => {
 
             setItems(prev => prev.map(i => i.id === item.id ? { ...i, isFavorite: updated.isFavorite } : i));
         } catch (e) {
-            console.error("Failed to toggle favorite", e);
+            storageLogger.error("Failed to toggle favorite", e);
         }
     };
 
@@ -344,7 +345,7 @@ export const VaultView: React.FC = () => {
             setIsRenameModalOpen(false);
             setItemToRename(null);
         } catch (e) {
-            console.error("Failed to rename item", e);
+            storageLogger.error("Failed to rename item", e);
         }
     };
 
@@ -384,7 +385,7 @@ export const VaultView: React.FC = () => {
             setIsMenuOpen(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
         } catch (e) {
-            console.error("Failed to upload file", e);
+            storageLogger.error("Failed to upload file", e);
         }
     };
 

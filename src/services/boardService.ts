@@ -1,8 +1,10 @@
+import { Board, CreateBoardData, UpdateBoardData, Card, CreateCardData, UpdateCardData } from './types';
+
 const API_URL = 'http://localhost:3001/api';
 
 export const boardService = {
     // Boards
-    async getAllBoards(token: string, workspaceId?: string) {
+    async getAllBoards(token: string, workspaceId?: string): Promise<Board[]> {
         try {
             const url = new URL(`${API_URL}/boards`);
             if (workspaceId) url.searchParams.append('workspaceId', workspaceId);
@@ -18,7 +20,7 @@ export const boardService = {
         }
     },
 
-    async getBoard(token: string, id: string) {
+    async getBoard(token: string, id: string): Promise<Board | null> {
         try {
             const response = await fetch(`${API_URL}/boards/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -31,7 +33,7 @@ export const boardService = {
         }
     },
 
-    async createBoard(token: string, board: any) {
+    async createBoard(token: string, board: CreateBoardData): Promise<Board> {
         try {
             const response = await fetch(`${API_URL}/boards`, {
                 method: 'POST',
@@ -49,7 +51,7 @@ export const boardService = {
         }
     },
 
-    async updateBoard(token: string, id: string, updates: any) {
+    async updateBoard(token: string, id: string, updates: UpdateBoardData): Promise<Board> {
         try {
             const response = await fetch(`${API_URL}/boards/${id}`, {
                 method: 'PUT', // Changed PATCH to PUT to match backend route
@@ -67,7 +69,7 @@ export const boardService = {
         }
     },
 
-    async deleteBoard(token: string, id: string) {
+    async deleteBoard(token: string, id: string): Promise<boolean> {
         try {
             const response = await fetch(`${API_URL}/boards/${id}`, {
                 method: 'DELETE',
@@ -82,7 +84,7 @@ export const boardService = {
     },
 
     // Cards
-    async getCards(boardId: string) {
+    async getCards(boardId: string): Promise<Card[]> {
         try {
             const response = await fetch(`${API_URL}/cards?boardId=${boardId}`);
             if (!response.ok) throw new Error('Failed to fetch cards');
@@ -93,7 +95,7 @@ export const boardService = {
         }
     },
 
-    async getAllCards() {
+    async getAllCards(): Promise<Card[]> {
         try {
             const response = await fetch(`${API_URL}/cards`);
             if (!response.ok) throw new Error('Failed to fetch cards');
@@ -104,7 +106,7 @@ export const boardService = {
         }
     },
 
-    async createCard(card: any) {
+    async createCard(card: CreateCardData): Promise<Card> {
         try {
             const response = await fetch(`${API_URL}/cards`, {
                 method: 'POST',
@@ -119,7 +121,7 @@ export const boardService = {
         }
     },
 
-    async updateCard(id: string, updates: any) {
+    async updateCard(id: string, updates: UpdateCardData): Promise<Card> {
         try {
             const response = await fetch(`${API_URL}/cards/${id}`, {
                 method: 'PATCH',
@@ -134,7 +136,7 @@ export const boardService = {
         }
     },
 
-    async deleteCard(id: string) {
+    async deleteCard(id: string): Promise<boolean> {
         try {
             const response = await fetch(`${API_URL}/cards/${id}`, {
                 method: 'DELETE',

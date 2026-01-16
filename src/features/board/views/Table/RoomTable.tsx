@@ -1,6 +1,7 @@
-import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, useContext } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
+import { boardLogger } from '../../../../utils/logger';
 import { ChartBuilderModal } from '../../components/chart-builder/ChartBuilderModal';
 import { AIReportModal } from '../../components/AIReportModal';
 import { DeleteConfirmationModal } from '../../components/DeleteConfirmationModal';
@@ -14,15 +15,11 @@ import { vaultService } from '../../../../services/vaultService';
 import { VaultItem } from '../../../vault/types';
 import {
     Plus,
-    CircleDashed,
     Flag,
     Calendar as CalendarIcon,
-    Clock,
-    Link2, // Import Link2
+    Link2,
     Pin,
     MapPin,
-    CheckCircle2,
-    Circle,
     ChevronLeft,
     ChevronRight,
     ChevronDown,
@@ -42,8 +39,6 @@ import {
     CalendarRange,
     MoreHorizontal,
     Maximize2,
-    XCircle,
-    AlertCircle
 } from 'lucide-react';
 import { RowDetailPanel } from '../../components/RowDetailPanel';
 import {
@@ -77,21 +72,32 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
     horizontalListSortingStrategy,
-    useSortable,
 } from '@dnd-kit/sortable';
-import { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
-import { CSS } from '@dnd-kit/utilities';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ColumnMenu } from '../../components/ColumnMenu';
-import { getPriorityClasses, normalizePriority, PRIORITY_LEVELS, PriorityLevel, comparePriority } from '../../../priorities/priorityUtils';
+import { PriorityLevel, comparePriority } from '../../../priorities/priorityUtils';
 import { useReminders } from '../../../reminders/reminderStore';
 import { ReminderPanel } from '../../../reminders/ReminderPanel';
 import { ChartBuilderConfig } from '../../components/chart-builder/types';
 import { AIChartCard } from '../../components/AIChartCard';
-import { TextCellContextMenu } from './components/TextCellContextMenu';
-import { HeaderContextMenu } from './components/HeaderContextMenu';
-import { TablePagination } from './components/TablePagination';
-import { TableHeaderCell } from './components/TableHeaderCell';
+import {
+    TextCellContextMenu,
+    HeaderContextMenu,
+    TablePagination,
+    TableHeaderCell,
+    SortableRow,
+    GroupDragContext,
+    SortableGroupWrapper,
+    GroupDragHandle,
+    EditableName,
+    PersonAvatarItem,
+} from './components';
+
+import {
+    formatPriorityLabel,
+    getPriorityDot,
+    DEFAULT_CHECKBOX_COLOR,
+} from './utils';
 
 // Import from centralized types and hooks
 import {
@@ -122,11 +128,15 @@ import {
     getConditionsForType,
 } from './hooks';
 
+import {
+    PriorityPicker,
+    StatusPicker,
+    SelectPicker,
+    CheckboxColorPicker,
+} from './components/pickers';
+
 // Re-export types for consumers
 export type { Column, Row, TableGroup, GroupColor, FilterRule, SortRule };
-
-// Local constants
-const DEFAULT_CHECKBOX_COLOR = '#2563eb'; // blue-600
 
 interface RoomTableProps {
     roomId: string;
@@ -154,644 +164,6 @@ interface RoomTableProps {
     showPagination?: boolean;
     tasksVersion?: string;
 }
-
-// --- Helper Components ---
-
-// Person Avatar Item with Image Error Fallback
-const PersonAvatarItem = ({
-    person,
-    isActive,
-    onClick
-}: {
-    person: any,
-    isActive: boolean,
-    onClick: () => void
-}) => {
-    const [imageError, setImageError] = useState(false);
-
-    // Aggressive name resolution
-    const displayName = person.name || person.label || person.title || (typeof person === 'string' ? person : 'Unknown');
-    const paramInitials = typeof person === 'string' ? person.charAt(0) : (person.name ? person.name.charAt(0) : '?');
-    const initial = paramInitials.toUpperCase();
-
-    // Generate consistent color
-    // Use a stable hash of the displayName to pick a color
-    const COLORS = ['bg-red-100 text-red-600', 'bg-orange-100 text-orange-600', 'bg-amber-100 text-amber-600', 'bg-green-100 text-green-600', 'bg-emerald-100 text-emerald-600', 'bg-teal-100 text-teal-600', 'bg-cyan-100 text-cyan-600', 'bg-blue-100 text-blue-600', 'bg-indigo-100 text-indigo-600', 'bg-violet-100 text-violet-600', 'bg-purple-100 text-purple-600', 'bg-fuchsia-100 text-fuchsia-600', 'bg-pink-100 text-pink-600', 'bg-rose-100 text-rose-600'];
-    const colorIndex = Math.abs(displayName.toString().split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % COLORS.length;
-    const avatarColorClass = COLORS[colorIndex];
-
-    return (
-        <button
-            onClick={onClick}
-            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-colors overflow-hidden relative ${isActive
-                ? 'border-blue-500 ring-2 ring-blue-200'
-                : 'border-white ring-1 ring-stone-200 dark:ring-stone-700 hover:ring-stone-300'
-                }`}
-            title={displayName}
-        >
-            {person.avatar && !imageError ? (
-                <img
-                    src={person.avatar}
-                    alt={displayName}
-                    className="w-full h-full object-cover"
-                    onError={() => setImageError(true)}
-                />
-            ) : (
-                <div className={`w-full h-full flex items-center justify-center ${avatarColorClass}`}>
-                    <span className="text-xs font-bold leading-none">
-                        {initial}
-                    </span>
-                </div>
-            )}
-        </button>
-    );
-};
-
-// --- Helpers ---
-// formatDate is imported from ./types
-
-const formatPriorityLabel = (value: string | null): PriorityLevel | null => normalizePriority(value);
-const getPriorityColor = (priority: string | null) => getPriorityClasses(priority).text;
-const getPriorityDot = (priority: string | null) => getPriorityClasses(priority).dot;
-
-const getStatusIcon = (status: string) => {
-    switch (status) {
-        case 'Done': return <CheckCircle2 size={14} className="text-emerald-600" />;
-        case 'In Progress': return <Clock size={14} className="text-blue-600" />;
-        case 'To Do': return <Circle size={14} className="text-stone-400" />;
-        case 'Rejected': return <XCircle size={14} className="text-red-500" />;
-        case 'Stuck': return <AlertCircle size={14} className="text-orange-500" />;
-        default: return <CircleDashed size={14} className="text-stone-400" />;
-    }
-};
-
-// --- Popover Components ---
-const PriorityPicker: React.FC<{
-    onSelect: (p: PriorityLevel | null) => void;
-    onClose: () => void;
-    current: string | null;
-    triggerRect?: DOMRect;
-}> = ({ onSelect, onClose, current, triggerRect }) => {
-    const normalizedCurrent = formatPriorityLabel(current);
-    const menuRef = useRef<HTMLDivElement>(null);
-    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
-        if (triggerRect) {
-            const menuHeight = 250;
-            const spaceBelow = window.innerHeight - triggerRect.bottom;
-            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
-
-            if (openUp) {
-                return {
-                    bottom: window.innerHeight - triggerRect.top - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: triggerRect.top - 10
-                };
-            } else {
-                return {
-                    top: triggerRect.bottom - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: window.innerHeight - triggerRect.bottom - 10
-                };
-            }
-        }
-        return { display: 'none' };
-    });
-
-    useLayoutEffect(() => {
-        if (triggerRect) {
-            const menuHeight = 250;
-            const spaceBelow = window.innerHeight - triggerRect.bottom;
-            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
-
-            if (openUp) {
-                setPositionStyle({
-                    bottom: window.innerHeight - triggerRect.top - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: triggerRect.top - 10
-                });
-            } else {
-                setPositionStyle({
-                    top: triggerRect.bottom - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: window.innerHeight - triggerRect.bottom - 10
-                });
-            }
-        }
-    }, [triggerRect]);
-
-    const content = (
-        <>
-            {/* Backdrop */}
-            <div className="fixed inset-0 z-[99]" onClick={onClose} />
-            <div
-                ref={menuRef}
-                onClick={(e) => e.stopPropagation()}
-                className="fixed z-[9999] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 min-w-[200px]"
-                style={positionStyle}
-            >
-                <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-800">
-                    <span className="text-[11px] font-bold font-sans uppercase tracking-wider text-stone-400">Task Priority</span>
-                </div>
-                <div className="p-2 flex flex-col gap-1">
-                    {PRIORITY_LEVELS.map((label) => {
-                        const styleClass = PRIORITY_STYLES[label] || 'bg-gray-100 text-gray-800';
-                        const isActive = normalizedCurrent === label;
-                        return (
-                            <button
-                                key={label}
-                                onClick={() => { onSelect(label); onClose(); }}
-                                className={`w-full flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded shadow-sm transition-transform active:scale-95 ${styleClass} ${isActive ? 'ring-2 ring-offset-1 ring-stone-400 dark:ring-stone-600' : ''}`}
-                            >
-                                {label}
-                            </button>
-                        );
-                    })}
-                    <div className="h-px bg-stone-100 dark:bg-stone-800 my-1 mx-2"></div>
-                    <button
-                        onClick={() => { onSelect(null); onClose(); }}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-stone-500 hover:text-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 rounded transition-colors"
-                    >
-                        <span>No priority</span>
-                    </button>
-                </div>
-            </div>
-        </>
-    );
-
-    return createPortal(content, document.body);
-};
-
-// --- Group Drag Components ---
-const GroupDragContext = React.createContext<{ listeners?: SyntheticListenerMap, attributes?: any }>({});
-
-const SortableGroupWrapper: React.FC<{ group: TableGroup; children: React.ReactNode }> = ({ group, children }) => {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({ id: group.id, data: { type: 'group', group } });
-
-    const style = {
-        transform: isDragging ? CSS.Translate.toString(transform) : undefined,
-        transition: isDragging ? transition : undefined,
-        zIndex: isDragging ? 50 : undefined,
-        position: 'relative' as const,
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} className={isDragging ? 'opacity-50' : ''}>
-            <GroupDragContext.Provider value={{ listeners, attributes }}>
-                {children}
-            </GroupDragContext.Provider>
-        </div>
-    );
-};
-
-const GroupDragHandle: React.FC<{ colorClass?: string }> = ({ colorClass }) => {
-    const { listeners, attributes } = useContext(GroupDragContext);
-    return (
-        <div
-            {...listeners}
-            {...attributes}
-            className={`w-1.5 h-6 rounded-full ${colorClass} cursor-grab active:cursor-grabbing hover:scale-110 transition-transform touch-none`}
-        />
-    );
-};
-
-export interface StatusOption {
-    id: string;
-    title: string;
-    color: string;
-}
-
-const StatusPicker: React.FC<{
-    onSelect: (s: string) => void;
-    onClose: () => void;
-    current: string;
-    triggerRect?: DOMRect;
-    options?: StatusOption[];
-    onAdd?: (s: string) => void;
-    onDelete?: (s: string) => void;
-}> = ({ onSelect, onClose, current, triggerRect, options, onAdd, onDelete }) => {
-    const [customStatus, setCustomStatus] = useState('');
-
-    // Default statuses with colors matching KanbanBoard
-    const defaultStatuses: StatusOption[] = [
-        { id: 'To Do', title: 'To Do', color: 'gray' },
-        { id: 'In Progress', title: 'In Progress', color: 'blue' },
-        { id: 'Q&A', title: 'Q&A', color: 'purple' },
-        { id: 'Done', title: 'Done', color: 'emerald' },
-        { id: 'Stuck', title: 'Stuck', color: 'orange' },
-        { id: 'Rejected', title: 'Rejected', color: 'rose' }
-    ];
-
-    // Merge defaults with custom options, prioritizing custom options if IDs match
-    // actually, we should just show the options passed in from the parent which should contain EVERYTHING
-    // But for safety, we ensure defaults exist if options is empty
-    const displayStatuses = options && options.length > 0 ? options : defaultStatuses;
-
-    const menuRef = useRef<HTMLDivElement>(null);
-    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
-        if (triggerRect) {
-            const menuHeight = 250;
-            const spaceBelow = window.innerHeight - triggerRect.bottom;
-            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
-
-            if (openUp) {
-                return {
-                    bottom: window.innerHeight - triggerRect.top - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: triggerRect.top - 10
-                };
-            } else {
-                return {
-                    top: triggerRect.bottom - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: window.innerHeight - triggerRect.bottom - 10
-                };
-            }
-        }
-        return { display: 'none' };
-    });
-
-    useLayoutEffect(() => {
-        if (triggerRect) {
-            const menuHeight = 250;
-            const spaceBelow = window.innerHeight - triggerRect.bottom;
-            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
-
-            if (openUp) {
-                setPositionStyle({
-                    bottom: window.innerHeight - triggerRect.top - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: triggerRect.top - 10
-                });
-            } else {
-                setPositionStyle({
-                    top: triggerRect.bottom - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: window.innerHeight - triggerRect.bottom - 10
-                });
-            }
-        }
-    }, [triggerRect]);
-
-    const handleAddStatus = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (customStatus.trim()) {
-            if (onAdd) {
-                onAdd(customStatus.trim());
-            }
-            onSelect(customStatus.trim());
-            setCustomStatus('');
-            onClose();
-        }
-    };
-
-    const content = (
-        <>
-            {/* Backdrop */}
-            <div className="fixed inset-0 z-[99]" onClick={onClose} />
-            <div
-                ref={menuRef}
-                onClick={(e) => e.stopPropagation()}
-                className="fixed w-64 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
-                style={positionStyle}
-            >
-                <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-800">
-                    <span className="text-[11px] font-bold font-sans uppercase tracking-wider text-stone-400">Task Status</span>
-                </div>
-                <div className="p-2 max-h-64 overflow-y-auto flex flex-col gap-1 custom-scrollbar">
-                    {displayStatuses.map((s) => {
-                        const statusTitle = typeof s === 'string' ? s : s.title;
-                        const statusId = typeof s === 'string' ? s : s.id;
-                        const statusStyle = STATUS_STYLES[statusTitle] || 'bg-gray-100 text-gray-800';
-                        const isActive = current === statusTitle;
-
-                        return (
-                            <div key={statusId} className="group relative flex items-center">
-                                <button
-                                    onClick={() => { onSelect(statusTitle); onClose(); }}
-                                    className={`flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded shadow-sm transition-transform active:scale-95 ${statusStyle} ${isActive ? 'ring-2 ring-offset-1 ring-stone-400 dark:ring-stone-600' : ''}`}
-                                >
-                                    {statusTitle}
-                                </button>
-                                {!defaultStatuses.some(ds => ds.id === statusId) && onDelete && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (onDelete) onDelete(statusTitle);
-                                        }}
-                                        className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-stone-400 hover:text-red-500 bg-white/50 hover:bg-white/80 rounded-r opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Delete status"
-                                    >
-                                        <Trash size={12} />
-                                    </button>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-                <form onSubmit={handleAddStatus} className="p-2 border-t border-stone-100 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/50">
-                    <input
-                        type="text"
-                        value={customStatus}
-                        onChange={(e) => setCustomStatus(e.target.value)}
-                        placeholder="Add new status..."
-                        className="w-full px-3 py-2 text-xs bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg focus:outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-100 dark:focus:ring-stone-800 transition-all placeholder:text-stone-400"
-                    />
-                </form>
-            </div>
-        </>
-    );
-
-    return createPortal(content, document.body);
-};
-
-const SelectPicker: React.FC<{
-    onSelect: (s: string) => void;
-    onClose: () => void;
-    current: string;
-    options: { id: string; label: string; color: string }[];
-    triggerRect?: DOMRect;
-    onAdd?: (label: string) => void;
-}> = ({ onSelect, onClose, current, options, triggerRect, onAdd }) => {
-    const [search, setSearch] = useState('');
-    const menuRef = useRef<HTMLDivElement>(null);
-    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
-        if (triggerRect) {
-            const menuHeight = 320; // approximate height with search and options
-            const spaceBelow = window.innerHeight - triggerRect.bottom;
-            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
-
-            if (openUp) {
-                return {
-                    bottom: window.innerHeight - triggerRect.top - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: triggerRect.top - 10
-                };
-            } else {
-                return {
-                    top: triggerRect.bottom - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: window.innerHeight - triggerRect.bottom - 10
-                };
-            }
-        }
-        return { display: 'none' };
-    });
-
-    useLayoutEffect(() => {
-        if (triggerRect) {
-            const menuHeight = 320; // approximate height with search and options
-            const spaceBelow = window.innerHeight - triggerRect.bottom;
-            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
-
-            if (openUp) {
-                setPositionStyle({
-                    bottom: window.innerHeight - triggerRect.top - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: triggerRect.top - 10
-                });
-            } else {
-                setPositionStyle({
-                    top: triggerRect.bottom - 4,
-                    left: triggerRect.left,
-                    position: 'fixed',
-                    maxHeight: window.innerHeight - triggerRect.bottom - 10
-                });
-            }
-        }
-    }, [triggerRect]);
-
-    // Filter options based on search
-    const filteredOptions = options.filter(opt =>
-        opt.label.toLowerCase().includes(search.toLowerCase())
-    );
-
-    const content = (
-        <>
-            {/* Backdrop */}
-            <div className="fixed inset-0 z-[99]" onClick={onClose} />
-            <div
-                ref={menuRef}
-                onClick={(e) => e.stopPropagation()}
-                className="fixed w-[220px] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl z-[100] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 p-2 gap-2"
-                style={positionStyle}
-            >
-                {/* Search Input */}
-                <input
-                    type="text"
-                    autoFocus
-                    placeholder="Search or add options..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs text-stone-700 dark:text-stone-300 bg-white dark:bg-stone-800 border-2 border-primary/50 focus:border-primary rounded-md outline-none transition-all placeholder:text-stone-400"
-                />
-
-                <div className="flex flex-col gap-1 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-                    {/* Clear / None Option */}
-                    <button
-                        onClick={() => { onSelect(''); onClose(); }}
-                        className="w-full h-8 border border-dashed border-stone-300 dark:border-stone-600 rounded flex items-center justify-center hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
-                    >
-                        <span className="text-stone-400">-</span>
-                    </button>
-
-                    {/* Filtered Options */}
-                    {filteredOptions.length > 0 ? (
-                        filteredOptions.map((opt) => (
-                            <button
-                                key={opt.id}
-                                onClick={() => { onSelect(opt.label); onClose(); }}
-                                className={`w-full py-1.5 px-3 rounded text-xs font-medium text-white transition-transform active:scale-95 ${opt.color || 'bg-stone-500'}`}
-                            >
-                                {opt.label}
-                            </button>
-                        ))
-                    ) : (
-                        <div className="py-2 text-center text-xs text-stone-400">
-                            No options found
-                        </div>
-                    )}
-                    {search.trim() && !options.some(o => o.label.toLowerCase() === search.trim().toLowerCase()) && onAdd && (
-                        <button
-                            onClick={() => { onAdd(search.trim()); onClose(); }}
-                            className="w-full py-1.5 px-3 rounded text-xs font-medium text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors flex items-center justify-center gap-1 border border-dashed border-stone-300 dark:border-stone-700 mt-1"
-                        >
-                            <span>Create "{search.trim()}"</span>
-                        </button>
-                    )}
-                </div>
-            </div>
-        </>
-    );
-
-    return createPortal(content, document.body);
-};
-
-
-const CheckboxColorPicker: React.FC<{
-    onSelect: (color: string) => void;
-    onClose: () => void;
-    current?: string;
-    triggerRect?: DOMRect;
-}> = ({ onSelect, onClose, current, triggerRect }) => {
-    const menuRef = useRef<HTMLDivElement>(null);
-    const [positionStyle, setPositionStyle] = useState<React.CSSProperties>({ display: 'none' });
-
-    useLayoutEffect(() => {
-        if (triggerRect && menuRef.current) {
-            const menuWidth = 190; // Fixed width from w-[190px]
-            const menuHeight = 200; // Approx height
-
-            const spaceBelow = window.innerHeight - triggerRect.bottom;
-            const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
-
-            const style: React.CSSProperties = { position: 'fixed', zIndex: 9999 };
-
-            if (openUp) {
-                style.bottom = window.innerHeight - triggerRect.top - 4;
-            } else {
-                style.top = triggerRect.bottom - 4;
-            }
-
-            // Default: align left edge of menu with left edge of trigger
-            style.left = triggerRect.left;
-
-            // Check overflow right
-            // Force it to fit if it overflows
-            if (triggerRect.left + menuWidth > window.innerWidth - 10) {
-                style.left = window.innerWidth - menuWidth - 10;
-            }
-
-            setPositionStyle(style);
-        }
-    }, [triggerRect]);
-
-    const COLORS = [
-        // Pastels
-        '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#10b981',
-        '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6',
-        '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#78716c', '#1c1917'
-    ];
-
-    const content = (
-        <>
-            <div className="fixed inset-0 z-[99]" onClick={onClose} />
-            <div
-                ref={menuRef}
-                onClick={(e) => e.stopPropagation()}
-                className="fixed bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-xl w-[190px] overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col p-2"
-                style={positionStyle}
-            >
-                <div className="pb-2 mb-2 border-b border-stone-100 dark:border-stone-800">
-                    <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-stone-400 px-1">Checkbox Color</span>
-                </div>
-                <div className="grid grid-cols-6 gap-1.5">
-                    {COLORS.map(c => (
-                        <button
-                            key={c}
-                            onClick={() => { onSelect(c); onClose(); }}
-                            title={c}
-                            className={`
-                                w-6 h-6 rounded-md hover:scale-110 transition-transform border border-transparent hover:border-stone-300 dark:hover:border-stone-600 shadow-sm
-                                ${current === c ? 'ring-2 ring-stone-900 dark:ring-white ring-offset-1 dark:ring-offset-stone-800 z-10' : ''}
-                            `}
-                            style={{ backgroundColor: c }}
-                        />
-                    ))}
-                    {/* Custom Color Picker */}
-                    <div className="relative w-6 h-6">
-                        <input
-                            type="color"
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                            onChange={(e) => {
-                                onSelect(e.target.value);
-                                onClose();
-                            }}
-                            title="Custom Color"
-                        />
-                        <div className="w-full h-full rounded-md flex items-center justify-center transition-all border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 hover:scale-105 hover:border-stone-400 shadow-sm">
-                            <span className="text-[10px] text-stone-500 font-bold">+</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </>
-    );
-    return createPortal(content, document.body);
-};
-
-
-// --- Helper for Editable Name ---
-const EditableName: React.FC<{ name: string; onRename?: (name: string) => void; className?: string }> = ({ name, onRename, className }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [value, setValue] = useState(name);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        setValue(name);
-    }, [name]);
-
-    useEffect(() => {
-        if (isEditing && inputRef.current) {
-            inputRef.current.focus();
-            inputRef.current.select();
-        }
-    }, [isEditing]);
-
-    const handleSave = () => {
-        if (value.trim() && value.trim() !== name) {
-            onRename?.(value.trim());
-        } else {
-            setValue(name);
-        }
-        setIsEditing(false);
-    };
-
-    if (isEditing) {
-        return (
-            <input
-                ref={inputRef}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onBlur={handleSave}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSave();
-                    if (e.key === 'Escape') {
-                        setValue(name);
-                        setIsEditing(false);
-                    }
-                }}
-                className={`font-semibold tracking-tight bg-transparent border-b border-blue-500 outline-none p-0 min-w-[100px] ${className || 'text-[14px] text-stone-800 dark:text-stone-200'}`}
-            />
-        );
-    }
-
-    return (
-        <span
-            onDoubleClick={() => onRename && setIsEditing(true)}
-            className={`font-semibold tracking-tight ${onRename ? 'cursor-text hover:text-stone-600 dark:hover:text-stone-300' : ''} ${className || 'text-[14px] text-stone-800 dark:text-stone-200'}`}
-        >
-            {name || 'Main Table'}
-        </span>
-    );
-};
 
 // --- Main RoomTable Component ---
 const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, name: initialName, columns: externalColumns, onUpdateTasks, onDeleteTask, renderCustomActions, onRename, onNavigate, onAddGroup, onUpdateGroup, onDeleteGroup, enableImport, hideGroupHeader, showPagination, tasksVersion }) => {
@@ -934,7 +306,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     }
                 }
             } catch (e) {
-                console.error("Failed to load generic table data", e);
+                boardLogger.error("Failed to load generic table data", e);
             }
         }
 
@@ -1146,7 +518,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     setCustomStatuses(DEFAULT_STATUSES);
                 }
             } catch (e) {
-                console.error("Failed to parse board statuses", e);
+                boardLogger.error("Failed to parse board statuses", e);
                 setCustomStatuses(DEFAULT_STATUSES);
             }
         } else {
@@ -1470,7 +842,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
             if (jsonData.length === 0) {
-                console.warn('Empty file imported');
+                boardLogger.warn('Empty file imported');
                 return;
             }
 
@@ -1588,7 +960,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             setSortConfig(null);
 
         } catch (error) {
-            console.error("Import failed:", error);
+            boardLogger.error("Import failed:", error);
             // Could add toast notification here
         } finally {
             // Reset input
@@ -2029,9 +1401,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         setActiveUploadFile(null);
     };
 
-
-
-    // --- Handlers ---
     const handleAddTask = () => {
         const nameToAdd = newTaskName.trim() || 'New Item';
 
@@ -2605,7 +1974,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 }
 
             } catch (error) {
-                console.error("Import failed:", error);
+                boardLogger.error("Import failed:", error);
                 alert("Failed to parse file. Please ensure it is a valid Excel or CSV file.");
             }
         };
@@ -3001,221 +2370,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             );
         }
 
-        if (col.type === 'timeline') {
-            // Value expected to be { start: string, end: string } or null
-            const startDate = value?.start ? new Date(value.start) : null;
-            const endDate = value?.end ? new Date(value.end) : null;
-
-            const label = startDate && endDate
-                ? `${startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
-                : (startDate ? startDate.toLocaleDateString() : null);
-
-            return (
-                <div className="relative w-full h-full">
-                    <button
-                        onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group"
-                    >
-                        {label ? (
-                            <div className="flex items-center justify-center gap-2 truncate">
-                                <CalendarRange size={13} className="text-indigo-500" />
-                                <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">{label}</span>
-                            </div>
-                        ) : (
-                            <span className="text-xs text-stone-400 group-hover:text-stone-500 transition-colors">Set Range</span>
-                        )}
-                    </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
-                        <PortalPopup
-                            triggerRef={{ current: activeCell.trigger } as any}
-                            align={activeCell.trigger.getBoundingClientRect().left > window.innerWidth / 2 ? "end" : "start"}
-                            onClose={() => setActiveCell(null)}
-                        >
-                            <SharedDatePicker
-                                mode="range"
-                                startDate={startDate}
-                                endDate={endDate}
-                                onSelectRange={(start, end) => {
-                                    handleUpdateRow(row.id, {
-                                        [col.id]: {
-                                            start: start?.toISOString(),
-                                            end: end?.toISOString()
-                                        }
-                                    });
-                                    // Only close if we have both? Or user clicks Done. The DatePicker handles calling onClose usually when done,
-                                    // OR we just update state and let user close.
-                                    // The updated SharedDatePicker has "Done" button.
-                                }}
-                                onClose={() => setActiveCell(null)}
-                                onClear={() => handleUpdateRow(row.id, { [col.id]: null })}
-                            />
-                        </PortalPopup>
-                    )}
-                </div>
-            );
-        }
-
-        if (col.type === 'status') {
-            return (
-                <div className="relative w-full h-full">
-                    <button
-                        onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
-                    >
-                        {value ? (
-                            <div className="flex items-center justify-center gap-2 truncate">
-                                {getStatusIcon(value)}
-                                <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">{value}</span>
-                            </div>
-                        ) : (
-                            <span className={`${row.id === CREATION_ROW_ID ? 'text-[11px]' : 'text-xs'} text-stone-400`}>Set Status</span>
-                        )}
-                    </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
-                        <div className="fixed z-[9999]" style={{ top: activeCell.trigger.getBoundingClientRect().bottom + 4, left: activeCell.trigger.getBoundingClientRect().left }}>
-                            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden min-w-[200px]">
-                                {(col.options || []).length > 0 ? (
-                                    col.options!.map(opt => (
-                                        <button
-                                            key={opt.id}
-                                            onClick={() => { handleUpdateRow(row.id, { [col.id]: opt.label }, row.groupId); setActiveCell(null); }}
-                                            className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300"
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))
-                                ) : (
-                                    // Default Status Options if none provided
-                                    ['To Do', 'In Progress', 'Done'].map(s => (
-                                        <button
-                                            key={s}
-                                            onClick={() => { handleUpdateRow(row.id, { [col.id]: s }, row.groupId); setActiveCell(null); }}
-                                            className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 flex items-center gap-2"
-                                        >
-                                            {getStatusIcon(s)}
-                                            {s}
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-                            <div className="fixed inset-0 -z-10" onClick={() => setActiveCell(null)} />
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
-        if (col.type === 'date') {
-            return (
-                <div className="relative w-full h-full">
-                    <button
-                        onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
-                    >
-                        <span className={`text-sm font-sans truncate ${value ? 'text-stone-600 dark:text-stone-300' : 'text-stone-400'}`}>
-                            {formatDate(value) || 'Set Date'}
-                        </span>
-                    </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
-                        <PortalPopup
-                            triggerRef={{ current: activeCell.trigger } as any}
-                            align={activeCell.trigger.getBoundingClientRect().left > window.innerWidth / 2 ? "end" : "start"}
-                            onClose={() => setActiveCell(null)}
-                        >
-                            <SharedDatePicker
-                                selectedDate={value}
-                                onSelectDate={(selectedDate) => {
-                                    const isoDate = selectedDate.toISOString();
-                                    // SYNC: Update both date fields to keep them in sync
-                                    handleUpdateRow(row.id, {
-                                        [col.id]: isoDate,
-                                        date: isoDate,
-                                        dueDate: isoDate
-                                    }, row.groupId);
-                                }}
-                                onClear={() => handleUpdateRow(row.id, { [col.id]: null, date: null, dueDate: null }, row.groupId)}
-                                onClose={() => setActiveCell(null)}
-                            />
-                        </PortalPopup>
-                    )}
-                </div>
-            );
-        }
-
-        if (col.type === 'number') {
-            const isEditing = activeCell?.rowId === row.id && activeCell?.colId === col.id;
-            if (isEditing) {
-                return (
-                    <div className="h-full w-full">
-                        <input
-                            type="number"
-                            autoFocus
-                            onBlur={() => setActiveCell(null)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') setActiveCell(null); }}
-                            value={value || ''}
-                            onChange={(e) => handleUpdateRow(row.id, { [col.id]: e.target.value })}
-                            className="w-full h-full bg-stone-50 dark:bg-stone-800 border-none outline-none px-3 text-sm text-center text-stone-700 dark:text-stone-300 placeholder:text-stone-400"
-                        />
-                    </div>
-                );
-            }
-
-            return (
-                <div className="relative w-full h-full">
-                    <button
-                        onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className="w-full h-full flex items-center justify-center px-3 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden"
-                    >
-                        {value ? (
-                            <span className="text-sm font-sans text-stone-600 dark:text-stone-300 truncate">
-                                {Number(value).toLocaleString()}
-                            </span>
-                        ) : (
-                            <span className="text-xs text-stone-400">Add value</span>
-                        )}
-                    </button>
-                </div>
-            );
-        }
-
-        if (col.type === 'dropdown') {
-            const selectedOption = col.options?.find(o => o.label === value);
-            const bgColor = selectedOption?.color || 'bg-stone-500';
-
-            return (
-                <div className="relative w-full h-full p-1">
-                    <button
-                        onClick={(e) => toggleCell(e, row.id, col.id)}
-                        className={`w-full h-full rounded flex items-center justify-center px-2 hover:opacity-80 transition-opacity ${value ? bgColor : 'hover:bg-stone-100 dark:hover:bg-stone-800/50'}`}
-                    >
-                        {value ? (
-                            <span className="text-xs font-medium text-white truncate">{value}</span>
-                        ) : (
-                            <span className="text-xs text-stone-400">Select Option</span>
-                        )}
-                    </button>
-                    {activeCell?.rowId === row.id && activeCell?.colId === col.id && activeCell.trigger && (
-                        <div className="fixed z-[9999]" style={{ top: activeCell.trigger.getBoundingClientRect().bottom + 4, left: activeCell.trigger.getBoundingClientRect().left }}>
-                            {/* Simple inline dropdown for generic options */}
-                            <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden min-w-[150px]">
-                                {(col.options || []).map(opt => (
-                                    <button
-                                        key={opt.id}
-                                        onClick={() => { handleUpdateRow(row.id, { [col.id]: opt.label }); setActiveCell(null); }}
-                                        className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 flex items-center gap-2"
-                                    >
-                                        <span className={`w-2 h-2 rounded-full ${opt.color}`}></span>
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="fixed inset-0 -z-10" onClick={() => setActiveCell(null)} />
-                        </div>
-                    )}
-                </div>
-            );
-        }
-
         if (col.type === 'priority') {
             const normalized = formatPriorityLabel(value);
             // Use the PRIORITY_STYLES map for the gradient background
@@ -3453,7 +2607,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         )
     };
 
-    // --- Selection State ---
     // --- Selection State ---
     // Derived from the actual row data (single source of truth)
     const checkedRows = useMemo(() => {
@@ -4494,7 +3647,7 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                     columns={columns}
                     rows={rows}
                     onSave={(config) => {
-                        console.log('Chart Config Saved:', config);
+                        boardLogger.info('Chart Config Saved:', config);
                         setIsChartModalOpen(false);
                     }}
                 />
@@ -4610,39 +3763,6 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 }
             </div >
         </div >
-    );
-};
-
-// SortableHeader moved to components/SortableHeader.tsx
-
-// --- Sortable Row Wrapper ---
-interface SortableRowProps {
-    row: Row;
-    children: (dragListeners: any, isRowDragging: boolean) => React.ReactNode;
-    className: string;
-}
-
-const SortableRow: React.FC<SortableRowProps> = ({ row, children, className }) => {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: row.id });
-
-    const style = {
-        transform: isDragging ? CSS.Transform.toString(transform) : 'none',
-        transition: isDragging ? transition : undefined,
-        zIndex: isDragging ? 50 : 'auto',
-        opacity: isDragging ? 0 : 1,
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} className={className} {...attributes}>
-            {children(listeners, isDragging)}
-        </div>
     );
 };
 

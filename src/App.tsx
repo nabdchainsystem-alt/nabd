@@ -281,7 +281,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem('app-recently-visited', JSON.stringify(recentlyVisited));
   }, [recentlyVisited]);
 
-  const logActivity = React.useCallback(async (type: string, content: string, metadata?: any, specificWorkspaceId?: string, specificBoardId?: string) => {
+  const logActivity = React.useCallback(async (type: string, content: string, metadata?: Record<string, unknown>, specificWorkspaceId?: string, specificBoardId?: string) => {
     try {
       const token = await getToken();
       if (token) {
@@ -766,7 +766,7 @@ const AppContent: React.FC = () => {
     </div>
   );
 
-  const handleUpdateTasks = React.useCallback(async (tasks: any[]) => {
+  const handleUpdateTasks = React.useCallback(async (tasks: Task[]) => {
     if (activeBoardId) {
       const currentBoard = boards.find(b => b.id === activeBoardId);
       if (!currentBoard) return;
@@ -852,8 +852,8 @@ const AppContent: React.FC = () => {
   }, [activeBoardId, getToken, boards, workspaces, logActivity]);
 
   // Generic task creator that can be used from My Work
-  const handleCreateTaskOnBoard = React.useCallback(async (boardId: string, task: any) => {
-    let updatedTasks: any[] = [];
+  const handleCreateTaskOnBoard = React.useCallback(async (boardId: string, task: Task) => {
+    let updatedTasks: Task[] = [];
     setBoards(prevBoards => prevBoards.map(b => {
       if (b.id === boardId) {
         updatedTasks = [...(b.tasks || []), task];

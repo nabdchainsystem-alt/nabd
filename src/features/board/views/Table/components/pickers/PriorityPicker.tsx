@@ -1,0 +1,71 @@
+import React, { useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { PRIORITY_LEVELS, PriorityLevel, normalizePriority } from '../../../../../priorities/priorityUtils';
+import { PRIORITY_STYLES } from '../../types';
+import { usePopupPosition } from '../../hooks/usePopupPosition';
+
+interface PriorityPickerProps {
+    onSelect: (priority: PriorityLevel | null) => void;
+    onClose: () => void;
+    current: string | null;
+    triggerRect?: DOMRect;
+}
+
+export const PriorityPicker: React.FC<PriorityPickerProps> = ({
+    onSelect,
+    onClose,
+    current,
+    triggerRect
+}) => {
+    const normalizedCurrent = normalizePriority(current);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const positionStyle = usePopupPosition({ triggerRect, menuHeight: 250 });
+
+    const handleSelect = (priority: PriorityLevel | null) => {
+        onSelect(priority);
+        onClose();
+    };
+
+    const content = (
+        <>
+            {/* Backdrop */}
+            <div className="fixed inset-0 z-[99]" onClick={onClose} />
+            <div
+                ref={menuRef}
+                onClick={(e) => e.stopPropagation()}
+                className="fixed z-[9999] bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 min-w-[200px]"
+                style={positionStyle}
+            >
+                <div className="px-4 py-3 border-b border-stone-100 dark:border-stone-800">
+                    <span className="text-[11px] font-bold font-sans uppercase tracking-wider text-stone-400">
+                        Task Priority
+                    </span>
+                </div>
+                <div className="p-2 flex flex-col gap-1">
+                    {PRIORITY_LEVELS.map((label) => {
+                        const styleClass = PRIORITY_STYLES[label] || 'bg-gray-100 text-gray-800';
+                        const isActive = normalizedCurrent === label;
+                        return (
+                            <button
+                                key={label}
+                                onClick={() => handleSelect(label)}
+                                className={`w-full flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded shadow-sm transition-transform active:scale-95 ${styleClass} ${isActive ? 'ring-2 ring-offset-1 ring-stone-400 dark:ring-stone-600' : ''}`}
+                            >
+                                {label}
+                            </button>
+                        );
+                    })}
+                    <div className="h-px bg-stone-100 dark:bg-stone-800 my-1 mx-2" />
+                    <button
+                        onClick={() => handleSelect(null)}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-stone-500 hover:text-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 rounded transition-colors"
+                    >
+                        <span>No priority</span>
+                    </button>
+                </div>
+            </div>
+        </>
+    );
+
+    return createPortal(content, document.body);
+};

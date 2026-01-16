@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Column } from '../../../../types/boardTypes';
+import { Column } from '../types';
 
 interface SortableHeaderProps {
     col: Column;
