@@ -3,16 +3,16 @@ import {
     Plus as PlusIcon,
     CircleDashed,
     Flag,
-    Calendar as CalendarIcon,
+    CalendarBlank as CalendarIcon,
     Clock,
-    CheckCircle2,
+    CheckCircle as CheckCircle2,
     Circle,
-    ChevronLeft,
-    ChevronRight,
-    GripVertical,
-    Trash2,
+    CaretLeft as ChevronLeft,
+    CaretRight as ChevronRight,
+    DotsSixVertical as GripVertical,
+    Trash as Trash2,
     X
-} from 'lucide-react';
+} from 'phosphor-react';
 import { createPortal } from 'react-dom';
 import { Task, Column, DropdownOption } from './types';
 import { ColumnMenu } from '../../../components/ColumnMenu';

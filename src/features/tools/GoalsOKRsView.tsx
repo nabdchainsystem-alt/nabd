@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Flag, Link2, Target, User } from 'lucide-react';
+import { Flag, LinkSimple as Link2, Target, User } from 'phosphor-react';
 import { loadBoardTasks, SimplifiedTask } from './toolUtils';
 
 interface KeyResult {

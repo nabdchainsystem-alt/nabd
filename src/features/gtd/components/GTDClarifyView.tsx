@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ThumbsUp, ThumbsDown, ArrowRight, ArrowLeft, Layers, CheckCircle, User, Calendar as CalendarIcon, CheckSquare, ChevronLeft, ChevronRight, Clock, FileText, Trash2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, ArrowRight, ArrowLeft, Stack as Layers, CheckCircle, User, CalendarBlank as CalendarIcon, CheckSquare, CaretLeft as ChevronLeft, CaretRight as ChevronRight, Clock, FileText, Trash as Trash2 } from 'phosphor-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface GTDClarifyViewProps {

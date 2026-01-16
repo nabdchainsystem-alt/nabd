@@ -21,14 +21,14 @@ const EnhancedDatePicker = ({ startDate, dueDate, onUpdate, onClose }: any) => {
 
 import { createPortal } from 'react-dom';
 import {
-    Search, Columns3, Plus, ChevronDown, MoreHorizontal, Pencil,
-    Settings, EyeOff, CheckCheck, ChevronsUp, Zap, ChevronUp,
-    Wand2, Users, Calendar, Flag, Tag, Loader2, CornerDownLeft, Circle,
-    GripVertical, CheckCircle2, Link, Copy, ExternalLink, Trash2,
-    X, Maximize2, Share2, Play, Clock, GitFork, FileText, Paperclip,
-    Bell, Filter, Smile, AtSign, Mic, Send, ChevronRight, Layout, PlusCircle, CalendarPlus, Ban,
+    MagnifyingGlass as Search, Columns as Columns3, Plus, CaretDown as ChevronDown, DotsThree as MoreHorizontal, Pencil,
+    Gear as Settings, EyeSlash as EyeOff, Checks as CheckCheck, CaretDoubleUp as ChevronsUp, Lightning as Zap, CaretUp as ChevronUp,
+    MagicWand as Wand2, Users, CalendarBlank as Calendar, Flag, Tag, CircleNotch as Loader2, ArrowBendDownLeft as CornerDownLeft, Circle,
+    DotsSixVertical as GripVertical, CheckCircle as CheckCircle2, Link, Copy, ArrowSquareOut as ExternalLink, Trash as Trash2,
+    X, ArrowsOut as Maximize2, ShareNetwork as Share2, Play, Clock, GitFork, FileText, Paperclip,
+    Bell, Funnel as Filter, Smiley as Smile, At as AtSign, Microphone as Mic, PaperPlaneTilt as Send, CaretRight as ChevronRight, Layout, PlusCircle, CalendarPlus, Prohibit as Ban,
     ArrowUp, ArrowDown
-} from 'lucide-react';
+} from 'phosphor-react';
 import { SharedDatePicker } from '../../../../components/ui/SharedDatePicker'; // Import source directly
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import { ColumnMenu } from '../../components/ColumnMenu';

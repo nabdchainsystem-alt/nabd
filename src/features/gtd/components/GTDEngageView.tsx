@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Coffee, CheckCircle, Trash2 } from 'lucide-react';
+import { Coffee, CheckCircle, Trash as Trash2 } from 'phosphor-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface EngageItem {

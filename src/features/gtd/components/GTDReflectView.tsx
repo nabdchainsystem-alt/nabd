@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Inbox, CheckCircle, Bell, Layers, Clock, CheckSquare, X } from 'lucide-react';
+import { Tray as Inbox, CheckCircle, Bell, Stack as Layers, Clock, CheckSquare, X } from 'phosphor-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ReflectItem {

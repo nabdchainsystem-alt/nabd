@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreHorizontal, Star, Copy, FileIcon, Key, CreditCard, StickyNote, Folder, Trash2, ExternalLink, Edit2 } from 'lucide-react';
+import { DotsThree as MoreHorizontal, Star, Copy, File as FileIcon, Key, CreditCard, Note as StickyNote, Folder, Trash as Trash2, ArrowSquareOut as ExternalLink, PencilSimple as Edit2 } from 'phosphor-react';
 import { VaultItem } from '../types';
 
 interface VaultListProps {

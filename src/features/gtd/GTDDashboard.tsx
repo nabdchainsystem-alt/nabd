@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Info, ArrowLeft } from 'lucide-react';
+import { Info, ArrowLeft } from 'phosphor-react';
 import { Board } from '../../types';
 import { useAppContext } from '../../contexts/AppContext';
 import { GTDTabs, GTDPhase } from './components/GTDTabs';

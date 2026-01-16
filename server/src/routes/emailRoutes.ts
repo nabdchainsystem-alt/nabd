@@ -323,7 +323,7 @@ router.post('/send', requireAuth, async (req, res: Response) => {
         res.json({ success: true });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: 'Invalid input', details: error.errors });
+            return res.status(400).json({ error: 'Invalid input', details: error.issues });
         }
         console.error("Send Error", error);
         res.status(500).json({ error: "Failed to send email" });

@@ -2,7 +2,7 @@ import React from "react";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { DashboardChart } from "../../../components/dashboard/DashboardChart";
 import { DashboardTable } from "../../../components/dashboard/DashboardTable";
-import { AlertCircle, Clock, List, AlertTriangle, Layers, ArrowUpRight } from 'lucide-react';
+import { WarningCircle as AlertCircle, Clock, List, Warning as AlertTriangle, Stack as Layers, ArrowUpRight } from 'phosphor-react';
 
 export const RequestsBacklogAging: React.FC = () => {
     // R02: Requests Backlog & Aging

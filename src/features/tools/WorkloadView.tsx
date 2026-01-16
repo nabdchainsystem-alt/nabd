@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CalendarClock, Gauge, Users } from 'lucide-react';
+import { CalendarBlank as CalendarClock, Gauge, Users } from 'phosphor-react';
 import { isDoneStatus, loadBoardTasks, parseDate, SimplifiedTask } from './toolUtils';
 
 interface WorkloadBucket {

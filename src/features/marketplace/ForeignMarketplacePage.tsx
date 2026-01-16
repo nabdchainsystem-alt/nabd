@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Globe, Search, ShieldCheck, Star, MapPin, ArrowUpRight, Plane, Sparkles, Building2 } from 'lucide-react';
+import { Globe, MagnifyingGlass as Search, ShieldCheck, Star, MapPin, ArrowUpRight, Airplane as Plane, Sparkle as Sparkles, Buildings as Building2 } from 'phosphor-react';
 import { useMarketplaceData } from './integration';
 
 const SPOTLIGHT_ROUTES = [

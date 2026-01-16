@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Link, Search, Image as ImageIcon, X, Palette, Trash2 } from 'lucide-react';
+import { Upload, Link, MagnifyingGlass as Search, Image as ImageIcon, X, Palette, Trash as Trash2 } from 'phosphor-react';
 
 interface CoverPickerProps {
     onSelect: (url: string) => void;

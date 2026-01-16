@@ -2,15 +2,15 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { Row } from '../Table/RoomTable';
 import {
-    ChevronDown,
+    CaretDown as ChevronDown,
     FileText,
     Download,
     Upload,
-    Filter,
+    Funnel as Filter,
     Layout,
-    ArrowDownWideNarrow,
-    Sigma
-} from 'lucide-react';
+    SortDescending as ArrowDownWideNarrow,
+    Calculator as Sigma
+} from 'phosphor-react';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 
 interface PivotTableProps {

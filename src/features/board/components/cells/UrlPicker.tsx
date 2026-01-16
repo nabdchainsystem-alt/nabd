@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, Type } from 'lucide-react';
+import { Link, TextT as Type } from 'phosphor-react';
 
 interface UrlPickerProps {
     current: { url: string; text?: string } | null;

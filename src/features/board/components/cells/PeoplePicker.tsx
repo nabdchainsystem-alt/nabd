@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Check } from 'lucide-react';
+import { Users, Check } from 'phosphor-react';
 
 interface PeoplePickerProps {
     onSelect: (person: { id: string; name: string; avatar?: string } | null) => void;
@@ -10,11 +10,15 @@ interface PeoplePickerProps {
 }
 
 // Mock Data
+// Mock Data
 export const MOCK_PEOPLE = [
-    { id: '1', name: 'Max Mustermann', avatar: 'https://i.pravatar.cc/150?u=1' },
-    { id: '2', name: 'Sarah Connor', avatar: 'https://i.pravatar.cc/150?u=2' },
-    { id: '3', name: 'John Doe', avatar: 'https://i.pravatar.cc/150?u=3' },
-    { id: '4', name: 'Jane Smith', avatar: 'https://i.pravatar.cc/150?u=4' },
+    { id: '1', name: 'Mohamed Ali', avatar: 'https://i.pravatar.cc/150?u=10' },
+    { id: '2', name: 'Hasan Ali', avatar: 'https://i.pravatar.cc/150?u=11' },
+    { id: '3', name: 'Mohamed Elkhateb', avatar: 'https://i.pravatar.cc/150?u=12' },
+    { id: '4', name: 'Mohamed Fathy', avatar: 'https://i.pravatar.cc/150?u=13' },
+    { id: '5', name: 'Magdy', avatar: 'https://i.pravatar.cc/150?u=14' },
+    { id: '6', name: 'Mustafa Selim', avatar: 'https://i.pravatar.cc/150?u=15' },
+    { id: '7', name: 'Adel Swaeyh', avatar: 'https://i.pravatar.cc/150?u=16' },
 ];
 
 export const PeoplePicker: React.FC<PeoplePickerProps> = ({ onSelect, onClose, current, triggerRect }) => {

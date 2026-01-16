@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import ReactECharts from 'echarts-for-react';
 import {
-    X, Sparkles, AlertCircle, RefreshCw,
-    BarChart3, PieChart, LineChart, LayoutGrid,
-    Settings2, ArrowLeft, CheckSquare, Square,
+    X, Sparkle as Sparkles, WarningCircle as AlertCircle, ArrowsClockwise as RefreshCw,
+    ChartBar as BarChart3, ChartPie as PieChart, ChartLine as LineChart, GridFour as LayoutGrid,
+    GearSix as Settings2, ArrowLeft, CheckSquare, Square,
     PlusCircle
-} from 'lucide-react';
+} from 'phosphor-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Column, Row } from '../views/Table/RoomTable';
 import { ChartBuilderConfig, ChartType } from './chart-builder/types';

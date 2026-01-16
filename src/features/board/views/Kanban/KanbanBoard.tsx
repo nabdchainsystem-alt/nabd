@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
-    Calendar, Flag, Tag, MoreHorizontal, Copy, Link2,
-    Pencil, ArrowRight, Bell, Mail, Plus as PlusIcon, GitMerge, Move, Timer,
-    LayoutTemplate, Archive, Trash2, Slash, ChevronRight, ChevronLeft,
-    ArrowLeftToLine, Zap, CheckSquare, Circle, CornerDownLeft,
-    Search, Filter, SlidersHorizontal, Layout, UserCircle, CheckCircle2,
-    X, Info, ChevronDown, Users, MessageSquare, Clock
-} from 'lucide-react';
+    CalendarBlank as Calendar, Flag, Tag, DotsThree as MoreHorizontal, Copy, LinkSimple as Link2,
+    Pencil, ArrowRight, Bell, Envelope as Mail, Plus as PlusIcon, GitMerge, ArrowsOutCardinal as Move, Timer,
+    Layout as LayoutTemplate, Archive, Trash as Trash2, Prohibit as Slash, CaretRight as ChevronRight, CaretLeft as ChevronLeft,
+    ArrowLineLeft as ArrowLeftToLine, Lightning as Zap, CheckSquare, Circle, ArrowBendDownLeft as CornerDownLeft,
+    MagnifyingGlass as Search, Funnel as Filter, Sliders as SlidersHorizontal, Layout, UserCircle, CheckCircle as CheckCircle2,
+    X, Info, CaretDown as ChevronDown, Users, Chat as MessageSquare, Clock
+} from 'phosphor-react';
 import {
     format, addDays, startOfWeek, endOfWeek, addWeeks, isSameDay,
     isToday, startOfMonth, endOfMonth, eachDayOfInterval, getDay,

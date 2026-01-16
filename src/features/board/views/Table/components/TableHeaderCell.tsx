@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Column } from '../../../../types/boardTypes';
 import { SortableHeader } from './SortableHeader';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash as Trash2, Plus } from 'phosphor-react';
 import { HeaderContextMenu } from './HeaderContextMenu';
 
 interface TableHeaderCellProps {

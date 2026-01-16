@@ -2,25 +2,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import {
-    Inbox,
+    Tray as Inbox,
     CalendarCheck,
     Clock,
-    AlertCircle,
-    Edit2,
-    Trash2,
+    WarningCircle as AlertCircle,
+    PencilSimple as Edit2,
+    Trash as Trash2,
     FileText,
-    Send,
-    MoreHorizontal,
+    PaperPlaneTilt as Send,
+    DotsThree as MoreHorizontal,
     ArrowUpRight,
     ArrowDownRight,
-    Search,
-    Filter,
-    ArrowUpDown,
-    ChevronsLeft,
-    ChevronsRight,
-    ChevronLeft,
-    ChevronRight
-} from 'lucide-react';
+    MagnifyingGlass as Search,
+    Funnel as Filter,
+    ArrowsDownUp as ArrowUpDown,
+    CaretDoubleLeft as ChevronsLeft,
+    CaretDoubleRight as ChevronsRight,
+    CaretLeft as ChevronLeft,
+    CaretRight as ChevronRight
+} from 'phosphor-react';
 import { procurementService } from '../../../../services/procurementService';
 
 const getScratchStyle = (isDeleted?: boolean): React.CSSProperties | undefined =>

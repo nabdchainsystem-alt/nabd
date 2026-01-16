@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, X } from 'lucide-react';
+import { Warning as AlertTriangle, X } from 'phosphor-react';
 
 interface ConfirmModalProps {
     isOpen: boolean;

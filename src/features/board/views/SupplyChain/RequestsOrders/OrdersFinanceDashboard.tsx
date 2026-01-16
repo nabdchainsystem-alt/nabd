@@ -2,7 +2,7 @@ import React from "react";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { DashboardChart } from "../../../components/dashboard/DashboardChart";
 import { DashboardTable } from "../../../components/dashboard/DashboardTable";
-import { DollarSign, Percent, FileText, AlertCircle, CreditCard, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { CurrencyDollar as DollarSign, Percent, FileText, WarningCircle as AlertCircle, CreditCard, TrendUp as TrendingUp, TrendDown as TrendingDown, Wallet } from 'phosphor-react';
 
 export const OrdersFinanceDashboard: React.FC = () => {
     // O03: Orders Value & Finance

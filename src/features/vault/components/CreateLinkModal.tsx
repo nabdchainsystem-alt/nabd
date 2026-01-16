@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Globe, Link as LinkIcon, User, Key, Lock } from 'lucide-react';
+import { X, Globe, Link as LinkIcon, User, Key, Lock } from 'phosphor-react';
 
 interface CreateLinkModalProps {
     isOpen: boolean;

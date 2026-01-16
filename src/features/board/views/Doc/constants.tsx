@@ -1,11 +1,11 @@
 import React from 'react';
 import {
-    Inbox,
-    MessageSquare,
-    Layers,
-    Calendar,
+    Tray as Inbox,
+    Chat as MessageSquare,
+    Stack as Layers,
+    CalendarBlank as Calendar,
     Hash
-} from 'lucide-react';
+} from 'phosphor-react';
 import { NavItem } from './types';
 
 export const INITIAL_NAV_ITEMS: NavItem[] = [

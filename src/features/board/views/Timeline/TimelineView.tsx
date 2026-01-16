@@ -1,16 +1,16 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Row } from '../Table/RoomTable';
 import {
-    ChevronDown,
+    CaretDown as ChevronDown,
     Plus,
-    Search,
-    Settings,
+    MagnifyingGlass as Search,
+    Gear as Settings,
     Layout,
-    Maximize2,
-    Filter,
-    MoreHorizontal,
-    CheckCircle2
-} from 'lucide-react';
+    ArrowsOut as Maximize2,
+    Funnel as Filter,
+    DotsThree as MoreHorizontal,
+    CheckCircle as CheckCircle2
+} from 'phosphor-react';
 
 interface TimelineViewProps {
     roomId: string;

@@ -15,7 +15,7 @@ const INITIAL_BOARD: Board = {
         { id: 'category', title: 'Category', type: 'status' } // Travel, Meals, Supplies
     ],
     tasks: [],
-    availableViews: ['table', 'kanban', 'overview'],
+    availableViews: ['table', 'kanban', 'overview', 'data'],
     defaultView: 'table'
 };
 
@@ -46,6 +46,7 @@ const ExpensesPage: React.FC = () => {
             board={board}
             onUpdateBoard={handleUpdateBoard}
             onUpdateTasks={handleUpdateTasks}
+            isDepartmentLayout={true}
         />
     );
 };

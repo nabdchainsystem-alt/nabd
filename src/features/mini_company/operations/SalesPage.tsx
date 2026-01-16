@@ -15,7 +15,7 @@ const INITIAL_BOARD: Board = {
         { id: 'closing', title: 'Closing Date', type: 'date' }
     ],
     tasks: [],
-    availableViews: ['kanban', 'table', 'overview'],
+    availableViews: ['kanban', 'table', 'overview', 'data'],
     defaultView: 'kanban'
 };
 
@@ -46,6 +46,7 @@ const SalesPage: React.FC = () => {
             board={board}
             onUpdateBoard={handleUpdateBoard}
             onUpdateTasks={handleUpdateTasks}
+            isDepartmentLayout={true}
         />
     );
 };

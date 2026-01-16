@@ -3,13 +3,13 @@ import React, { useState, useEffect } from 'react';
 import {
     X,
     Hash,
-    Building2,
+    Buildings as Building2,
     MapPin,
     Tag,
     User,
     Calculator,
     Package
-} from 'lucide-react';
+} from 'phosphor-react';
 
 interface NewRFQModalProps {
     isOpen: boolean;

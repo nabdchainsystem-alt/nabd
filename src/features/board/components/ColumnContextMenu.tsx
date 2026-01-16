@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Trash2, Copy, ArrowLeft, ArrowRight, Edit3 } from 'lucide-react';
+import { Trash as Trash2, Copy, ArrowLeft, ArrowRight, PencilSimple as Edit3 } from 'phosphor-react';
 import { createPortal } from 'react-dom';
 
 interface ColumnContextMenuProps {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Folder, Image, FileText, Globe, MoreVertical, Trash2, ExternalLink, File, Star, Edit2 } from 'lucide-react';
+import { Folder, Image, FileText, Globe, DotsThreeVertical as MoreVertical, Trash as Trash2, ArrowSquareOut as ExternalLink, File, Star, PencilSimple as Edit2 } from 'phosphor-react';
 import { VaultItem } from '../types';
 
 interface Props {

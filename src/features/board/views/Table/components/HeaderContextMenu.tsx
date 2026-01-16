@@ -1,7 +1,7 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useClickOutside } from '../../../../../hooks/useClickOutside';
-import { Palette } from 'lucide-react';
+import { Palette } from 'phosphor-react';
 
 interface HeaderContextMenuProps {
     onClose: () => void;

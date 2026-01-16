@@ -2,7 +2,7 @@ import React from "react";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { DashboardChart } from "../../../components/dashboard/DashboardChart";
 import { DashboardTable } from "../../../components/dashboard/DashboardTable";
-import { AlertCircle, ShieldAlert, PauseCircle, Clock, TrendingUp, AlertTriangle, AlertOctagon, XCircle } from 'lucide-react';
+import { WarningCircle as AlertCircle, ShieldWarning as ShieldAlert, PauseCircle, Clock, TrendUp as TrendingUp, Warning as AlertTriangle, WarningOctagon as AlertOctagon, XCircle } from 'phosphor-react';
 
 export const OrderRisksDashboard: React.FC = () => {
     // O05: Order Risks & Exceptions

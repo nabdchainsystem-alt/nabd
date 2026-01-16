@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Trash2 } from 'lucide-react';
+import { Bell, Trash as Trash2 } from 'phosphor-react';
 import { ReminderKind, ReminderRecord, ReminderStatus } from './reminderStore';
 
 const ReminderStatusChip: React.FC<{ status: ReminderStatus }> = ({ status }) => {

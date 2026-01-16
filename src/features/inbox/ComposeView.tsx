@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
-    Send, Trash2, Paperclip, FileSignature, Edit3, Accessibility,
-    MoreHorizontal, CornerUpLeft, RotateCcw, ChevronDown,
-    Type, Bold, Italic, Underline, Link, MoreHorizontal as MoreDots,
-    AlignLeft, List, Code, Quote, Maximize2
-} from 'lucide-react';
+    PaperPlaneTilt as Send, Trash as Trash2, Paperclip, FileDotted as FileSignature, PencilSimple as Edit3, Wheelchair as Accessibility,
+    DotsThree as MoreHorizontal, ArrowBendUpLeft as CornerUpLeft, ArrowCounterClockwise as RotateCcw, CaretDown as ChevronDown,
+    TextT as Type, TextBolder as Bold, TextItalic as Italic, TextUnderline as Underline, Link, DotsThree as MoreDots,
+    TextAlignLeft as AlignLeft, List, Code, Quotes as Quote, ArrowsOut as Maximize2
+} from 'phosphor-react';
 
 import { emailService, EmailAccount } from '../../services/emailService';
 

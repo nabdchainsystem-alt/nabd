@@ -1,21 +1,21 @@
 import {
-    LayoutDashboard,
+    SquaresFour as LayoutDashboard,
     Table,
     Kanban,
     List,
-    Calendar,
+    CalendarBlank as Calendar,
     FileText,
-    GanttChart,
+    ChartLineUp as GanttChart,
     Image as ImageIcon,
-    FileEdit,
+    NotePencil as FileEdit,
     Package,
     Truck,
     Users,
     Target,
-    Settings2,
-    UserCheck,
-    RotateCw,
-} from 'lucide-react';
+    GearSix as Settings2,
+    UserCircle as UserCheck,
+    ArrowsClockwise as RotateCw,
+} from 'phosphor-react';
 
 export interface ViewOption {
     label: string;

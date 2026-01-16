@@ -11,16 +11,16 @@ import {
     ArrowUpRight,
     Link,
     Plus,
-    Type,
+    TextT as Type,
     Image as ImageIcon,
-    Heading,
-    MoreHorizontal,
-    PanelRight,
-    ArrowLeftRight,
-    Wand2,
-    SquareArrowUp,
+    TextHOne as Heading,
+    DotsThree as MoreHorizontal,
+    SidebarSimple as PanelRight,
+    ArrowsLeftRight as ArrowLeftRight,
+    MagicWand as Wand2,
+    ArrowSquareUp as SquareArrowUp,
     X,
-} from 'lucide-react';
+} from 'phosphor-react';
 
 interface DocEditorProps {
     defaultTitle?: string;

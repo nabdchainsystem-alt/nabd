@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertCircle, Trash2, X } from 'lucide-react';
+import { WarningCircle as AlertCircle, Trash as Trash2, X } from 'phosphor-react';
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;

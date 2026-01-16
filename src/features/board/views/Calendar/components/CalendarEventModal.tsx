@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar as CalendarIcon, Clock, AlignLeft, Flag, User, CheckCircle2 } from 'lucide-react';
+import { X, CalendarBlank as CalendarIcon, Clock, TextAlignLeft as AlignLeft, Flag, User, CheckCircle as CheckCircle2 } from 'phosphor-react';
 import { ITask, Status, Priority } from '../../../types/boardTypes';
 import { motion, AnimatePresence } from 'framer-motion';
 

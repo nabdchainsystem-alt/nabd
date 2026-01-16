@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, ArrowRight, Zap } from 'lucide-react';
+import { Plus, ArrowRight, Lightning as Zap } from 'phosphor-react';
 
 interface GTDCaptureProps {
     onCapture: (text: string) => void;

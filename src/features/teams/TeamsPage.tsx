@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import {
-    UserPlus, Search, Filter, MoreHorizontal, Mail, MapPin,
-    Shield, CheckCircle, Clock, Zap, Users, UserCheck, UserX,
-    MessageSquare, Settings, ArrowUpRight, Copy, X, Loader
-} from 'lucide-react';
+    UserPlus, MagnifyingGlass as Search, Funnel as Filter, DotsThree as MoreHorizontal, Envelope as Mail, MapPin,
+    Shield, CheckCircle, Clock, Lightning as Zap, Users, UserCircle as UserCheck, UserMinus as UserX,
+    Chat as MessageSquare, Gear as Settings, ArrowUpRight, Copy, X, CircleNotch as Loader
+} from 'phosphor-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../auth-adapter';
 import { inviteService } from '../../services/inviteService';

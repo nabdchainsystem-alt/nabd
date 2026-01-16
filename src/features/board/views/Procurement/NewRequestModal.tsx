@@ -3,17 +3,17 @@ import React, { useState, useEffect } from 'react';
 import {
     X,
     Plus,
-    Trash2,
-    Calendar,
+    Trash as Trash2,
+    CalendarBlank as Calendar,
     Hash,
-    Building2,
+    Buildings as Building2,
     MapPin,
     Tag,
     Clock,
-    AlertCircle,
-    MoreHorizontal,
-    ChevronDown
-} from 'lucide-react';
+    WarningCircle as AlertCircle,
+    DotsThree as MoreHorizontal,
+    CaretDown as ChevronDown
+} from 'phosphor-react';
 import { SharedDatePicker } from '../../../../components/ui/SharedDatePicker';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 

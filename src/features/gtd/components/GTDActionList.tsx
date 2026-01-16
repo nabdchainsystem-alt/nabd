@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreHorizontal, GripVertical } from 'lucide-react';
+import { DotsThree as MoreHorizontal, DotsSixVertical as GripVertical } from 'phosphor-react';
 
 interface Task {
     id: string;

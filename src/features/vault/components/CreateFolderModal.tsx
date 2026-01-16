@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Folder, Palette, Shield, Info, Tag, Users } from 'lucide-react';
+import { X, Folder, Palette, Shield, Info, Tag, Users } from 'phosphor-react';
 
 interface CreateFolderModalProps {
     isOpen: boolean;

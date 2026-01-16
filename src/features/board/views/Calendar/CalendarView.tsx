@@ -1,13 +1,13 @@
 import React, { useMemo, useState, useRef } from 'react';
 import {
-    ChevronLeft,
-    ChevronRight,
-    Search,
+    CaretLeft as ChevronLeft,
+    CaretRight as ChevronRight,
+    MagnifyingGlass as Search,
     Plus,
-    ChevronDown,
+    CaretDown as ChevronDown,
     X,
-    Calendar as CalendarIcon
-} from 'lucide-react';
+    CalendarBlank as CalendarIcon
+} from 'phosphor-react';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import {
     DndContext,
@@ -28,7 +28,7 @@ import { useRoomBoardData } from '../../hooks/useRoomBoardData';
 import { useClickOutside } from '../../../../hooks/useClickOutside';
 import { CalendarEventModal } from './components/CalendarEventModal';
 import { motion } from 'framer-motion';
-import { User, UserCheck } from 'lucide-react';
+import { User, UserCircle as UserCheck } from 'phosphor-react';
 
 type CalendarViewMode = 'daily' | '5days' | 'weekly' | 'monthly' | 'yearly';
 

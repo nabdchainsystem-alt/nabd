@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Folder, FileText, ChevronRight, Layout, Loader2, Plus } from 'lucide-react';
+import { MagnifyingGlass as Search, Folder, FileText, CaretRight as ChevronRight, Layout, CircleNotch as Loader2, Plus } from 'phosphor-react';
 import { roomService } from '../../../../services/roomService';
 import { boardService } from '../../../../services/boardService';
 import { v4 as uuidv4 } from 'uuid';

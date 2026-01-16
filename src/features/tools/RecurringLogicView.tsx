@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, History, Repeat, RotateCw } from 'lucide-react';
+import { CalendarBlank as CalendarClock, ClockCounterClockwise as History, Repeat, ArrowClockwise as RotateCw } from 'phosphor-react';
 import { loadBoardTasks } from './toolUtils';
 
 type Frequency = 'weekly' | 'monthly' | 'custom';

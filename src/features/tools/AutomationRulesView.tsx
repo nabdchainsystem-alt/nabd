@@ -1,21 +1,21 @@
 import React from 'react';
 import {
     Plus,
-    Search,
-    LayoutGrid,
+    MagnifyingGlass as Search,
+    GridFour as LayoutGrid,
     List,
     Rocket,
-    Zap,
+    Lightning as Zap,
     ArrowRight,
-    Send,
+    PaperPlaneTilt as Send,
     Clock,
-    CheckCircle2,
-    Mail,
+    CheckCircle as CheckCircle2,
+    Envelope as Mail,
     PauseCircle,
-    AlertTriangle,
+    Warning as AlertTriangle,
     FileText,
     Database
-} from 'lucide-react';
+} from 'phosphor-react';
 
 const AutomationRulesView: React.FC<{ boardId: string }> = ({ boardId }) => {
     const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('list');

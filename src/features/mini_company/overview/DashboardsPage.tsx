@@ -13,7 +13,7 @@ const INITIAL_BOARD: Board = {
         { id: 'updated', title: 'Last Updated', type: 'date' }
     ],
     tasks: [],
-    availableViews: ['overview', 'table'],
+    availableViews: ['overview', 'table', 'data'],
     defaultView: 'overview'
 };
 
@@ -44,6 +44,7 @@ const DashboardsPage: React.FC = () => {
             board={board}
             onUpdateBoard={handleUpdateBoard}
             onUpdateTasks={handleUpdateTasks}
+            isDepartmentLayout={true}
         />
     );
 };

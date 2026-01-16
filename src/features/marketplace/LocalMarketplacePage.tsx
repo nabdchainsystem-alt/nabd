@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Star, Filter, MapPin, ChevronDown, ArrowUpRight, TrendingUp, Users, ShoppingBag, AlertCircle, DollarSign, ChevronLeft, ChevronRight, Package, PlusCircle, LayoutGrid, BarChart3 } from 'lucide-react';
+import { MagnifyingGlass as Search, Star, Funnel as Filter, MapPin, CaretDown as ChevronDown, ArrowUpRight, TrendUp as TrendingUp, Users, ShoppingBag, WarningCircle as AlertCircle, CurrencyDollar as DollarSign, CaretLeft as ChevronLeft, CaretRight as ChevronRight, Package, PlusCircle, GridFour as LayoutGrid, ChartBar as BarChart3 } from 'phosphor-react';
 import { useToast } from './components/Toast';
 import { VENDORS_DATA } from './vendorsData';
 import { Vendor } from './types';

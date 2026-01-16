@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Filter as FilterIcon, X, Plus, ChevronDown, Check, Trash2 } from 'lucide-react';
+import { Funnel as FilterIcon, X, Plus, CaretDown as ChevronDown, Check, Trash as Trash2 } from 'phosphor-react';
 import { createPortal } from 'react-dom';
 import { PortalPopup } from '../../../../../components/ui/PortalPopup';
 import { Column } from '../RoomTable';

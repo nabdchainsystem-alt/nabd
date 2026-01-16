@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Activity, AlertTriangle, BarChart3, LayoutDashboard, PieChart, TrendingUp } from 'lucide-react';
+import { Activity, Warning as AlertTriangle, ChartBar as BarChart3, SquaresFour as LayoutDashboard, ChartPie as PieChart, TrendUp as TrendingUp } from 'phosphor-react';
 import { loadBoardTasks, isDoneStatus, parseDate, SimplifiedTask } from './toolUtils';
 
 interface DashboardsViewProps {

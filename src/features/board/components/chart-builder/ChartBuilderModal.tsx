@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import ReactECharts from 'echarts-for-react';
 import {
-    X, Check, BarChart3, LineChart, PieChart,
-    ScatterChart, Settings2, Database, AlertCircle,
-    LayoutDashboard, Radar, Filter, Gauge, LayoutGrid,
-    Plus, Trash2
-} from 'lucide-react';
+    X, Check, ChartBar as BarChart3, ChartLine as LineChart, ChartPie as PieChart,
+    GearSix as Settings2, Database, WarningCircle as AlertCircle,
+    SquaresFour as LayoutDashboard, Funnel as Filter, Gauge, GridFour as LayoutGrid,
+    Plus, Trash as Trash2
+} from 'phosphor-react';
 import { Column, Row } from '../../views/Table/RoomTable';
 import { ChartBuilderConfig, ChartCategory, ChartType, CHART_CATEGORIES } from './types';
 import { ChartDataTransformer } from './services/ChartDataTransformer';
@@ -68,8 +68,9 @@ export const ChartBuilderModal: React.FC<ChartBuilderModalProps> = ({ isOpen, on
         area: { label: 'Area Chart', color: 'bg-cyan-100 text-cyan-600', icon: <LineChart size={20} /> }, // Reusing Line icon but distinct color
         pie: { label: 'Pie Chart', color: 'bg-purple-100 text-purple-600', icon: <PieChart size={20} /> },
         doughnut: { label: 'Doughnut', color: 'bg-fuchsia-100 text-fuchsia-600', icon: <PieChart size={20} /> },
-        scatter: { label: 'Scatter', color: 'bg-pink-100 text-pink-600', icon: <ScatterChart size={20} /> },
-        radar: { label: 'Radar', color: 'bg-orange-100 text-orange-600', icon: <Radar size={20} /> },
+        // scatter: { label: 'Scatter', color: 'bg-pink-100 text-pink-600', icon: <ScatterChart size={20} /> },
+        scatter: { label: 'Scatter', color: 'bg-pink-100 text-pink-600', icon: <LineChart size={20} /> }, // Fallback icon
+        radar: { label: 'Radar', color: 'bg-orange-100 text-orange-600', icon: <PieChart size={20} /> },
         funnel: { label: 'Funnel', color: 'bg-yellow-100 text-yellow-600', icon: <Filter size={20} /> },
         gauge: { label: 'Gauge', color: 'bg-emerald-100 text-emerald-600', icon: <Gauge size={20} /> },
         treemap: { label: 'Treemap', color: 'bg-lime-100 text-lime-600', icon: <LayoutGrid size={20} /> },

@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  PenSquare, Sparkles, Inbox, Archive, FileText, Send, Trash2,
-  History, Ban, Folder, ChevronRight, ChevronDown, Trash,
-  MailOpen, Reply, ReplyAll, Forward, Move, Copy, Tag, Pin,
-  Clock, Flag, RefreshCw, AlertOctagon, Printer, MoreHorizontal,
-  Search, Paperclip, CheckSquare, Globe, User, Plus,
-  Mail, Star, AlertTriangle, CheckSquare as TaskIcon
-} from 'lucide-react';
+  PencilSimple as PenSquare, Sparkle as Sparkles, Tray as Inbox, Archive, FileText, PaperPlaneTilt as Send, Trash as Trash2,
+  ClockCounterClockwise as History, Prohibit as Ban, Folder, CaretRight as ChevronRight, CaretDown as ChevronDown, Trash,
+  EnvelopeOpen as MailOpen, ArrowBendUpLeft as Reply, ArrowBendDoubleUpLeft as ReplyAll, ArrowBendUpRight as Forward, ArrowsOutCardinal as Move, Copy, Tag, PushPin as Pin,
+  Clock, Flag, ArrowsClockwise as RefreshCw, WarningOctagon as AlertOctagon, Printer, DotsThree as MoreHorizontal,
+  MagnifyingGlass as Search, Paperclip, CheckSquare, Globe, User, Plus,
+  Envelope as Mail, Star, Warning as AlertTriangle, CheckSquare as TaskIcon
+} from 'phosphor-react';
 import { v4 as uuidv4 } from 'uuid'; // Ensure uuid is imported if available, else use custom gen
 import { useAppContext } from '../../contexts/AppContext';
 import { ComposeView } from './ComposeView';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { CornellLayout } from './CornellLayout';
-import { Save, Plus, FileText, Trash2, Search, Menu, X, Clock, CheckSquare, Tag, Link as LinkIcon, ChevronDown, MoreHorizontal, Filter, ArrowUp, ArrowDown, AlertCircle, Calendar } from 'lucide-react';
+import { FloppyDisk as Save, Plus, FileText, Trash as Trash2, MagnifyingGlass as Search, List as Menu, X, Clock, CheckSquare, Tag, Link as LinkIcon, CaretDown as ChevronDown, DotsThree as MoreHorizontal, Funnel as Filter, ArrowUp, ArrowDown, WarningCircle as AlertCircle, CalendarBlank as Calendar } from 'phosphor-react';
 import { SharedDatePicker } from '../../../components/ui/SharedDatePicker';
 import { PortalPopup } from '../../../components/ui/PortalPopup';
 

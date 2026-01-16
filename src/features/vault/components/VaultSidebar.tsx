@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus } from 'phosphor-react';
 import { MOCK_CATEGORIES } from '../types';
 
 interface VaultSidebarProps {

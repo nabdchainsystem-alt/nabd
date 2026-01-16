@@ -2,33 +2,33 @@ import React, { useState, useRef } from 'react';
 
 
 import {
-    Type,
+    TextT as Type,
     CircleDashed,
-    Calendar,
+    CalendarBlank as Calendar,
     Users,
     Hash,
     List,
     CheckSquare,
-    Link2,
+    LinkSimple as Link2,
     FileText,
     Calculator,
     Paperclip,
     Minus,
-    Search,
+    MagnifyingGlass as Search,
     MapPin,
     Star,
     ThumbsUp,
-    PenLine,
+    PencilLine as PenLine,
     ArrowUpRight,
-    MousePointerClick,
-    ListTodo,
-    Mail,
+    Cursor as MousePointerClick,
+    ListChecks as ListTodo,
+    Envelope as Mail,
     Phone,
     Globe,
-    Tags,
+    Tag as Tags,
     Plus,
     X
-} from 'lucide-react';
+} from 'phosphor-react';
 
 const COLORS = [
     'bg-rose-500', 'bg-purple-500', 'bg-indigo-500', 'bg-blue-500',

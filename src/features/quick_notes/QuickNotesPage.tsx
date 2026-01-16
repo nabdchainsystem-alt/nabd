@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { StickyNote, Pin, Trash2, Search, Filter, Plus, X, Clock, Tag, ArrowDown, ArrowUp, Sparkles } from 'lucide-react';
+import { Note as StickyNote, PushPin as Pin, Trash as Trash2, MagnifyingGlass as Search, Funnel as Filter, Plus, X, Clock, Tag, ArrowDown, ArrowUp, Sparkle as Sparkles } from 'phosphor-react';
 
 interface QuickNote {
     id: string;

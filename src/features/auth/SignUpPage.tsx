@@ -3,10 +3,10 @@ import { useSignUp } from '../../auth-adapter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Logo } from '../../components/Logo';
 import {
-    CheckCircle, Users, ArrowRight, Shield, Zap, Sparkles, Loader2, User, Building, Mail, Lock, Phone,
-    ShoppingCart, FileText, BarChart, MessageSquare, CheckSquare, Layout,
-    ListTodo, Clock, BookOpen, PenTool, Brain, Map, Grid, Box, Globe, ChevronRight, ArrowLeft
-} from 'lucide-react';
+    CheckCircle, Users, ArrowRight, Shield, Lightning as Zap, Sparkle as Sparkles, CircleNotch as Loader2, User, Buildings as Building, Envelope as Mail, Lock, Phone,
+    ShoppingCart, FileText, ChartBar as BarChart, Chat as MessageSquare, CheckSquare, Layout,
+    ListChecks as ListTodo, Clock, BookOpen, PenNib as PenTool, Brain, MapTrifold as Map, GridFour as Grid, Cube as Box, Globe, CaretRight as ChevronRight, ArrowLeft
+} from 'phosphor-react';
 
 interface SignUpPageProps {
     onNavigateToLogin: () => void;

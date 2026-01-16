@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import {
-    ChevronRight,
-    ChevronDown,
+    CaretRight as ChevronRight,
+    CaretDown as ChevronDown,
     FileText,
     Folder,
     Plus as PlusIcon,
-    Search,
-    Settings,
+    MagnifyingGlass as Search,
+    Gear as Settings,
     Hash,
-    Inbox,
-    MessageSquare,
-    Calendar,
-    Layers
-} from 'lucide-react';
+    Tray as Inbox,
+    Chat as MessageSquare,
+    CalendarBlank as Calendar,
+    Stack as Layers
+} from 'phosphor-react';
 import { NavItem } from './types';
 
 import { INITIAL_NAV_ITEMS } from './constants';

@@ -2,7 +2,7 @@ import React from "react";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { DashboardChart } from "../../../components/dashboard/DashboardChart";
 import { DashboardTable } from "../../../components/dashboard/DashboardTable";
-import { AlertTriangle, ShieldAlert, Truck, AlertOctagon, RefreshCw, Slash, Clock } from 'lucide-react';
+import { Warning as AlertTriangle, ShieldWarning as ShieldAlert, Truck, WarningOctagon as AlertOctagon, ArrowsClockwise as RefreshCw, Prohibit as Slash, Clock } from 'phosphor-react';
 
 export const RisksExceptionsDashboard: React.FC = () => {
     // R07: Risks & Exceptions

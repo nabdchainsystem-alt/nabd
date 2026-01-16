@@ -2,7 +2,7 @@ import React from "react";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { DashboardChart } from "../../../components/dashboard/DashboardChart";
 import { DashboardTable } from "../../../components/dashboard/DashboardTable";
-import { Package, TrendingUp, AlertTriangle, Layers, BarChart, Box } from 'lucide-react';
+import { Package, TrendUp as TrendingUp, Warning as AlertTriangle, Stack as Layers, ChartBar as BarChart, Cube as Box } from 'phosphor-react';
 
 export const SkuDemandDashboard: React.FC = () => {
     // R03: SKU Demand & Critical Items

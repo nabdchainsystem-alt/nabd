@@ -14,6 +14,7 @@ import { SaveToVaultModal } from './components/SaveToVaultModal';
 import { GlobalSearchDrawer } from './components/GlobalSearchDrawer';
 import { boardService } from '../../services/boardService';
 import { useAppContext } from '../../contexts/AppContext';
+import { MOCK_MEMBERS } from '../teams/data';
 import { useAuth } from '../../auth-adapter';
 
 interface Activity {
@@ -50,8 +51,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
   const [isPersonSearchOpen, setIsPersonSearchOpen] = useState(false);
   const [personSearchQuery, setPersonSearchQuery] = useState('');
   const [selectedPersons, setSelectedPersons] = useState<string[]>([]);
-  const MOCK_PEOPLE = ['Max', 'Sarah', 'Mike', 'Ali', 'Emma', 'Design Team', 'Dev Team'];
   const ITEMS_PER_PAGE = 3;
+
+  // Build people and teams list from actual team data
+  const peopleAndTeams = useMemo(() => {
+    // Get all team member names
+    const people = MOCK_MEMBERS.map(member => ({
+      id: member.id,
+      name: member.name,
+      type: 'person' as const,
+      initials: member.initials,
+      color: member.color,
+      department: member.department
+    }));
+
+    // Get unique departments as teams
+    const departments = [...new Set(MOCK_MEMBERS.map(m => m.department))];
+    const teams = departments.map((dept, idx) => ({
+      id: `team-${idx}`,
+      name: dept,
+      type: 'team' as const,
+      initials: dept.substring(0, 2).toUpperCase(),
+      color: 'bg-indigo-500',
+      department: dept
+    }));
+
+    return [...people, ...teams];
+  }, []);
 
   // Upload Logic
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -239,10 +265,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
       filteredTasks = filteredTasks.filter(t => t.date && new Date(t.date) < now && t.status !== 'Done' && t.status !== 'Completed');
     } else if (activeFilter === 'person') {
       if (selectedPersons.length > 0) {
-        filteredTasks = filteredTasks.filter(t => t.person && selectedPersons.some(p => t.person.includes(p)));
+        // Build list of all names to match (including team members for selected departments)
+        const namesToMatch: string[] = [];
+
+        selectedPersons.forEach(selected => {
+          // Check if it's a department/team name
+          const teamMembers = MOCK_MEMBERS.filter(m => m.department === selected);
+          if (teamMembers.length > 0) {
+            // It's a team - add all member names
+            teamMembers.forEach(member => namesToMatch.push(member.name));
+          } else {
+            // It's an individual person
+            namesToMatch.push(selected);
+          }
+        });
+
+        filteredTasks = filteredTasks.filter(t =>
+          t.person && namesToMatch.some(name =>
+            t.person.toLowerCase().includes(name.toLowerCase())
+          )
+        );
       } else if (userDisplayName) {
         // Default to current user if no specific person selected but filter is active (fallback)
-        filteredTasks = filteredTasks.filter(t => t.person?.includes(userDisplayName));
+        filteredTasks = filteredTasks.filter(t => t.person?.toLowerCase().includes(userDisplayName.toLowerCase()));
       }
     }
 
@@ -680,23 +725,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
                             {/* Dropdown */}
                             {personSearchQuery && (
                               <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50 max-h-48 overflow-y-auto">
-                                {MOCK_PEOPLE.filter(p => p.toLowerCase().includes(personSearchQuery.toLowerCase()) && !selectedPersons.includes(p)).map(person => (
-                                  <button
-                                    key={person}
-                                    onClick={() => {
-                                      setSelectedPersons(prev => [...prev, person]);
-                                      setPersonSearchQuery('');
-                                      setActiveFilter('person');
-                                    }}
-                                    className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
-                                  >
-                                    <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600">
-                                      {person.charAt(0)}
-                                    </div>
-                                    {person}
-                                  </button>
-                                ))}
-                                {MOCK_PEOPLE.filter(p => p.toLowerCase().includes(personSearchQuery.toLowerCase()) && !selectedPersons.includes(p)).length === 0 && (
+                                {peopleAndTeams
+                                  .filter(item =>
+                                    item.name.toLowerCase().includes(personSearchQuery.toLowerCase()) &&
+                                    !selectedPersons.includes(item.name)
+                                  )
+                                  .map(item => (
+                                    <button
+                                      key={item.id}
+                                      onClick={() => {
+                                        setSelectedPersons(prev => [...prev, item.name]);
+                                        setPersonSearchQuery('');
+                                        setActiveFilter('person');
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2"
+                                    >
+                                      <div className={`w-5 h-5 rounded-full ${item.type === 'team' ? 'bg-indigo-500' : item.color} flex items-center justify-center text-[10px] font-bold text-white`}>
+                                        {item.initials.charAt(0)}
+                                      </div>
+                                      <span className="flex-1">{item.name}</span>
+                                      {item.type === 'team' && (
+                                        <span className="text-[9px] px-1.5 py-0.5 bg-indigo-100 text-indigo-600 rounded">Team</span>
+                                      )}
+                                    </button>
+                                  ))}
+                                {peopleAndTeams.filter(item =>
+                                  item.name.toLowerCase().includes(personSearchQuery.toLowerCase()) &&
+                                  !selectedPersons.includes(item.name)
+                                ).length === 0 && (
                                   <div className="px-3 py-2 text-xs text-gray-400 text-center">No matches</div>
                                 )}
                               </div>

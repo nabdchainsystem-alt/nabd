@@ -550,21 +550,24 @@ const StatusPicker: React.FC<{
                 </div>
                 <div className="p-2 max-h-64 overflow-y-auto flex flex-col gap-1 custom-scrollbar">
                     {displayStatuses.map((s) => {
-                        const statusStyle = STATUS_STYLES[s] || 'bg-gray-100 text-gray-800';
-                        const isActive = current === s;
+                        const statusTitle = typeof s === 'string' ? s : s.title;
+                        const statusId = typeof s === 'string' ? s : s.id;
+                        const statusStyle = STATUS_STYLES[statusTitle] || 'bg-gray-100 text-gray-800';
+                        const isActive = current === statusTitle;
+
                         return (
-                            <div key={s} className="group relative flex items-center">
+                            <div key={statusId} className="group relative flex items-center">
                                 <button
-                                    onClick={() => { onSelect(s); onClose(); }}
+                                    onClick={() => { onSelect(statusTitle); onClose(); }}
                                     className={`flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded shadow-sm transition-transform active:scale-95 ${statusStyle} ${isActive ? 'ring-2 ring-offset-1 ring-stone-400 dark:ring-stone-600' : ''}`}
                                 >
-                                    {s}
+                                    {statusTitle}
                                 </button>
-                                {!defaultStatuses.includes(s) && onDelete && (
+                                {!defaultStatuses.some(ds => ds.id === statusId) && onDelete && (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            onDelete(s);
+                                            if (onDelete) onDelete(statusTitle);
                                         }}
                                         className="absolute right-0 top-0 bottom-0 px-2 flex items-center justify-center text-stone-400 hover:text-red-500 bg-white/50 hover:bg-white/80 rounded-r opacity-0 group-hover:opacity-100 transition-opacity"
                                         title="Delete status"

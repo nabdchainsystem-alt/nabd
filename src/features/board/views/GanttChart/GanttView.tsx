@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Row } from '../Table/RoomTable';
 import {
-    ChevronDown,
+    CaretDown as ChevronDown,
     Plus,
-    Search,
-    ListFilter,
-    ArrowUpDown,
+    MagnifyingGlass as Search,
+    Funnel as ListFilter,
+    ArrowsDownUp as ArrowUpDown,
     Download,
     Phone,
     UserCircle
-} from 'lucide-react';
+} from 'phosphor-react';
 
 interface GanttViewProps {
     roomId: string;

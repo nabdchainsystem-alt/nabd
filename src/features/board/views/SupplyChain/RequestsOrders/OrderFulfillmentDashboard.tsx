@@ -2,7 +2,7 @@ import React from "react";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { DashboardChart } from "../../../components/dashboard/DashboardChart";
 import { DashboardTable } from "../../../components/dashboard/DashboardTable";
-import { Truck, CheckCircle, Package, Clock, AlertTriangle, AlertOctagon, RefreshCw, Box } from 'lucide-react';
+import { Truck, CheckCircle, Package, Clock, Warning as AlertTriangle, WarningOctagon as AlertOctagon, ArrowsClockwise as RefreshCw, Cube as Box } from 'phosphor-react';
 
 export const OrderFulfillmentDashboard: React.FC = () => {
     // O02: Order Fulfillment

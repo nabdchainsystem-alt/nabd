@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-    ChevronDown,
-    MoreHorizontal,
+    CaretDown as ChevronDown,
+    DotsThree as MoreHorizontal,
     Plus as PlusIcon,
-    Pencil,
-    Pin,
+    PencilSimple as Pencil,
+    PushPin as Pin,
     Copy,
-    Share2,
-    Unlock,
-    Trash2,
-    ArrowLeftToLine,
-    Maximize2,
-    Minimize2
-} from 'lucide-react';
-import {
+    ShareNetwork as Share2,
+    LockOpen as Unlock,
+    Trash as Trash2,
+    ArrowLineLeft as ArrowLeftToLine,
+    ArrowsOut as Maximize2,
+    ArrowsIn as Minimize2,
     Table as PhTable,
     Kanban as PhKanban,
     List as PhList,
@@ -30,7 +28,8 @@ import {
     ArrowsClockwise as PhRecurring,
     Cube as PhWarehouse,
     Layout as PhLayout,
-    PresentationChart as PhWhiteboard
+    PresentationChart as PhWhiteboard,
+    Sparkle as Sparkles
 } from 'phosphor-react';
 import {
     DndContext,
@@ -61,7 +60,6 @@ import { DocView } from './views/Doc/DocView';
 import { useRoomBoardData } from './hooks/useRoomBoardData';
 import CalendarView from './views/Calendar/CalendarView';
 import { PortalPopup } from '../../components/ui/PortalPopup';
-import { Sparkles } from 'lucide-react';
 
 import { DashboardConfig } from './components/dashboard/DashboardHeader';
 import DataTable from './views/Table/DataTable';
@@ -83,6 +81,7 @@ import { TimelineView } from './views/Timeline/TimelineView';
 
 
 import { useUI } from '../../contexts/UIContext';
+
 
 // --- Sortable Tab Component ---
 interface SortableTabProps {
@@ -156,9 +155,10 @@ interface BoardViewProps {
     renderCustomView?: (viewId: string) => React.ReactNode;
     dashboardSections?: any[];
     onNavigate?: (view: string, boardId?: string) => void;
+    isDepartmentLayout?: boolean;
 }
 
-export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpdateBoard: initialOnUpdateBoard, onUpdateTasks: initialOnUpdateTasks, renderCustomView, dashboardSections, onNavigate }) => {
+export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpdateBoard: initialOnUpdateBoard, onUpdateTasks: initialOnUpdateTasks, renderCustomView, dashboardSections, onNavigate, isDepartmentLayout }) => {
     // Assuming useRoomBoardData is a custom hook that provides board data and task management functions
     // and that 'effectiveKey' is defined elsewhere or needs to be passed as a prop.
     // For this change, we'll assume 'effectiveKey' is available or can be derived from initialBoard.id
@@ -193,10 +193,18 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
         // Ensure 'overview' is always present and at the start
         const viewsWithoutOverview = views.filter(v => (v as any) !== 'overview' && (v as any) !== 'listboard' && (v as any) !== 'list_board');
-        const finalViews = ['overview', ...viewsWithoutOverview] as BoardViewType[];
+        let finalViews = ['overview', ...viewsWithoutOverview] as BoardViewType[];
+
+        // Enforce 'data' view for department layouts if missing
+        if (isDepartmentLayout && !finalViews.includes('data')) {
+            finalViews = [...finalViews, 'data'];
+        }
+
+        // Enforce 'wiki' view for Sales department if missing
+
 
         return finalViews;
-    }, [board.availableViews]);
+    }, [board.availableViews, isDepartmentLayout]);
 
     const normalizeViewId = (viewId?: string | null): BoardViewType | null => {
         // Cast to any to avoid "no overlap" error for legacy values
@@ -592,14 +600,16 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
     };
 
     const VIEW_OPTIONS = [
-        { label: 'Overview', icon: PhOverview, id: 'overview', description: 'Board overview' },
+        { label: isDepartmentLayout ? 'Insights' : 'Overview', icon: PhOverview, id: 'overview', description: 'Board overview' },
         { label: 'Table', icon: PhTable, id: 'table', description: 'Manage project workflows' },
+        { label: 'Data', icon: PhTable, id: 'data', description: 'Raw data view' },
         { label: 'Data Table', icon: PhTable, id: 'datatable', description: 'High performance data grid' },
         { label: 'Kanban', icon: PhKanban, id: 'kanban', description: 'Visualize your work' },
         { label: 'List', icon: PhList, id: 'list', description: 'Simple list view' },
         { label: 'Calendar', icon: PhCalendar, id: 'calendar', description: 'Schedule tasks' },
         { label: 'Doc', icon: PhFileText, id: 'doc', description: 'Collaborate on docs' },
         { label: 'Gantt', icon: PhGantt, id: 'gantt', description: 'Visual timeline' },
+
         ...(isWarehouseBoard ? [{ label: 'Capacity Map', icon: PhWarehouse, id: 'warehouse_capacity_map', description: 'Visual warehouse capacity map' }] : []),
         { label: 'Workload View', icon: PhWorkload, id: 'workload', description: 'Balance assignments' },
         { label: 'Smart Sheet', icon: PhSpreadsheet, id: 'spreadsheet', description: 'Spreadsheet workspace' },
@@ -718,6 +728,8 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                 );
             case 'datatable':
                 return <DataTable key={`${board.id}-${activeView}`} roomId={board.id} />;
+            case 'data': // Map 'data' view to DataTable
+                return <DataTable key={`${board.id}-${activeView}`} roomId={board.id} />;
             case 'doc':
                 return <DocView key={`${board.id}-${activeView}`} roomId={board.id} />;
 
@@ -767,6 +779,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                 return renderCustomView ? renderCustomView('warehouse_capacity_map') : null;
             case 'timeline':
                 return <TimelineView key={`${board.id}-${activeView}`} roomId={board.id} boardName={board.name} tasks={tasks} onUpdateTasks={onUpdateTasks} />;
+
             default:
                 if (renderCustomView) {
                     const custom = renderCustomView(activeView);
@@ -1009,55 +1022,35 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                             </div>
 
                             {/* Add View Button - Always at the end, outside scroll container */}
-                            <div className="relative flex items-center flex-shrink-0">
-                                <button
-                                    ref={addViewRef}
-                                    onClick={() => setShowAddViewMenu(!showAddViewMenu)}
-                                    className="p-1.5 ml-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <PlusIcon size={18} />
-                                </button>
-
-                                {/* Dropdown Menu (Mega Menu) */}
-                                {showAddViewMenu && (
-                                    <PortalPopup
-                                        triggerRef={addViewRef}
-                                        onClose={() => setShowAddViewMenu(false)}
-                                        side="bottom"
-                                        align="start"
+                            {!isDepartmentLayout && (
+                                <div className="relative flex items-center flex-shrink-0">
+                                    <button
+                                        ref={addViewRef}
+                                        onClick={() => setShowAddViewMenu(!showAddViewMenu)}
+                                        className="p-1.5 ml-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-gray-600 transition-colors"
                                     >
-                                        <div className="bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl w-[450px] py-3 animate-in fade-in zoom-in-95 duration-150">
-                                            <div className="px-4 pb-3 border-b border-gray-100 dark:border-gray-800">
-                                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Add View</h3>
-                                            </div>
-                                            <div className="max-h-[450px] overflow-y-auto">
-                                                {/* Simple Tools */}
-                                                <div className="px-4 pt-3 pb-1">
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Simple Tools</span>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-1 px-2 pb-2">
-                                                    {VIEW_OPTIONS.filter(opt => !['list', 'gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'workload', 'whiteboard'].includes(opt.id)).map((option) => (
-                                                        <button
-                                                            key={option.id}
-                                                            onClick={() => handleAddView(option)}
-                                                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
-                                                        >
-                                                            <option.icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                                                            <div className="text-left">
-                                                                <span className="block text-[13px] text-gray-700 dark:text-gray-200 font-medium leading-tight">{option.label}</span>
-                                                                <span className="block text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{option.description}</span>
-                                                            </div>
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                        <PlusIcon size={18} />
+                                    </button>
 
-                                                {/* Advanced Tools */}
-                                                <div className="border-t border-gray-100 dark:border-gray-800">
+                                    {/* Dropdown Menu (Mega Menu) */}
+                                    {showAddViewMenu && (
+                                        <PortalPopup
+                                            triggerRef={addViewRef}
+                                            onClose={() => setShowAddViewMenu(false)}
+                                            side="bottom"
+                                            align="start"
+                                        >
+                                            <div className="bg-white dark:bg-[#1a1d24] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl w-[450px] py-3 animate-in fade-in zoom-in-95 duration-150">
+                                                <div className="px-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                                                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Add View</h3>
+                                                </div>
+                                                <div className="max-h-[450px] overflow-y-auto">
+                                                    {/* Simple Tools */}
                                                     <div className="px-4 pt-3 pb-1">
-                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Advanced Tools</span>
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Simple Tools</span>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-1 px-2 pb-2">
-                                                        {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'workload', 'whiteboard'].includes(opt.id)).map((option) => (
+                                                        {VIEW_OPTIONS.filter(opt => !['list', 'gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'workload', 'whiteboard'].includes(opt.id)).map((option) => (
                                                             <button
                                                                 key={option.id}
                                                                 onClick={() => handleAddView(option)}
@@ -1071,36 +1064,58 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                                             </button>
                                                         ))}
                                                     </div>
-                                                </div>
 
-                                                {/* Dashboard Sections */}
-                                                {dashboardSections?.map((section: any, idx: number) => (
-                                                    <div key={idx} className="border-t border-gray-100 dark:border-gray-800">
+                                                    {/* Advanced Tools */}
+                                                    <div className="border-t border-gray-100 dark:border-gray-800">
                                                         <div className="px-4 pt-3 pb-1">
-                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{section.title}</span>
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Advanced Tools</span>
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-1 px-2 pb-2">
-                                                            {section.options.map((option: any) => {
-                                                                const Icon = option.icon || PhLayout;
-                                                                return (
-                                                                    <button
-                                                                        key={option.id}
-                                                                        onClick={() => handleAddView(option)}
-                                                                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
-                                                                    >
-                                                                        <Icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                                                                        <span className="text-[13px] text-gray-700 dark:text-gray-200">{option.label}</span>
-                                                                    </button>
-                                                                );
-                                                            })}
+                                                            {VIEW_OPTIONS.filter(opt => ['gtd', 'cornell', 'automation_rules', 'goals_okrs', 'recurring', 'spreadsheet', 'workload', 'whiteboard'].includes(opt.id)).map((option) => (
+                                                                <button
+                                                                    key={option.id}
+                                                                    onClick={() => handleAddView(option)}
+                                                                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
+                                                                >
+                                                                    <option.icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                                                                    <div className="text-left">
+                                                                        <span className="block text-[13px] text-gray-700 dark:text-gray-200 font-medium leading-tight">{option.label}</span>
+                                                                        <span className="block text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{option.description}</span>
+                                                                    </div>
+                                                                </button>
+                                                            ))}
                                                         </div>
                                                     </div>
-                                                ))}
+
+                                                    {/* Dashboard Sections */}
+                                                    {dashboardSections?.map((section: any, idx: number) => (
+                                                        <div key={idx} className="border-t border-gray-100 dark:border-gray-800">
+                                                            <div className="px-4 pt-3 pb-1">
+                                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{section.title}</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-1 px-2 pb-2">
+                                                                {section.options.map((option: any) => {
+                                                                    const Icon = option.icon || PhLayout;
+                                                                    return (
+                                                                        <button
+                                                                            key={option.id}
+                                                                            onClick={() => handleAddView(option)}
+                                                                            className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-left transition-colors"
+                                                                        >
+                                                                            <Icon size={18} weight="regular" className="text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                                                                            <span className="text-[13px] text-gray-700 dark:text-gray-200">{option.label}</span>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </PortalPopup>
-                                )}
-                            </div>
+                                        </PortalPopup>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

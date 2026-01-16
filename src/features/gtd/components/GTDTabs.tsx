@@ -1,5 +1,5 @@
 import React from 'react';
-import { Inbox, CheckCircle2, Layers, CheckSquare, Zap } from 'lucide-react';
+import { Tray as Inbox, CheckCircle as CheckCircle2, Stack as Layers, CheckSquare, Lightning as Zap } from 'phosphor-react';
 import { motion } from 'framer-motion';
 
 export type GTDPhase = 'capture' | 'clarify' | 'organize' | 'reflect' | 'engage';

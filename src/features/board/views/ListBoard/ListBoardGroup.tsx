@@ -1,9 +1,9 @@
 import React from 'react';
 import {
-    PlusIcon, Trash2, MoreHorizontal, Box, Clock, Target, ListTodo, Pin,
-    Archive as ArchiveIcon, Download, Copy, MoveRight, Star, X,
-    Globe, Mail, Phone, MapPin, Link2
-} from 'lucide-react';
+    Plus as PlusIcon, Trash as Trash2, DotsThree as MoreHorizontal, Cube as Box, Clock, Target, ListChecks as ListTodo, PushPin as Pin,
+    Archive as ArchiveIcon, Download, Copy, ArrowRight as MoveRight, Star, X,
+    Globe, Envelope as Mail, Phone, MapPin, LinkSimple as Link2
+} from 'phosphor-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { IGroup, ITask, Status, Priority, STATUS_COLORS, PRIORITY_COLORS } from '../../types/boardTypes';
 import { SortableTaskRow } from './SortableTaskRow';

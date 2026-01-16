@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, ArrowRight, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
+import { Envelope as Mail, ArrowRight, CheckCircle as CheckCircle2, ShieldCheck, Lightning as Zap } from 'phosphor-react';
 import { useAuth } from '../../../auth-adapter';
 import { emailService } from '../../../services/emailService';
 

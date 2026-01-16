@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, MessageCircle, X } from 'lucide-react';
+import { User, ChatCircle as MessageCircle, X } from 'phosphor-react';
 import { TaskItem, Status, StatusOption, ColumnWidths } from '../types';
 import { StatusCell } from './StatusCell';
 import { DateCell } from './DateCell';

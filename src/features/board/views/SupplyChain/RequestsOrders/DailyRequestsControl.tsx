@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { DashboardChart } from "../../../components/dashboard/DashboardChart";
-import { Activity, DollarSign, AlertCircle, Calendar, Clock, CheckCircle, Search, Filter, Plus, Upload, ArrowUpDown } from 'lucide-react';
+import { Activity, CurrencyDollar as DollarSign, WarningCircle as AlertCircle, CalendarBlank as Calendar, Clock, CheckCircle, MagnifyingGlass as Search, Funnel as Filter, Plus, Upload, ArrowsDownUp as ArrowUpDown } from 'phosphor-react';
 
 // Reuse or inline DashboardTable for custom sorting control if needed, 
 // OR pass sorted data to standard DashboardTable. 

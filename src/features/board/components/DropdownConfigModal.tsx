@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus as PlusIcon, Trash2, Check, ChevronDown } from 'lucide-react';
+import { X, Plus as PlusIcon, Trash as Trash2, Check, CaretDown as ChevronDown } from 'phosphor-react';
 
 export interface DropdownOption {
     id: string;

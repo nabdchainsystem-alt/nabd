@@ -1,6 +1,6 @@
 import React from 'react';
 import { Doc } from './types';
-import { FileText, Clock } from 'lucide-react';
+import { FileText, Clock } from 'phosphor-react';
 
 interface DocListProps {
     docs: Doc[];

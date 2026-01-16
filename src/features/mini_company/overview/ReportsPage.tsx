@@ -14,7 +14,7 @@ const INITIAL_BOARD: Board = {
         { id: 'frequency', title: 'Frequency', type: 'status' } // Daily, Weekly, Monthly
     ],
     tasks: [],
-    availableViews: ['table', 'overview'],
+    availableViews: ['table', 'overview', 'data'],
     defaultView: 'table'
 };
 
@@ -45,6 +45,7 @@ const ReportsPage: React.FC = () => {
             board={board}
             onUpdateBoard={handleUpdateBoard}
             onUpdateTasks={handleUpdateTasks}
+            isDepartmentLayout={true}
         />
     );
 };

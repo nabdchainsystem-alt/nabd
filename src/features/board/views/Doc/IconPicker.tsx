@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Search } from 'lucide-react';
+import { X, MagnifyingGlass as Search } from 'phosphor-react';
 
 interface IconPickerProps {
     onSelect: (icon: string) => void;

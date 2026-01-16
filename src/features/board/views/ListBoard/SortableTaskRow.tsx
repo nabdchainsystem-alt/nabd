@@ -1,7 +1,7 @@
 import React from 'react';
 import {
-    CornerDownRight, ChevronDown, ChevronRight, Box, Sparkles, User, Clock, Flag, Tag, Edit, Link2, Star, Globe, Mail, Phone, MapPin
-} from 'lucide-react';
+    ArrowBendDownRight as CornerDownRight, CaretDown as ChevronDown, CaretRight as ChevronRight, Cube as Box, Sparkle as Sparkles, User, Clock, Flag, Tag, PencilSimple as Edit, LinkSimple as Link2, Star, Globe, Envelope as Mail, Phone, MapPin
+} from 'phosphor-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 

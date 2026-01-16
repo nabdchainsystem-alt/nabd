@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { BOARD_TEMPLATES, BoardTemplate } from '../data/templates';
-import { Layout, Briefcase, User, Settings, CheckCircle } from 'lucide-react';
+import { Layout, Briefcase, User, Gear as Settings, CheckCircle } from 'phosphor-react';
 
 interface TemplatePickerProps {
     onSelect: (template: BoardTemplate) => void;

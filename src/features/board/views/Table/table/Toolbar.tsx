@@ -1,12 +1,12 @@
 import React from 'react';
 import {
-    Search,
-    Filter,
-    CheckCircle2,
+    MagnifyingGlass as Search,
+    Funnel as Filter,
+    CheckCircle as CheckCircle2,
     User as UserIcon,
-    Layers,
+    Stack as Layers,
     GitBranch
-} from 'lucide-react';
+} from 'phosphor-react';
 
 export const Toolbar: React.FC = () => {
     return (

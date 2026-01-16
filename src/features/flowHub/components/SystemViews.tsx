@@ -6,18 +6,18 @@ import {
     X,
     ArrowRight,
     Clock,
-    Calendar,
-    Box,
-    Layers,
-    AlertCircle,
+    CalendarBlank as Calendar,
+    Cube as Box,
+    Stack as Layers,
+    WarningCircle as AlertCircle,
     PlayCircle,
     Plus,
-    CornerDownLeft,
-    Trash2,
-    Sparkles,
-    Send,
+    ArrowBendDownLeft as CornerDownLeft,
+    Trash as Trash2,
+    Sparkle as Sparkles,
+    PaperPlaneTilt as Send,
     PauseCircle
-} from 'lucide-react';
+} from 'phosphor-react';
 import { useFocus } from '../../../contexts/FocusContext';
 import { SYSTEMS } from '../data';
 

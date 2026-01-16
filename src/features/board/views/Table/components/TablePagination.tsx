@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { CaretLeft as ChevronLeft, CaretRight as ChevronRight, CaretDown as ChevronDown } from 'phosphor-react';
 
 interface TablePaginationProps {
     totalItems: number;

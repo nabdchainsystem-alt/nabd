@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Table, LayoutTemplate, PieChart, Trash2, GripHorizontal, TrendingUp, TrendingDown,
-    Maximize2, Minimize2, LineChart, BarChart, AreaChart, ScatterChart, Radar, Activity, Gauge
-} from 'lucide-react';
+    Table, Layout as LayoutTemplate, ChartPie as PieChart, Trash as Trash2, DotsSix as GripHorizontal, TrendUp as TrendingUp, TrendDown as TrendingDown,
+    ArrowsOut as Maximize2, ArrowsIn as Minimize2, ChartLine as LineChart, ChartBar as BarChart, ChartLine as AreaChart, Activity, Gauge,
+    Bell, WarningCircle as AlertCircle, Clock
+} from 'phosphor-react';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import { Priority } from '../../types/boardTypes';
-import { Bell, AlertCircle, Clock } from 'lucide-react';
 
 // DnD Kit Imports
 import {
@@ -336,8 +336,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ boardId, tasks = [] 
         { id: 'Bar', icon: BarChart, label: 'Bar Chart', desc: 'Comparisons' },
         { id: 'Pie', icon: PieChart, label: 'Pie Chart', desc: 'Proportions' },
         { id: 'Area', icon: AreaChart, label: 'Area Chart', desc: 'Volume trends' },
-        { id: 'Scatter', icon: ScatterChart, label: 'Scatter Plot', desc: 'Correlations' },
-        { id: 'Radar', icon: Radar, label: 'Radar Chart', desc: 'Multi-variable' },
+        // { id: 'Scatter', icon: ScatterChart, label: 'Scatter Plot', desc: 'Correlations' }, // Icon unavailable
+        { id: 'Radar', icon: PieChart, label: 'Radar Chart', desc: 'Multi-variable' },
         { id: 'Funnel', icon: Activity, label: 'Funnel', desc: 'Process conversion' },
         { id: 'Gauge', icon: Gauge, label: 'Gauge', desc: 'Performance meter' },
     ];

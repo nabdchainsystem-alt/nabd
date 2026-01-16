@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus } from 'phosphor-react';
 
 export interface KPIConfig {
     id: string;

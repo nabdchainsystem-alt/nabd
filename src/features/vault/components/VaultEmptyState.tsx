@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Shield, Key, CreditCard, StickyNote, Plus, Import, Search, ArrowRight, Folder } from 'lucide-react';
+import { Shield, Key, CreditCard, Note as StickyNote, Plus, DownloadSimple as Import, MagnifyingGlass as Search, ArrowRight, Folder } from 'phosphor-react';
 
 interface VaultEmptyStateProps {
     type: 'empty-vault' | 'active-search' | 'empty-category' | 'empty-folder';

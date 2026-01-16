@@ -4,13 +4,13 @@ import { analyzeInput, AnalysisResult, getPlaceholders, getSuggestionBasedOnTime
 import { SYSTEMS, getTypeColor } from '../data';
 import {
     ArrowRight,
-    Sparkles,
+    Sparkle as Sparkles,
     Activity,
-    History,
+    ClockCounterClockwise as History,
     Clock,
-    Zap,
-    MoveRight
-} from 'lucide-react';
+    Lightning as Zap,
+    ArrowRight as MoveRight
+} from 'phosphor-react';
 
 interface InitialStateProps {
     onStartConfig: (thought: string, state: string) => void;

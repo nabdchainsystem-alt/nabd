@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { MagnifyingGlass as Search, X } from 'phosphor-react';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 
 interface DropdownOption {

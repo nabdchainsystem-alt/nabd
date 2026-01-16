@@ -1,6 +1,6 @@
 import React, { useRef, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Palette } from 'lucide-react';
+import { Palette } from 'phosphor-react';
 import { useClickOutside } from '../../../../../hooks/useClickOutside';
 
 interface TextCellContextMenuProps {

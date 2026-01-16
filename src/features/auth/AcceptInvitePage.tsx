@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth, useUser } from '../../auth-adapter';
 import { inviteService } from '../../services/inviteService';
-import { CheckCircle, AlertTriangle, Loader } from 'lucide-react';
+import { CheckCircle, Warning as AlertTriangle, CircleNotch as Loader } from 'phosphor-react';
 
 export const AcceptInvitePage: React.FC = () => {
     const [searchParams] = useSearchParams();

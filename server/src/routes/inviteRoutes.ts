@@ -1,16 +1,28 @@
-import express from 'express';
+import express, { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, AuthRequest } from '../middleware/auth';
+import { z } from 'zod';
+import { getEnv, isProduction } from '../utils/env';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Input validation
+const createInviteSchema = z.object({
+    email: z.string().email().optional(),
+});
+
+const acceptInviteSchema = z.object({
+    token: z.string().uuid(),
+});
+
 // Create an Invitation Link
-router.post('/create', requireAuth, async (req: any, res) => {
+router.post('/create', requireAuth, async (req, res: Response) => {
     try {
-        const userId = req.auth.userId;
-        const { email } = req.body;
+        const userId = (req as AuthRequest).auth.userId;
+        const data = createInviteSchema.parse(req.body);
+        const { email } = data;
 
         // 1. Get or Create Workspace for current user
         let user = await prisma.user.findUnique({ where: { id: userId }, include: { workspace: true } });
@@ -50,20 +62,25 @@ router.post('/create', requireAuth, async (req: any, res) => {
         });
 
         // 3. Return Link
-        const inviteLink = `http://localhost:3000/invite/accept?token=${token}`;
+        const baseUrl = getEnv('FRONTEND_URL', isProduction ? 'https://your-domain.com' : 'http://localhost:5173');
+        const inviteLink = `${baseUrl}/invite/accept?token=${token}`;
         res.json({ link: inviteLink, token });
 
     } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ error: 'Invalid input', details: error.issues });
+        }
         console.error("Invite Error:", error);
         res.status(500).json({ error: "Failed to create invitation" });
     }
 });
 
 // Accept Invitation
-router.post('/accept', requireAuth, async (req: any, res) => {
+router.post('/accept', requireAuth, async (req, res: Response) => {
     try {
-        const userId = req.auth.userId;
-        const { token } = req.body;
+        const userId = (req as AuthRequest).auth.userId;
+        const data = acceptInviteSchema.parse(req.body);
+        const { token } = data;
 
         const invitation = await prisma.invitation.findUnique({
             where: { token },
@@ -95,6 +112,9 @@ router.post('/accept', requireAuth, async (req: any, res) => {
         res.json({ success: true, workspaceName: invitation.workspace.name });
 
     } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ error: 'Invalid input', details: error.issues });
+        }
         console.error("Accept Invite Error:", error);
         res.status(500).json({ error: "Failed to accept invitation" });
     }

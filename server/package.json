@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "prisma", "esbuild"]
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild"
+    ]
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -21,6 +26,7 @@
     "@prisma/client": "^7.2.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/express-rate-limit": "^6.0.2",
     "@types/node": "^25.0.3",
     "prisma": "^7.2.0",
     "tsx": "^4.21.0",
@@ -33,7 +39,9 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
     "googleapis": "^170.0.0",
+    "helmet": "^8.1.0",
     "isomorphic-fetch": "^3.0.0",
     "simple-oauth2": "^5.1.0",
     "zod": "^4.3.5"

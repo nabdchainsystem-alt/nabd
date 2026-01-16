@@ -2,7 +2,7 @@ import React from "react";
 import { StatCard } from "../../../components/dashboard/StatCard";
 import { DashboardChart } from "../../../components/dashboard/DashboardChart";
 import { DashboardTable } from "../../../components/dashboard/DashboardTable";
-import { Package, Calendar, Clock, AlertTriangle, PlayCircle, ShieldAlert, BarChart, CheckCircle } from 'lucide-react';
+import { Package, CalendarBlank as Calendar, Clock, Warning as AlertTriangle, PlayCircle, ShieldWarning as ShieldAlert, ChartBar as BarChart, CheckCircle } from 'phosphor-react';
 
 export const DailyOrdersControl: React.FC = () => {
     // O01: Daily Orders Control

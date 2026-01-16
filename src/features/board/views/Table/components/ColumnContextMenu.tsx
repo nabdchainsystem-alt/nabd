@@ -1,15 +1,15 @@
 import React, { useRef } from 'react';
 import {
-    ArrowUpDown,
-    ArrowLeftToLine,
-    ArrowRightToLine,
-    MoveHorizontal,
-    Pin,
+    ArrowsDownUp as ArrowUpDown,
+    ArrowLineLeft as ArrowLeftToLine,
+    ArrowLineRight as ArrowRightToLine,
+    ArrowsHorizontal as MoveHorizontal,
+    PushPin as Pin,
     ArrowLeft,
     ArrowRight,
-    Trash2,
-    Edit2
-} from 'lucide-react';
+    Trash as Trash2,
+    PencilSimple as Edit2
+} from 'phosphor-react';
 import { useClickOutside } from '../../../../../hooks/useClickOutside';
 
 interface ColumnContextMenuProps {

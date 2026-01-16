@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, LayoutGrid, List as ListIcon, SlidersHorizontal, Folder, ChevronRight, Plus, FileText, Globe, Upload, Image, File, ArrowUp, ArrowDown, Check } from 'lucide-react';
+import { MagnifyingGlass as Search, GridFour as LayoutGrid, List as ListIcon, Sliders as SlidersHorizontal, Folder, CaretRight as ChevronRight, Plus, FileText, Globe, Upload, Image, File, ArrowUp, ArrowDown, Check } from 'phosphor-react';
 import { VaultSidebar } from './components/VaultSidebar';
 import { VaultGrid } from './components/VaultGrid';
 import { VaultList } from './components/VaultList';

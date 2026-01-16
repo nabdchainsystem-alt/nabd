@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { BarChart3, PieChart, LineChart, PlusCircle, X } from 'lucide-react';
+import { ChartBar as BarChart3, ChartPie as PieChart, ChartLine as LineChart, PlusCircle, X } from 'phosphor-react';
 import { Column, Row } from '../views/Table/RoomTable';
 import { ChartBuilderConfig } from './chart-builder/types';
 import { ChartDataTransformer } from './chart-builder/services/ChartDataTransformer';

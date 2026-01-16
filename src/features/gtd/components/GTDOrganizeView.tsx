@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CheckCircle, Bell, Calendar, Clock, FileText, Plus, Trash2 } from 'lucide-react';
+import { Stack as Layers, CheckCircle, Bell, CalendarBlank as Calendar, Clock, FileText, Plus, Trash as Trash2 } from 'phosphor-react';
 
 interface OrganizedItem {
     id: string;

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import RoomTable, { Row, Column } from './RoomTable';
-import { Upload, Download, BarChart3, Sparkles } from 'lucide-react';
+import { Upload, Download, ChartBar as BarChart3, Sparkle as Sparkles } from 'phosphor-react';
 import * as XLSX from 'xlsx';
 
 interface DataTableProps {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MessageSquare, FileText, Activity, Bold, Italic, Underline, Strikethrough, List, Link, Image, Smile, AtSign, Trash2 } from 'lucide-react';
+import { X, Chat as MessageSquare, FileText, Activity, TextBolder as Bold, TextItalic as Italic, TextUnderline as Underline, TextStrikethrough as Strikethrough, List, Link, Image, Smiley as Smile, At as AtSign, Trash as Trash2 } from 'phosphor-react';
 
 interface RowDetailPanelProps {
     isOpen: boolean;

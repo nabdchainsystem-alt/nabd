@@ -1,20 +1,52 @@
 import 'dotenv/config'; // Must be first
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/authRoutes';
 import emailRoutes from './routes/emailRoutes';
 import inviteRoutes from './routes/inviteRoutes';
 import boardRoutes from './routes/boardRoutes';
 import vaultRoutes from './routes/vaultRoutes';
+import docRoutes from './routes/docRoutes';
 import { requireAuth } from './middleware/auth';
+import { validateEnv, isProduction, getEnv } from './utils/env';
+
+// Validate environment variables at startup
+validateEnv();
 
 const app = express();
 const prisma = new PrismaClient();
-const PORT = 3001;
+const PORT = parseInt(getEnv('PORT', '3001'), 10);
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+// Security middleware
+app.use(helmet({
+    contentSecurityPolicy: isProduction ? undefined : false, // Disable CSP in dev for easier debugging
+}));
+
+// Rate limiting - 100 requests per minute per IP
+const limiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 100,
+    message: { error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(limiter);
+
+// CORS configuration
+const corsOptions: cors.CorsOptions = {
+    origin: isProduction
+        ? getEnv('CORS_ORIGIN', 'https://your-domain.com')
+        : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+
+app.use(express.json({ limit: '10mb' })); // Reduced from 50mb for security
 
 // Auth Middleware & User Sync
 app.use(async (req: any, res, next) => {
@@ -55,15 +87,6 @@ app.use(async (req: any, res, next) => {
 
 // --- HELPERS ---
 
-function safeJSONParse<T>(jsonString: string | null | undefined, fallback: T): T {
-    if (!jsonString) return fallback;
-    try {
-        return JSON.parse(jsonString);
-    } catch (e) {
-        return fallback;
-    }
-}
-
 function handleError(res: express.Response, error: unknown) {
     console.error(error);
     const message = error instanceof Error ? error.message : String(error);
@@ -75,6 +98,7 @@ app.use('/api/email', emailRoutes);
 app.use('/api/invite', inviteRoutes);
 app.use('/api/boards', boardRoutes);
 app.use('/api/vault', vaultRoutes);
+app.use('/api/docs', docRoutes);
 
 // --- Workspace Routes ---
 app.get('/api/workspaces', requireAuth, async (req: any, res) => {
@@ -272,6 +296,6 @@ app.post('/api/activities', requireAuth, async (req: any, res) => {
 // All board/card/thread/room logic should stay in routes/*.ts files going forward.
 
 app.listen(PORT, () => {
-    console.log(`SQL Server running on http://localhost:${PORT}`);
+    console.log(`[Server] NABD API running on port ${PORT} (${isProduction ? 'production' : 'development'})`);
 });
 

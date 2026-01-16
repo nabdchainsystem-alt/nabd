@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Plus, MoreHorizontal, Sparkles } from 'lucide-react';
+import { CaretDown as ChevronDown, Plus, DotsThree as MoreHorizontal, Sparkle as Sparkles } from 'phosphor-react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { GroupData, TaskItem, Status, StatusOption, ColumnWidths } from '../types';
 

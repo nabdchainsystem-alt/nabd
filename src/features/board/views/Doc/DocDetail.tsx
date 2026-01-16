@@ -1,6 +1,6 @@
 import React from 'react';
 import { Doc } from './types';
-import { MoreHorizontal, Calendar, Tag, Clock } from 'lucide-react';
+import { DotsThree as MoreHorizontal, CalendarBlank as Calendar, Tag, Clock } from 'phosphor-react';
 
 interface DocDetailProps {
     doc: Doc | null;

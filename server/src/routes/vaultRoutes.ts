@@ -50,7 +50,7 @@ router.post('/', requireAuth, async (req, res: Response) => {
         res.json(newItem);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: 'Invalid input', details: error.errors });
+            return res.status(400).json({ error: 'Invalid input', details: error.issues });
         }
         console.error('Error creating vault item:', error);
         res.status(500).json({ error: 'Failed to create vault item' });
@@ -61,7 +61,7 @@ router.post('/', requireAuth, async (req, res: Response) => {
 router.put('/:id', requireAuth, async (req, res: Response) => {
     try {
         const userId = (req as AuthRequest).auth.userId;
-        const { id } = req.params;
+        const id = req.params.id as string;
         const data = vaultItemSchema.partial().parse(req.body);
 
         // Verify ownership before update
@@ -80,7 +80,7 @@ router.put('/:id', requireAuth, async (req, res: Response) => {
         res.json(updatedItem);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: 'Invalid input', details: error.errors });
+            return res.status(400).json({ error: 'Invalid input', details: error.issues });
         }
         console.error('Error updating vault item:', error);
         res.status(500).json({ error: 'Failed to update vault item' });
@@ -91,7 +91,7 @@ router.put('/:id', requireAuth, async (req, res: Response) => {
 router.delete('/:id', requireAuth, async (req, res: Response) => {
     try {
         const userId = (req as AuthRequest).auth.userId;
-        const { id } = req.params;
+        const id = req.params.id as string;
 
         // Verify ownership before delete
         const existing = await prisma.vaultItem.findUnique({ where: { id } });
