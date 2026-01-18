@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
+import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import { ArrowsOut, Info, TrendUp, Warning, Truck, Factory, Money, Star, Buildings, Globe, Handshake } from 'phosphor-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { SupplierOverviewInfo } from './SupplierOverviewInfo';
@@ -64,6 +65,17 @@ const BUBBLE_DATA = [
 export const SupplierOverviewDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
+
+    // Loading state for smooth entrance animation
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Simulate data loading with staggered animation
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 800); // Short delay for smooth transition
+        return () => clearTimeout(timer);
+    }, []);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -151,11 +163,12 @@ export const SupplierOverviewDashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
                 {/* --- Row 1: Top 4 KPIs --- */}
-                {TOP_KPIS.map((kpi) => (
-                    <div key={kpi.id} className="col-span-1">
+                {TOP_KPIS.map((kpi, index) => (
+                    <div key={kpi.id} className="col-span-1" style={{ animationDelay: `${index * 100}ms` }}>
                         <KPICard
                             {...kpi}
                             color={kpi.color as any || 'blue'}
+                            loading={isLoading}
                         />
                     </div>
                 ))}
@@ -166,46 +179,55 @@ export const SupplierOverviewDashboard: React.FC = () => {
                 <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     {/* Recharts: Spend by Supplier (Bar) */}
-                    <div className="bg-white dark:bg-[#2b2e36] p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="mb-4">
-                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Top Spend</h3>
-                            <p className="text-xs text-gray-400">By Supplier</p>
+                    {isLoading ? (
+                        <ChartSkeleton height="h-[280px]" title="Top Spend" />
+                    ) : (
+                        <div className="bg-white dark:bg-[#2b2e36] p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                            <div className="mb-4">
+                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Top Spend</h3>
+                                <p className="text-xs text-gray-400">By Supplier</p>
+                            </div>
+                            <div className="h-[200px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={SPEND_BY_SUPPLIER} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <Tooltip
+                                            cursor={{ fill: '#f9fafb' }}
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        />
+                                        <Bar dataKey="Spend" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
-                        <div className="h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={SPEND_BY_SUPPLIER} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="Spend" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
+                    )}
 
                     {/* ECharts: Category Split (Pie) */}
-                    <div className="bg-white dark:bg-[#2b2e36] p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="mb-2">
-                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Spend Mix</h3>
-                            <p className="text-xs text-gray-400">By Category</p>
+                    {isLoading ? (
+                        <PieChartSkeleton title="Spend Mix" />
+                    ) : (
+                        <div className="bg-white dark:bg-[#2b2e36] p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                            <div className="mb-2">
+                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Spend Mix</h3>
+                                <p className="text-xs text-gray-400">By Category</p>
+                            </div>
+                            <ReactECharts option={pieOption} style={{ height: '180px' }} />
                         </div>
-                        <ReactECharts option={pieOption} style={{ height: '180px' }} />
-                    </div>
+                    )}
 
                 </div>
 
                 {/* Right Column: Side KPIs (1 col) */}
                 <div className="col-span-1 flex flex-col gap-6">
-                    {SIDE_KPIS.map((kpi) => (
-                        <div key={kpi.id} className="flex-1">
+                    {SIDE_KPIS.map((kpi, index) => (
+                        <div key={kpi.id} className="flex-1" style={{ animationDelay: `${(index + 4) * 100}ms` }}>
                             <KPICard
                                 {...kpi}
                                 color={kpi.color as any || 'blue'}
                                 className="h-full"
+                                loading={isLoading}
                             />
                         </div>
                     ))}
@@ -214,49 +236,57 @@ export const SupplierOverviewDashboard: React.FC = () => {
                 {/* --- Row 3: Final Section (Table + Companion) --- */}
 
                 {/* Table (2 cols) */}
-                <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-white dark:bg-[#2b2e36] rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                    <div className="p-5 border-b border-gray-100 dark:border-gray-700">
-                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Strategic Suppliers</h3>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold">
-                                <tr>
-                                    <th className="px-5 py-3">Supplier</th>
-                                    <th className="px-5 py-3">Category</th>
-                                    <th className="px-5 py-3">Spend</th>
-                                    <th className="px-5 py-3">Rating</th>
-                                    <th className="px-5 py-3 text-right">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {SUPPLIER_TABLE.map((row, index) => (
-                                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                        <td className="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">{row.name}</td>
-                                        <td className="px-5 py-3 text-gray-600 dark:text-gray-400 text-xs">{row.category}</td>
-                                        <td className="px-5 py-3 font-medium text-gray-800 dark:text-gray-200">{row.spend}</td>
-                                        <td className="px-5 py-3 text-amber-500 font-bold flex items-center gap-1">
-                                            {row.rating} <Star size={12} weight="fill" />
-                                        </td>
-                                        <td className="px-5 py-3 text-right">
-                                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${row.status === 'Strategic' ? 'bg-purple-100 text-purple-700' :
+                {isLoading ? (
+                    <TableSkeleton rows={5} columns={5} />
+                ) : (
+                    <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-white dark:bg-[#2b2e36] rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm overflow-hidden hover:shadow-md transition-shadow animate-fade-in-up">
+                        <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Strategic Suppliers</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold">
+                                    <tr>
+                                        <th className="px-5 py-3">Supplier</th>
+                                        <th className="px-5 py-3">Category</th>
+                                        <th className="px-5 py-3">Spend</th>
+                                        <th className="px-5 py-3">Rating</th>
+                                        <th className="px-5 py-3 text-right">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                    {SUPPLIER_TABLE.map((row, index) => (
+                                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                            <td className="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">{row.name}</td>
+                                            <td className="px-5 py-3 text-gray-600 dark:text-gray-400 text-xs">{row.category}</td>
+                                            <td className="px-5 py-3 font-medium text-gray-800 dark:text-gray-200">{row.spend}</td>
+                                            <td className="px-5 py-3 text-amber-500 font-bold flex items-center gap-1">
+                                                {row.rating} <Star size={12} weight="fill" />
+                                            </td>
+                                            <td className="px-5 py-3 text-right">
+                                                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${row.status === 'Strategic' ? 'bg-purple-100 text-purple-700' :
                                                     row.status === 'Probation' ? 'bg-red-100 text-red-700' :
                                                         'bg-green-100 text-green-700'
-                                                }`}>
-                                                {row.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                                    }`}>
+                                                    {row.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Companion Chart: Bubble Matrix (2 cols) */}
-                <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-white dark:bg-[#2b2e36] p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
-                    <ReactECharts option={bubbleOption} style={{ height: '300px', width: '100%' }} />
-                </div>
+                {isLoading ? (
+                    <ChartSkeleton height="h-[340px]" title="Risk vs Value Matrix" />
+                ) : (
+                    <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-white dark:bg-[#2b2e36] p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                        <ReactECharts option={bubbleOption} style={{ height: '300px', width: '100%' }} />
+                    </div>
+                )}
 
             </div>
         </div>

@@ -13,6 +13,7 @@ import { ForecastLifetimeRiskDashboard } from './ForecastLifetimeRiskDashboard';
 const INITIAL_BOARD: Board = {
     id: 'customer-data',
     name: 'Customer Intelligence',
+    description: 'Analyze customer behavior and trends',
     type: 'project',
     columns: [
         { id: 'c1', title: 'New Leads', type: 'status' },

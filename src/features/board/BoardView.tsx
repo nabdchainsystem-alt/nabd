@@ -79,6 +79,8 @@ import WorkloadView from '../tools/WorkloadView';
 import RecurringLogicView from '../tools/RecurringLogicView';
 import SmartSheetView from '../tools/SpreadsheetView';
 import { TimelineView } from './views/Timeline/TimelineView';
+import SupplierInsights from '../mini_company/suppliers/SupplierInsights';
+import CustomerInsights from '../mini_company/customers/CustomerInsights';
 
 
 import { useUI } from '../../contexts/UIContext';
@@ -809,14 +811,28 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                     );
                 }
                 if (board.id === 'dept-sales') {
-                    // Sales uses blank SalesInsights as general overview
                     return (
                         <div className="w-full h-full overflow-hidden">
                             <SalesInsights />
                         </div>
                     );
                 }
+                if (board.id === 'supplier-data') {
+                    return (
+                        <div className="w-full h-full overflow-hidden">
+                            <SupplierInsights />
+                        </div>
+                    );
+                }
+                if (board.id === 'customer-data') {
+                    return (
+                        <div className="w-full h-full overflow-hidden">
+                            <CustomerInsights />
+                        </div>
+                    );
+                }
                 return <OverviewView boardId={board.id} tasks={tasks} />;
+
 
             // Sales Dashboard Views - handled via renderCustomView
             case 'purchase_overview':
@@ -1294,7 +1310,8 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
             {/* Main Content Area */}
             {(() => {
                 const type = getBaseViewType(activeView);
-                const isFullWidth = ['table', 'datatable', 'gantt', 'spreadsheet', 'calendar', 'sales_insights', 'sales_performance', 'sales_analysis', 'sales_forecast', 'sales_funnel', 'sales_segmentation', 'sales_promotions', 'purchase_overview', 'supplier_performance', 'purchase_behavior', 'cost_control', 'purchase_funnel', 'dependency_risk', 'forecast_planning', 'inventory_overview', 'stock_movement', 'inventory_aging', 'stock_accuracy', 'reorder_planning', 'warehouse_performance', 'inventory_forecast', 'expenses_overview', 'category_analysis', 'fixed_variable', 'trends_anomalies', 'approval_flow', 'dept_accountability', 'forecast_optimization', 'customer_overview', 'segmentation_value', 'behavior_patterns', 'retention_churn', 'journey_touchpoints', 'satisfaction_feedback', 'forecast_risk', 'supplier_overview', 'supplier_delivery', 'supplier_cost'].includes(type);
+                const isDashboardBoard = ['dept-sales', 'supplier-data', 'customer-data'].includes(board.id);
+                const isFullWidth = ['table', 'datatable', 'gantt', 'spreadsheet', 'calendar', 'sales_insights', 'sales_performance', 'sales_analysis', 'sales_forecast', 'sales_funnel', 'sales_segmentation', 'sales_promotions', 'purchase_overview', 'supplier_performance', 'purchase_behavior', 'cost_control', 'purchase_funnel', 'dependency_risk', 'forecast_planning', 'inventory_overview', 'stock_movement', 'inventory_aging', 'stock_accuracy', 'reorder_planning', 'warehouse_performance', 'inventory_forecast', 'expenses_overview', 'category_analysis', 'fixed_variable', 'trends_anomalies', 'approval_flow', 'dept_accountability', 'forecast_optimization', 'customer_overview', 'segmentation_value', 'behavior_patterns', 'retention_churn', 'journey_touchpoints', 'satisfaction_feedback', 'forecast_risk', 'supplier_overview', 'supplier_delivery', 'supplier_cost'].includes(type) || (type === 'overview' && isDashboardBoard);
                 const currentViewIndex = fullscreenNavigableViews.indexOf(activeView);
                 const currentViewOption = effectiveViewOptions.find(v => v.id === getBaseViewType(activeView));
 

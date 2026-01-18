@@ -9,6 +9,7 @@ import { SupplierCostDashboard } from './SupplierCostDashboard';
 const INITIAL_BOARD: Board = {
     id: 'supplier-data',
     name: 'Supplier Management',
+    description: 'Track supplier performance and costs',
     type: 'project',
     columns: [
         { id: 'c1', title: 'New', type: 'status' },
