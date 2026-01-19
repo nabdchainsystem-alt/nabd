@@ -2,20 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { ArrowRight, Play, Sparkle, ChartLineUp, Users, Buildings, Lightning } from 'phosphor-react';
 
-const FloatingOrb: React.FC<{ delay: number; size: number; x: number; y: number; color: string }> = ({ delay, size, x, y, color }) => (
+const FloatingOrb: React.FC<{ delay: number; size: number; x: number; y: number }> = ({ delay, size, x, y }) => (
     <motion.div
-        className="absolute rounded-full blur-3xl opacity-20"
+        className="absolute rounded-full blur-3xl opacity-[0.07]"
         style={{
             width: size,
             height: size,
             left: `${x}%`,
             top: `${y}%`,
-            background: color,
+            background: 'linear-gradient(135deg, #a1a1aa 0%, #71717a 100%)',
         }}
         animate={{
             y: [0, -30, 0],
             scale: [1, 1.1, 1],
-            opacity: [0.1, 0.2, 0.1],
+            opacity: [0.05, 0.1, 0.05],
         }}
         transition={{
             duration: 8,
@@ -45,7 +45,7 @@ const AnimatedCounter: React.FC<{ value: number; suffix: string; label: string }
             <div className="text-3xl md:text-4xl font-bold text-black dark:text-white">
                 {displayValue}{suffix}
             </div>
-            <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{label}</div>
+            <div className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">{label}</div>
         </div>
     );
 };
@@ -54,7 +54,7 @@ const GridPattern: React.FC = () => (
     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
             <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-zinc-100 dark:text-zinc-800/50" />
+                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-zinc-200 dark:text-zinc-800/50" />
             </pattern>
             <linearGradient id="fade" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="white" stopOpacity="1" />
@@ -75,7 +75,7 @@ const FeaturePill: React.FC<{ icon: React.ReactNode; text: string; delay: number
         transition={{ duration: 0.5, delay }}
         className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm"
     >
-        <span className="text-[#06C167]">{icon}</span>
+        <span className="text-zinc-600 dark:text-zinc-400">{icon}</span>
         <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{text}</span>
     </motion.div>
 );
@@ -88,9 +88,9 @@ export const HeroSection: React.FC<{ onEnterSystem?: () => void }> = ({ onEnterS
             <GridPattern />
 
             {/* Subtle Floating Orbs */}
-            <FloatingOrb delay={0} size={600} x={-10} y={10} color="#06C167" />
-            <FloatingOrb delay={2} size={400} x={80} y={60} color="#06C167" />
-            <FloatingOrb delay={4} size={300} x={60} y={-10} color="#276EF1" />
+            <FloatingOrb delay={0} size={600} x={-10} y={10} />
+            <FloatingOrb delay={2} size={400} x={80} y={60} />
+            <FloatingOrb delay={4} size={300} x={60} y={-10} />
 
             {/* Main Content */}
             <div className="relative z-10 max-w-6xl mx-auto w-full">
@@ -101,9 +101,9 @@ export const HeroSection: React.FC<{ onEnterSystem?: () => void }> = ({ onEnterS
                     transition={{ duration: 0.6 }}
                     className="flex justify-center mb-8"
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#06C167]/10 border border-[#06C167]/20">
-                        <Sparkle size={16} weight="fill" className="text-[#06C167]" />
-                        <span className="text-sm font-medium text-[#06C167]">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                        <Sparkle size={16} weight="fill" className="text-zinc-500" />
+                        <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                             Introducing NABD 2.0 - The Future of Business Management
                         </span>
                     </div>
@@ -119,10 +119,8 @@ export const HeroSection: React.FC<{ onEnterSystem?: () => void }> = ({ onEnterS
                     <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-black dark:text-white leading-[1.05]">
                         Your Business,
                         <br />
-                        <span className="relative">
-                            <span className="text-[#06C167]">
-                                Perfectly Orchestrated
-                            </span>
+                        <span className="text-zinc-400 dark:text-zinc-500">
+                            Perfectly Orchestrated
                         </span>
                     </h1>
                 </motion.div>
@@ -132,7 +130,7 @@ export const HeroSection: React.FC<{ onEnterSystem?: () => void }> = ({ onEnterS
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="text-xl md:text-2xl text-zinc-600 dark:text-zinc-400 text-center max-w-3xl mx-auto mb-12 leading-relaxed"
+                    className="text-xl md:text-2xl text-zinc-500 dark:text-zinc-500 text-center max-w-3xl mx-auto mb-12 leading-relaxed"
                 >
                     The all-in-one platform for project management, company operations,
                     and data-driven insights. Transform how your team works.
@@ -157,11 +155,11 @@ export const HeroSection: React.FC<{ onEnterSystem?: () => void }> = ({ onEnterS
                     </button>
 
                     <button className="group h-14 px-8 rounded-xl bg-transparent text-black dark:text-white font-semibold text-lg
-                        border-2 border-zinc-200 dark:border-zinc-800
-                        hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900
+                        border-2 border-zinc-300 dark:border-zinc-700
+                        hover:border-zinc-400 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-900
                         transition-all duration-200 flex items-center gap-3"
                     >
-                        <div className="w-10 h-10 rounded-full bg-[#06C167] flex items-center justify-center text-white">
+                        <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 group-hover:bg-zinc-300 dark:group-hover:bg-zinc-700 transition-colors">
                             <Play size={16} weight="fill" className="ml-0.5" />
                         </div>
                         Watch Demo

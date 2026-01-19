@@ -1048,6 +1048,21 @@ const AppRoutes: React.FC = () => {
   // View state: 'landing' | 'signin' | 'signup'
   const [authView, setAuthView] = useState<'landing' | 'signin' | 'signup'>('landing');
 
+  // Detect if we're on the app subdomain
+  const hostname = window.location.hostname;
+  const isAppSubdomain = hostname.startsWith('app.') || hostname === 'localhost' || hostname === '127.0.0.1';
+  const isMainDomain = !isAppSubdomain && (hostname.includes('nabdchain') || hostname.includes('vercel.app'));
+
+  // Redirect helper - navigates to app subdomain
+  const redirectToApp = () => {
+    if (hostname.includes('nabdchain.com') && !hostname.startsWith('app.')) {
+      window.location.href = 'https://app.nabdchain.com';
+    } else {
+      // For localhost or already on app subdomain, just show signin
+      setAuthView('signin');
+    }
+  };
+
   if (!isLoaded) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-[#F7F9FB] dark:bg-monday-dark-bg">
@@ -1056,21 +1071,36 @@ const AppRoutes: React.FC = () => {
     );
   }
 
+  // Main domain (nabdchain.com) - Always show landing page
+  if (isMainDomain && !isSignedIn) {
+    return <LandingPage onEnterSystem={redirectToApp} />;
+  }
+
+  // Main domain but signed in - redirect to app subdomain
+  if (isMainDomain && isSignedIn) {
+    // User is signed in but on main domain - redirect to app
+    if (hostname.includes('nabdchain.com') && !hostname.startsWith('app.')) {
+      window.location.href = 'https://app.nabdchain.com';
+      return (
+        <div className="h-screen w-full flex items-center justify-center bg-[#F7F9FB] dark:bg-monday-dark-bg">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+  }
+
+  // App subdomain (app.nabdchain.com or localhost) - Show app or auth
   return (
     <>
       <SignedOut>
         {authView === 'landing' && (
-          <LandingPage onEnterSystem={() => setAuthView('signin')} />
-        )}
-
-        {authView === 'signin' && (
+          // On app subdomain, show sign-in by default, not landing
           <div className="flex h-screen w-full items-center justify-center bg-white flex-col gap-6">
-            {/* Logo removed as per request */}
             <SignIn
               fallbackRedirectUrl="/dashboard"
               appearance={{
                 elements: {
-                  footer: "hidden" // Hide default footer to use custom navigation
+                  footer: "hidden"
                 }
               }}
             />
@@ -1083,12 +1113,40 @@ const AppRoutes: React.FC = () => {
                 Sign up
               </button>
             </div>
-            <button
-              onClick={() => setAuthView('landing')}
+            <a
+              href="https://nabdchain.com"
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
               ← Back to Home
-            </button>
+            </a>
+          </div>
+        )}
+
+        {authView === 'signin' && (
+          <div className="flex h-screen w-full items-center justify-center bg-white flex-col gap-6">
+            <SignIn
+              fallbackRedirectUrl="/dashboard"
+              appearance={{
+                elements: {
+                  footer: "hidden"
+                }
+              }}
+            />
+            <div className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <button
+                onClick={() => setAuthView('signup')}
+                className="text-blue-600 font-medium hover:underline"
+              >
+                Sign up
+              </button>
+            </div>
+            <a
+              href="https://nabdchain.com"
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              ← Back to Home
+            </a>
           </div>
         )}
 

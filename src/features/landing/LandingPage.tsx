@@ -19,22 +19,12 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
     const navBackground = useTransform(
         scrollY,
         [0, 100],
-        ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.9)']
-    );
-    const navBackgroundDark = useTransform(
-        scrollY,
-        [0, 100],
-        ['rgba(9, 9, 11, 0)', 'rgba(9, 9, 11, 0.9)']
+        ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.95)']
     );
     const navBorder = useTransform(
         scrollY,
         [0, 100],
         ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.05)']
-    );
-    const navShadow = useTransform(
-        scrollY,
-        [0, 100],
-        ['0 0 0 0 rgba(0,0,0,0)', '0 4px 30px -10px rgba(0,0,0,0.1)']
     );
 
     const handleUserSign = () => {
@@ -50,7 +40,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
             openSignIn({
                 appearance: {
                     variables: {
-                        colorPrimary: '#2563EB',
+                        colorPrimary: '#000000',
                     }
                 }
             });
@@ -65,16 +55,15 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
     ];
 
     return (
-        <div className="h-screen overflow-y-auto bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white font-sans selection:bg-blue-500/20 scroll-smooth">
+        <div className="h-screen overflow-y-auto bg-white dark:bg-black text-black dark:text-white font-sans selection:bg-zinc-200 dark:selection:bg-zinc-800 scroll-smooth">
             {/* Navbar */}
             <motion.nav
                 style={{
                     backgroundColor: navBackground,
                     borderBottomWidth: 1,
                     borderBottomColor: navBorder,
-                    boxShadow: navShadow,
                 }}
-                className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl dark:backdrop-blur-xl"
+                className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl"
             >
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     {/* Logo */}
@@ -84,7 +73,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                         className="flex items-center gap-3 cursor-pointer group"
                         onClick={handleUserSign}
                     >
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-violet-600 rounded-xl flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-shadow">
+                        <div className="w-10 h-10 bg-black dark:bg-white rounded-xl flex items-center justify-center text-white dark:text-black text-lg font-bold">
                             N
                         </div>
                         <span className="text-xl font-bold tracking-tight">
@@ -98,7 +87,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                             <a
                                 key={link.label}
                                 href={link.href}
-                                className="text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                                className="text-sm font-medium text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
                             >
                                 {link.label}
                             </a>
@@ -111,15 +100,15 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                         <div className="hidden sm:flex items-center gap-3">
                             <button
                                 onClick={handleUserSign}
-                                className="h-10 px-5 rounded-xl bg-blue-600 text-white text-sm font-semibold
-                                hover:bg-blue-700 transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
+                                className="h-10 px-5 rounded-lg bg-black dark:bg-white text-white dark:text-black text-sm font-semibold
+                                hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all duration-200"
                             >
                                 User Sign
                             </button>
                             <button
                                 onClick={() => setIsDevLoginOpen(true)}
-                                className="h-10 px-5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold
-                                hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all duration-200"
+                                className="h-10 px-5 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white text-sm font-semibold
+                                hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all duration-200"
                             >
                                 Developer Sign
                             </button>
@@ -128,7 +117,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                         {/* Mobile Menu Button */}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         >
                             {isMobileMenuOpen ? <X size={24} /> : <List size={24} />}
                         </button>
@@ -139,7 +128,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                 <motion.div
                     initial={false}
                     animate={{ height: isMobileMenuOpen ? 'auto' : 0 }}
-                    className="md:hidden overflow-hidden bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800"
+                    className="md:hidden overflow-hidden bg-white dark:bg-black border-t border-zinc-100 dark:border-zinc-900"
                 >
                     <div className="p-6 space-y-4">
                         {navLinks.map((link) => (
@@ -147,7 +136,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                                 key={link.label}
                                 href={link.href}
                                 onClick={() => setIsMobileMenuOpen(false)}
-                                className="block text-lg font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                                className="block text-lg font-medium text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
                             >
                                 {link.label}
                             </a>
@@ -155,7 +144,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                         <div className="pt-4 space-y-3">
                             <button
                                 onClick={handleUserSign}
-                                className="w-full h-12 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+                                className="w-full h-12 rounded-lg bg-black dark:bg-white text-white dark:text-black font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
                             >
                                 User Sign
                             </button>
@@ -164,7 +153,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                                     setIsMobileMenuOpen(false);
                                     setIsDevLoginOpen(true);
                                 }}
-                                className="w-full h-12 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors"
+                                className="w-full h-12 rounded-lg bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white font-semibold hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors"
                             >
                                 Developer Sign
                             </button>
@@ -195,20 +184,20 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
             </main>
 
             {/* Footer */}
-            <footer className="bg-zinc-950 text-white py-20 border-t border-zinc-900">
+            <footer className="bg-black text-white py-20 border-t border-zinc-900">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
                         {/* Brand Column */}
                         <div className="col-span-2">
                             <div className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-violet-600 rounded-xl flex items-center justify-center text-white text-lg font-bold">
+                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-black text-lg font-bold">
                                     N
                                 </div>
                                 <span className="text-xl font-bold tracking-tight">
                                     Nabd
                                 </span>
                             </div>
-                            <p className="text-zinc-400 text-sm mb-6 max-w-xs">
+                            <p className="text-zinc-500 text-sm mb-6 max-w-xs">
                                 The complete platform for modern business management.
                                 Streamline operations, boost productivity, and drive growth.
                             </p>
@@ -217,7 +206,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                                     <a
                                         key={social}
                                         href="#"
-                                        className="w-10 h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors text-sm font-medium"
+                                        className="w-10 h-10 rounded-lg bg-zinc-900 hover:bg-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white transition-colors text-sm font-medium"
                                     >
                                         {social}
                                     </a>
@@ -228,7 +217,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                         {/* Links Columns */}
                         <div>
                             <h4 className="font-semibold mb-4">Product</h4>
-                            <ul className="space-y-3 text-sm text-zinc-400">
+                            <ul className="space-y-3 text-sm text-zinc-500">
                                 <li><a href="#" className="hover:text-white transition-colors">Features</a></li>
                                 <li><a href="#" className="hover:text-white transition-colors">Integrations</a></li>
                                 <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
@@ -238,7 +227,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
 
                         <div>
                             <h4 className="font-semibold mb-4">Resources</h4>
-                            <ul className="space-y-3 text-sm text-zinc-400">
+                            <ul className="space-y-3 text-sm text-zinc-500">
                                 <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
                                 <li><a href="#" className="hover:text-white transition-colors">API Reference</a></li>
                                 <li><a href="#" className="hover:text-white transition-colors">Guides</a></li>
@@ -248,7 +237,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
 
                         <div>
                             <h4 className="font-semibold mb-4">Company</h4>
-                            <ul className="space-y-3 text-sm text-zinc-400">
+                            <ul className="space-y-3 text-sm text-zinc-500">
                                 <li><a href="#" className="hover:text-white transition-colors">About</a></li>
                                 <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
                                 <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
@@ -266,10 +255,10 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
 
                     {/* Bottom Bar */}
                     <div className="pt-8 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className="text-sm text-zinc-500">
+                        <p className="text-sm text-zinc-600">
                             &copy; 2026 Nabd Chain System. All rights reserved.
                         </p>
-                        <div className="flex gap-6 text-sm text-zinc-500">
+                        <div className="flex gap-6 text-sm text-zinc-600">
                             <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
                             <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
                             <a href="#" className="hover:text-white transition-colors">Cookie Policy</a>

@@ -14,10 +14,10 @@ export const CTASection: React.FC<{ onGetStarted?: () => void }> = ({ onGetStart
     ];
 
     return (
-        <section ref={sectionRef} className="py-32 bg-white dark:bg-zinc-900 relative overflow-hidden">
+        <section ref={sectionRef} className="py-32 bg-white dark:bg-black relative overflow-hidden">
             {/* Background Gradients */}
             <div className="absolute inset-0">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-b from-blue-500/10 to-transparent rounded-full blur-3xl" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-zinc-200/30 dark:bg-zinc-800/20 rounded-full blur-3xl" />
             </div>
 
             <div className="max-w-5xl mx-auto px-6 relative z-10">
@@ -28,26 +28,18 @@ export const CTASection: React.FC<{ onGetStarted?: () => void }> = ({ onGetStart
                     className="relative"
                 >
                     {/* Main Card */}
-                    <div className="relative rounded-[2.5rem] overflow-hidden">
-                        {/* Gradient Background */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-900 to-zinc-800 dark:from-zinc-800 dark:via-zinc-800 dark:to-zinc-700" />
+                    <div className="relative rounded-3xl overflow-hidden">
+                        {/* Background */}
+                        <div className="absolute inset-0 bg-black" />
 
-                        {/* Animated Gradient Orbs */}
+                        {/* Subtle gradient accent */}
                         <motion.div
                             animate={{
                                 x: [0, 50, 0],
                                 y: [0, -30, 0],
                             }}
                             transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                            className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-600/30 rounded-full blur-[100px]"
-                        />
-                        <motion.div
-                            animate={{
-                                x: [0, -30, 0],
-                                y: [0, 50, 0],
-                            }}
-                            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                            className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-violet-600/30 rounded-full blur-[100px]"
+                            className="absolute top-0 right-0 w-[400px] h-[400px] bg-zinc-700/20 rounded-full blur-[100px]"
                         />
 
                         {/* Content */}
@@ -57,9 +49,9 @@ export const CTASection: React.FC<{ onGetStarted?: () => void }> = ({ onGetStart
                                 initial={{ scale: 0 }}
                                 animate={isInView ? { scale: 1 } : { scale: 0 }}
                                 transition={{ duration: 0.5, delay: 0.2, type: "spring" }}
-                                className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 mb-8 shadow-2xl shadow-blue-500/25"
+                                className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white mb-8"
                             >
-                                <Rocket size={40} weight="duotone" className="text-white" />
+                                <Rocket size={40} weight="duotone" className="text-black" />
                             </motion.div>
 
                             {/* Heading */}
@@ -94,9 +86,8 @@ export const CTASection: React.FC<{ onGetStarted?: () => void }> = ({ onGetStart
                             >
                                 <button
                                     onClick={onGetStarted}
-                                    className="group h-14 px-8 rounded-2xl bg-white text-zinc-900 font-semibold text-lg
-                                    hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
-                                    shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+                                    className="group h-14 px-8 rounded-xl bg-white text-black font-semibold text-lg
+                                    hover:bg-zinc-100 transition-all duration-200"
                                 >
                                     <span className="flex items-center gap-2">
                                         Start Free Trial
@@ -104,7 +95,7 @@ export const CTASection: React.FC<{ onGetStarted?: () => void }> = ({ onGetStart
                                     </span>
                                 </button>
 
-                                <button className="h-14 px-8 rounded-2xl border border-zinc-700 text-white font-semibold text-lg
+                                <button className="h-14 px-8 rounded-xl border border-zinc-700 text-white font-semibold text-lg
                                     hover:bg-white/5 hover:border-zinc-600 transition-all duration-200"
                                 >
                                     Schedule Demo
@@ -118,9 +109,9 @@ export const CTASection: React.FC<{ onGetStarted?: () => void }> = ({ onGetStart
                                 transition={{ duration: 0.6, delay: 0.6 }}
                                 className="flex flex-wrap justify-center gap-6"
                             >
-                                {benefits.map((benefit, i) => (
+                                {benefits.map((benefit) => (
                                     <div key={benefit} className="flex items-center gap-2 text-zinc-400">
-                                        <CheckCircle size={18} weight="fill" className="text-emerald-500" />
+                                        <CheckCircle size={18} weight="fill" className="text-zinc-500" />
                                         <span className="text-sm">{benefit}</span>
                                     </div>
                                 ))}

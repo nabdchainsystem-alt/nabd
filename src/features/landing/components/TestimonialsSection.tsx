@@ -79,7 +79,7 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial; delay: number }> = (
             <div className={`h-full p-8 rounded-2xl transition-all duration-300
                 ${testimonial.featured
                     ? 'bg-black text-white'
-                    : 'bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 hover:border-[#06C167]/30 dark:hover:border-[#06C167]/30 hover:shadow-xl'
+                    : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xl'
                 }`}
             >
                 {/* Quote Icon */}
@@ -94,7 +94,7 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial; delay: number }> = (
                             key={i}
                             size={18}
                             weight="fill"
-                            className={testimonial.featured ? 'text-[#06C167]' : 'text-[#06C167]'}
+                            className={testimonial.featured ? 'text-white' : 'text-zinc-400'}
                         />
                     ))}
                 </div>
@@ -102,7 +102,7 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial; delay: number }> = (
                 {/* Quote */}
                 <p className={`mb-8 leading-relaxed ${testimonial.featured
                     ? 'text-xl md:text-2xl text-white/90'
-                    : 'text-lg text-zinc-700 dark:text-zinc-300'
+                    : 'text-lg text-zinc-600 dark:text-zinc-400'
                     }`}>
                     "{testimonial.quote}"
                 </p>
@@ -111,7 +111,7 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial; delay: number }> = (
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold
                         ${testimonial.featured
-                            ? 'bg-[#06C167] text-white'
+                            ? 'bg-white text-black'
                             : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                         }`}>
                         {testimonial.avatar}
@@ -120,7 +120,7 @@ const TestimonialCard: React.FC<{ testimonial: Testimonial; delay: number }> = (
                         <div className={`font-semibold ${testimonial.featured ? 'text-white' : 'text-black dark:text-white'}`}>
                             {testimonial.author}
                         </div>
-                        <div className={`text-sm ${testimonial.featured ? 'text-white/60' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                        <div className={`text-sm ${testimonial.featured ? 'text-white/60' : 'text-zinc-500 dark:text-zinc-500'}`}>
                             {testimonial.role}, {testimonial.company}
                         </div>
                     </div>
@@ -138,8 +138,8 @@ export const TestimonialsSection: React.FC = () => {
         <section className="py-32 bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden">
             {/* Background Elements */}
             <div className="absolute inset-0">
-                <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-[#06C167]/5 rounded-full blur-3xl" />
-                <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-[#06C167]/5 rounded-full blur-3xl" />
+                <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-zinc-300/10 dark:bg-zinc-700/5 rounded-full blur-3xl" />
+                <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-zinc-300/10 dark:bg-zinc-700/5 rounded-full blur-3xl" />
             </div>
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -151,17 +151,17 @@ export const TestimonialsSection: React.FC = () => {
                     transition={{ duration: 0.7 }}
                     className="text-center mb-20"
                 >
-                    <span className="inline-block px-4 py-2 rounded-full bg-[#06C167]/10 text-[#06C167] text-sm font-semibold mb-6">
+                    <span className="inline-block px-4 py-2 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-sm font-semibold mb-6">
                         Testimonials
                     </span>
                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black dark:text-white tracking-tight mb-6">
                         Loved by teams
                         <br />
-                        <span className="text-[#06C167]">
+                        <span className="text-zinc-400 dark:text-zinc-500">
                             worldwide
                         </span>
                     </h2>
-                    <p className="text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto">
+                    <p className="text-xl text-zinc-500 dark:text-zinc-500 max-w-2xl mx-auto">
                         See what our customers have to say about transforming their
                         business operations with NABD.
                     </p>
@@ -185,12 +185,12 @@ export const TestimonialsSection: React.FC = () => {
                     transition={{ duration: 0.7, delay: 0.5 }}
                     className="mt-20 text-center"
                 >
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-8">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-500 mb-8">
                         Trusted by innovative companies worldwide
                     </p>
                     <div className="flex flex-wrap justify-center items-center gap-12 opacity-40">
                         {['TechFlow', 'BuildRight', 'InnovateLab', 'GlobalSol', 'Nexus'].map((company) => (
-                            <div key={company} className="text-xl font-bold text-zinc-500 dark:text-zinc-500">
+                            <div key={company} className="text-xl font-bold text-zinc-500">
                                 {company}
                             </div>
                         ))}
