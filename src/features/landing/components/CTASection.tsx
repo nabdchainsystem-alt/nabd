@@ -17,7 +17,7 @@ export const CTASection: React.FC<{ onGetStarted?: () => void }> = ({ onGetStart
         <section ref={sectionRef} className="py-32 bg-white dark:bg-black relative overflow-hidden">
             {/* Background Gradients */}
             <div className="absolute inset-0">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-zinc-200/30 dark:bg-zinc-800/20 rounded-full blur-3xl" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-zinc-200/10 dark:bg-zinc-800/10 rounded-full" />
             </div>
 
             <div className="max-w-5xl mx-auto px-6 relative z-10">
@@ -33,14 +33,7 @@ export const CTASection: React.FC<{ onGetStarted?: () => void }> = ({ onGetStart
                         <div className="absolute inset-0 bg-black" />
 
                         {/* Subtle gradient accent */}
-                        <motion.div
-                            animate={{
-                                x: [0, 50, 0],
-                                y: [0, -30, 0],
-                            }}
-                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                            className="absolute top-0 right-0 w-[400px] h-[400px] bg-zinc-700/20 rounded-full blur-[100px]"
-                        />
+                        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-zinc-700/10 rounded-full opacity-50" />
 
                         {/* Content */}
                         <div className="relative p-12 md:p-20 text-center">

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { CheckCircle, Circle, ArrowUp, ArrowDown } from 'phosphor-react';
 
@@ -68,34 +68,16 @@ const StatCard: React.FC<{ label: string; value: string; change: number; delay: 
     );
 };
 
-const LiveCursor: React.FC = () => {
-    const [position, setPosition] = useState({ x: 200, y: 150 });
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setPosition({
-                x: 100 + Math.random() * 300,
-                y: 100 + Math.random() * 200
-            });
-        }, 2000);
-        return () => clearInterval(interval);
-    }, []);
-
-    return (
-        <motion.div
-            className="absolute pointer-events-none z-50"
-            animate={{ x: position.x, y: position.y }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
-        >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M5.5 3L15 10.5L10 11.5L8 17L5.5 3Z" fill="white" stroke="#71717a" strokeWidth="1.5" />
-            </svg>
-            <div className="ml-4 mt-1 px-2 py-1 bg-zinc-700 text-white text-xs rounded-md whitespace-nowrap">
-                Sarah K.
-            </div>
-        </motion.div>
-    );
-};
+const StaticCursor: React.FC = () => (
+    <div className="absolute pointer-events-none z-50" style={{ left: 200, top: 150 }}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M5.5 3L15 10.5L10 11.5L8 17L5.5 3Z" fill="white" stroke="#71717a" strokeWidth="1.5" />
+        </svg>
+        <div className="ml-4 mt-1 px-2 py-1 bg-zinc-700 text-white text-xs rounded-md whitespace-nowrap">
+            Sarah K.
+        </div>
+    </div>
+);
 
 export const DashboardPreview: React.FC = () => {
     const sectionRef = useRef(null);
@@ -164,7 +146,7 @@ export const DashboardPreview: React.FC = () => {
                         transition={{ duration: 0.7, delay: 0.2 }}
                         className="relative"
                     >
-                        <div className="absolute inset-0 bg-zinc-300/20 dark:bg-zinc-700/10 rounded-3xl blur-3xl" />
+                        <div className="absolute inset-0 bg-zinc-300/10 dark:bg-zinc-700/5 rounded-3xl" />
 
                         <div className="relative bg-zinc-900 rounded-2xl border border-zinc-800 shadow-2xl overflow-hidden">
                             {/* Window Header */}
@@ -182,7 +164,7 @@ export const DashboardPreview: React.FC = () => {
 
                             {/* Dashboard Content */}
                             <div className="p-6 relative">
-                                <LiveCursor />
+                                <StaticCursor />
 
                                 {/* Stats Row */}
                                 <div className="grid grid-cols-3 gap-4 mb-6">
@@ -218,19 +200,11 @@ export const DashboardPreview: React.FC = () => {
                         </div>
 
                         {/* Floating Elements */}
-                        <motion.div
-                            animate={{ y: [0, -10, 0] }}
-                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                            className="absolute -top-6 -right-6 bg-black text-white px-4 py-2 rounded-xl shadow-lg text-sm font-medium border border-zinc-800"
-                        >
+                        <div className="absolute -top-6 -right-6 bg-black text-white px-4 py-2 rounded-xl shadow-lg text-sm font-medium border border-zinc-800">
                             +23% this week
-                        </motion.div>
+                        </div>
 
-                        <motion.div
-                            animate={{ y: [0, 10, 0] }}
-                            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                            className="absolute -bottom-4 -left-4 bg-white dark:bg-zinc-800 px-4 py-3 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-700"
-                        >
+                        <div className="absolute -bottom-4 -left-4 bg-white dark:bg-zinc-800 px-4 py-3 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-700">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-700" />
                                 <div>
@@ -238,7 +212,7 @@ export const DashboardPreview: React.FC = () => {
                                     <div className="text-sm font-medium text-zinc-900 dark:text-white">Task completed!</div>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     </motion.div>
                 </div>
             </div>

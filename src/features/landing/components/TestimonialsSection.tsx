@@ -138,8 +138,8 @@ export const TestimonialsSection: React.FC = () => {
         <section className="py-32 bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden">
             {/* Background Elements */}
             <div className="absolute inset-0">
-                <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-zinc-300/10 dark:bg-zinc-700/5 rounded-full blur-3xl" />
-                <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-zinc-300/10 dark:bg-zinc-700/5 rounded-full blur-3xl" />
+                <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-zinc-300/5 dark:bg-zinc-700/5 rounded-full" />
+                <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-zinc-300/5 dark:bg-zinc-700/5 rounded-full" />
             </div>
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">

@@ -48,7 +48,17 @@ const StepWrapper = ({ children, stepKey }: { children: React.ReactNode, stepKey
     </motion.div>
 );
 
-// --- Slides Data with Theme Colors ---
+// --- Slides Data with Monochrome Theme ---
+const monoTheme = {
+    primary: "from-zinc-400 to-zinc-600",
+    textGradient: "from-zinc-300 to-zinc-500",
+    orb1: "bg-zinc-500/20",
+    orb2: "bg-zinc-600/20",
+    orb3: "bg-zinc-400/20",
+    iconBg: "bg-white/10",
+    iconColor: "text-zinc-300"
+};
+
 const FEATURE_SLIDES = [
     {
         id: 'supply',
@@ -61,16 +71,7 @@ const FEATURE_SLIDES = [
             { icon: Zap, title: "AI Automation", desc: "Predictive analytics that save 20+ hours/week" },
             { icon: Shield, title: "Enterprise Security", desc: "Bank-grade encryption for all your data" }
         ],
-        // Blue / Cyan Theme
-        theme: {
-            primary: "from-blue-500 to-cyan-400",
-            textGradient: "from-blue-400 to-cyan-300",
-            orb1: "bg-blue-600/20",
-            orb2: "bg-cyan-500/20",
-            orb3: "bg-indigo-500/20",
-            iconBg: "bg-blue-500/10",
-            iconColor: "text-blue-400"
-        }
+        theme: monoTheme
     },
     {
         id: 'procurement',
@@ -83,16 +84,7 @@ const FEATURE_SLIDES = [
             { icon: Layout, title: "Vendor Matching", desc: "AI-suggested suppliers for your needs" },
             { icon: BarChart, title: "Cost Analysis", desc: "Real-time spending insights & forecasts" }
         ],
-        // Purple / Pink Theme
-        theme: {
-            primary: "from-purple-500 to-pink-400",
-            textGradient: "from-purple-400 to-pink-300",
-            orb1: "bg-purple-600/20",
-            orb2: "bg-pink-500/20",
-            orb3: "bg-fuchsia-500/20",
-            iconBg: "bg-purple-500/10",
-            iconColor: "text-purple-400"
-        }
+        theme: monoTheme
     },
     {
         id: 'collaboration',
@@ -105,16 +97,7 @@ const FEATURE_SLIDES = [
             { icon: Mail, title: "Email Integration", desc: "Sync your inbox with your workflow" },
             { icon: CheckSquare, title: "Task Management", desc: "Track assignments and deadlines" }
         ],
-        // Emerald / Teal Theme
-        theme: {
-            primary: "from-emerald-500 to-teal-400",
-            textGradient: "from-emerald-400 to-teal-300",
-            orb1: "bg-emerald-600/20",
-            orb2: "bg-teal-500/20",
-            orb3: "bg-green-500/20",
-            iconBg: "bg-emerald-500/10",
-            iconColor: "text-emerald-400"
-        }
+        theme: monoTheme
     },
     {
         id: 'gtd',
@@ -127,16 +110,7 @@ const FEATURE_SLIDES = [
             { icon: Clock, title: "Weekly Review", desc: "Guided workflows to keep you on track" },
             { icon: CheckSquare, title: "Inbox Zero", desc: "Capture ideas instantly, process them later" }
         ],
-        // Amber / Orange Theme
-        theme: {
-            primary: "from-amber-500 to-orange-400",
-            textGradient: "from-amber-400 to-orange-300",
-            orb1: "bg-amber-600/20",
-            orb2: "bg-orange-500/20",
-            orb3: "bg-yellow-500/20",
-            iconBg: "bg-amber-500/10",
-            iconColor: "text-amber-400"
-        }
+        theme: monoTheme
     },
     {
         id: 'cornell',
@@ -149,16 +123,7 @@ const FEATURE_SLIDES = [
             { icon: Brain, title: "Active Recall", desc: "Tools designed to boost your memory" },
             { icon: FileText, title: "Digital Notebooks", desc: "Organize research by project or topic" }
         ],
-        // Indigo / Violet Theme
-        theme: {
-            primary: "from-indigo-500 to-violet-400",
-            textGradient: "from-indigo-400 to-violet-300",
-            orb1: "bg-indigo-600/20",
-            orb2: "bg-violet-500/20",
-            orb3: "bg-blue-500/20",
-            iconBg: "bg-indigo-500/10",
-            iconColor: "text-indigo-400"
-        }
+        theme: monoTheme
     },
     {
         id: 'warehouse',
@@ -171,16 +136,7 @@ const FEATURE_SLIDES = [
             { icon: Box, title: "Space Optimization", desc: "AI suggestions for better shelving" },
             { icon: BarChart, title: "Inventory Tracking", desc: "Visual location tracking for all SKUs" }
         ],
-        // Rose / Red Theme
-        theme: {
-            primary: "from-rose-500 to-red-400",
-            textGradient: "from-rose-400 to-red-300",
-            orb1: "bg-rose-600/20",
-            orb2: "bg-red-500/20",
-            orb3: "bg-orange-500/20",
-            iconBg: "bg-rose-500/10",
-            iconColor: "text-rose-400"
-        }
+        theme: monoTheme
     }
 ];
 
@@ -280,9 +236,9 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                             <motion.div variants={itemVariants}>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('industry')}</label>
                                 <div className="relative group">
-                                    <Building className="absolute start-3 top-3 text-gray-400 group-hover:text-blue-500 transition-colors" size={18} />
+                                    <Building className="absolute start-3 top-3 text-gray-400 group-hover:text-black dark:group-hover:text-white transition-colors" size={18} />
                                     <select
-                                        className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50"
+                                        className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all appearance-none cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50"
                                         value={formData.industry}
                                         onChange={e => setFormData({ ...formData, industry: e.target.value })}
                                     >
@@ -307,8 +263,8 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                             key={size}
                                             onClick={() => setFormData({ ...formData, teamSize: size })}
                                             className={`py-3 px-4 rounded-xl border text-sm font-medium transition-colors ${formData.teamSize === size
-                                                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
-                                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
+                                                ? 'border-black bg-zinc-100 text-black dark:border-white dark:bg-zinc-800 dark:text-white'
+                                                : 'border-gray-200 dark:border-gray-700 hover:border-zinc-400'
                                                 }`}
                                         >
                                             {size} {t('employees')}
@@ -341,11 +297,11 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                 <motion.div variants={itemVariants}>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('first_name')}</label>
                                     <div className="relative group">
-                                        <User className="absolute start-3 top-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" size={18} />
+                                        <User className="absolute start-3 top-3.5 text-gray-400 group-hover:text-black dark:group-hover:text-white transition-colors" size={18} />
                                         <input
                                             type="text"
                                             required
-                                            className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                                             placeholder="John"
                                             value={formData.firstName}
                                             onChange={e => setFormData({ ...formData, firstName: e.target.value })}
@@ -357,7 +313,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                     <input
                                         type="text"
                                         required
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                                         placeholder="Doe"
                                         value={formData.lastName}
                                         onChange={e => setFormData({ ...formData, lastName: e.target.value })}
@@ -368,10 +324,10 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                             <motion.div variants={itemVariants}>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('phone_number')}</label>
                                 <div className="relative group">
-                                    <Phone className="absolute start-3 top-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" size={18} />
+                                    <Phone className="absolute start-3 top-3.5 text-gray-400 group-hover:text-black dark:group-hover:text-white transition-colors" size={18} />
                                     <input
                                         type="tel"
-                                        className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                                         placeholder="+1 (555) 000-0000"
                                         value={formData.phone}
                                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
@@ -408,11 +364,11 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                 <motion.div variants={itemVariants}>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('work_email')}</label>
                                     <div className="relative group">
-                                        <Mail className="absolute start-3 top-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" size={18} />
+                                        <Mail className="absolute start-3 top-3.5 text-gray-400 group-hover:text-black dark:group-hover:text-white transition-colors" size={18} />
                                         <input
                                             type="email"
                                             required
-                                            className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                                             placeholder="name@company.com"
                                             value={formData.email}
                                             onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -423,11 +379,11 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                 <motion.div variants={itemVariants}>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('password')}</label>
                                     <div className="relative group">
-                                        <Lock className="absolute start-3 top-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" size={18} />
+                                        <Lock className="absolute start-3 top-3.5 text-gray-400 group-hover:text-black dark:group-hover:text-white transition-colors" size={18} />
                                         <input
                                             type="password"
                                             required
-                                            className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                            className="w-full ps-10 pe-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                                             placeholder="••••••••"
                                             value={formData.password}
                                             onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -446,7 +402,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="w-2/3 bg-blue-600 text-white font-semibold py-4 rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+                                        className="w-2/3 bg-black dark:bg-white text-white dark:text-black font-semibold py-4 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-black/10"
                                     >
                                         {loading ? <Loader2 className="animate-spin" /> : t('create_account')}
                                     </button>
@@ -460,8 +416,8 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                 return (
                     <StepWrapper stepKey="verification">
                         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6 text-center">
-                            <motion.div variants={itemVariants} className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Mail className="text-blue-600 dark:text-blue-400" size={32} />
+                            <motion.div variants={itemVariants} className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Mail className="text-black dark:text-white" size={32} />
                             </motion.div>
                             <motion.div variants={itemVariants}>
                                 <h3 className="text-xl font-bold mb-2">{t('check_your_email')}</h3>
@@ -473,7 +429,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                     variants={itemVariants}
                                     type="text"
                                     maxLength={6}
-                                    className="w-full text-center text-3xl font-mono tracking-widest py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none transition-all bg-transparent"
+                                    className="w-full text-center text-3xl font-mono tracking-widest py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-black dark:focus:border-white outline-none transition-all bg-transparent"
                                     placeholder="000000"
                                     value={formData.code}
                                     onChange={e => setFormData({ ...formData, code: e.target.value.replace(/\D/g, '') })}
@@ -482,7 +438,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                     variants={itemVariants}
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full bg-blue-600 text-white font-semibold py-4 rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+                                    className="w-full bg-black dark:bg-white text-white dark:text-black font-semibold py-4 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-black/10"
                                 >
                                     {loading ? <Loader2 className="animate-spin" /> : t('verify_launch')}
                                 </motion.button>
@@ -524,7 +480,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                                 return (
                                     <motion.div
                                         key={s}
-                                        className={`h-1.5 rounded-full transition-colors duration-300 ${isCurrent ? 'bg-blue-600' : isCompleted ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-800'}`}
+                                        className={`h-1.5 rounded-full transition-colors duration-300 ${isCurrent ? 'bg-black dark:bg-white' : isCompleted ? 'bg-zinc-500' : 'bg-gray-200 dark:bg-gray-800'}`}
                                         animate={{ width: isCurrent ? 40 : 12 }}
                                     />
                                 )
@@ -565,7 +521,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin }) => 
                             {t('already_have_account')}{' '}
                             <button
                                 onClick={onNavigateToLogin}
-                                className="font-semibold text-blue-600 hover:text-blue-500 transition-colors"
+                                className="font-semibold text-black dark:text-white hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                                 type="button"
                             >
                                 {t('sign_in')}

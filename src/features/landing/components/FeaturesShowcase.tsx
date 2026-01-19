@@ -122,8 +122,8 @@ export const FeaturesShowcase: React.FC = () => {
         <section className="py-32 bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-30">
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-zinc-300/20 dark:bg-zinc-700/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-zinc-300/20 dark:bg-zinc-700/10 rounded-full blur-3xl" />
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-zinc-300/10 dark:bg-zinc-700/5 rounded-full" />
+                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-zinc-300/10 dark:bg-zinc-700/5 rounded-full" />
             </div>
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">

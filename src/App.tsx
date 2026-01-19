@@ -1045,12 +1045,19 @@ import { SignUpPage } from './features/auth/SignUpPage';
 
 const AppRoutes: React.FC = () => {
   const { isLoaded, isSignedIn } = useUser();
-  // View state: 'landing' | 'signin' | 'signup'
-  const [authView, setAuthView] = useState<'landing' | 'signin' | 'signup'>('landing');
+
+  // Detect hostname early for initial state
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+  // View state: 'landing' | 'signin' | 'signup' | 'home'
+  // On localhost, default to 'home' (landing page), on app subdomain default to 'landing' (sign-in)
+  const [authView, setAuthView] = useState<'landing' | 'signin' | 'signup' | 'home'>(() =>
+    isLocalhost ? 'home' : 'landing'
+  );
 
   // Detect if we're on the app subdomain
-  const hostname = window.location.hostname;
-  const isAppSubdomain = hostname.startsWith('app.') || hostname === 'localhost' || hostname === '127.0.0.1';
+  const isAppSubdomain = hostname.startsWith('app.') || isLocalhost;
   const isMainDomain = !isAppSubdomain && (hostname.includes('nabdchain') || hostname.includes('vercel.app'));
 
   // Check for dev_auth URL parameter (passed from landing page dev login)
@@ -1103,26 +1110,59 @@ const AppRoutes: React.FC = () => {
     }
   }
 
+  // Handler for "Back to Home" - on localhost show landing, on prod redirect
+  const handleBackToHome = () => {
+    if (isLocalhost) {
+      setAuthView('home');
+    } else {
+      window.location.href = 'https://nabdchain.com';
+    }
+  };
+
   // App subdomain (app.nabdchain.com or localhost) - Show app or auth
   return (
     <>
       <SignedOut>
+        {/* Show landing page on localhost */}
+        {authView === 'home' && isLocalhost && (
+          <LandingPage onEnterSystem={() => setAuthView('signin')} />
+        )}
+
         {authView === 'landing' && (
           // On app subdomain, show sign-in by default, not landing
           <div className="flex h-screen w-full items-center justify-center bg-white flex-col gap-6 relative">
             {/* Back to Home - Fixed at top */}
-            <a
-              href={window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/' : 'https://nabdchain.com'}
+            <button
+              onClick={handleBackToHome}
               className="absolute top-6 left-6 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors z-50"
             >
               ← Back to Home
-            </a>
+            </button>
 
             <SignIn
               fallbackRedirectUrl="/dashboard"
               appearance={{
+                variables: {
+                  colorPrimary: '#000000',
+                  colorText: '#000000',
+                  colorTextSecondary: '#71717a',
+                  colorBackground: '#ffffff',
+                  colorInputBackground: '#ffffff',
+                  colorInputText: '#000000',
+                },
                 elements: {
-                  footer: "hidden"
+                  footer: "hidden",
+                  formButtonPrimary: "bg-black hover:bg-zinc-800 text-white",
+                  formButtonReset: "text-black hover:text-zinc-700",
+                  card: "shadow-xl",
+                  headerTitle: "text-black",
+                  headerSubtitle: "text-zinc-500",
+                  socialButtonsBlockButton: "border-zinc-300 hover:bg-zinc-50",
+                  formFieldLabel: "text-zinc-700",
+                  formFieldInput: "border-zinc-300 focus:border-black focus:ring-black",
+                  dividerLine: "bg-zinc-200",
+                  dividerText: "text-zinc-400",
+                  footerActionLink: "text-black hover:text-zinc-700",
                 }
               }}
             />
@@ -1130,7 +1170,7 @@ const AppRoutes: React.FC = () => {
               Don't have an account?{' '}
               <button
                 onClick={() => setAuthView('signup')}
-                className="text-blue-600 font-medium hover:underline"
+                className="text-black font-medium hover:underline"
               >
                 Sign up
               </button>
@@ -1141,18 +1181,37 @@ const AppRoutes: React.FC = () => {
         {authView === 'signin' && (
           <div className="flex h-screen w-full items-center justify-center bg-white flex-col gap-6 relative">
             {/* Back to Home - Fixed at top */}
-            <a
-              href={window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? '/' : 'https://nabdchain.com'}
+            <button
+              onClick={handleBackToHome}
               className="absolute top-6 left-6 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors z-50"
             >
               ← Back to Home
-            </a>
+            </button>
 
             <SignIn
               fallbackRedirectUrl="/dashboard"
               appearance={{
+                variables: {
+                  colorPrimary: '#000000',
+                  colorText: '#000000',
+                  colorTextSecondary: '#71717a',
+                  colorBackground: '#ffffff',
+                  colorInputBackground: '#ffffff',
+                  colorInputText: '#000000',
+                },
                 elements: {
-                  footer: "hidden"
+                  footer: "hidden",
+                  formButtonPrimary: "bg-black hover:bg-zinc-800 text-white",
+                  formButtonReset: "text-black hover:text-zinc-700",
+                  card: "shadow-xl",
+                  headerTitle: "text-black",
+                  headerSubtitle: "text-zinc-500",
+                  socialButtonsBlockButton: "border-zinc-300 hover:bg-zinc-50",
+                  formFieldLabel: "text-zinc-700",
+                  formFieldInput: "border-zinc-300 focus:border-black focus:ring-black",
+                  dividerLine: "bg-zinc-200",
+                  dividerText: "text-zinc-400",
+                  footerActionLink: "text-black hover:text-zinc-700",
                 }
               }}
             />
@@ -1160,7 +1219,7 @@ const AppRoutes: React.FC = () => {
               Don't have an account?{' '}
               <button
                 onClick={() => setAuthView('signup')}
-                className="text-blue-600 font-medium hover:underline"
+                className="text-black font-medium hover:underline"
               >
                 Sign up
               </button>

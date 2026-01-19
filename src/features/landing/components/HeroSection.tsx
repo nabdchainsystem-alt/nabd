@@ -1,54 +1,28 @@
-import React, { useEffect, useState } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { ArrowRight, Play, Sparkle, ChartLineUp, Users, Buildings, Lightning } from 'phosphor-react';
 
-const FloatingOrb: React.FC<{ delay: number; size: number; x: number; y: number }> = ({ delay, size, x, y }) => (
-    <motion.div
-        className="absolute rounded-full blur-3xl opacity-[0.07]"
+const FloatingOrb: React.FC<{ size: number; x: number; y: number }> = ({ size, x, y }) => (
+    <div
+        className="absolute rounded-full opacity-[0.04]"
         style={{
             width: size,
             height: size,
             left: `${x}%`,
             top: `${y}%`,
-            background: 'linear-gradient(135deg, #a1a1aa 0%, #71717a 100%)',
-        }}
-        animate={{
-            y: [0, -30, 0],
-            scale: [1, 1.1, 1],
-            opacity: [0.05, 0.1, 0.05],
-        }}
-        transition={{
-            duration: 8,
-            delay,
-            repeat: Infinity,
-            ease: "easeInOut"
+            background: 'radial-gradient(circle, #a1a1aa 0%, transparent 70%)',
         }}
     />
 );
 
-const AnimatedCounter: React.FC<{ value: number; suffix: string; label: string }> = ({ value, suffix, label }) => {
-    const count = useMotionValue(0);
-    const rounded = useTransform(count, (latest) => Math.round(latest));
-    const [displayValue, setDisplayValue] = useState(0);
-
-    useEffect(() => {
-        const controls = animate(count, value, { duration: 2.5, ease: "easeOut" });
-        const unsubscribe = rounded.on("change", (v) => setDisplayValue(v));
-        return () => {
-            controls.stop();
-            unsubscribe();
-        };
-    }, [value, count, rounded]);
-
-    return (
-        <div className="text-center">
-            <div className="text-3xl md:text-4xl font-bold text-black dark:text-white">
-                {displayValue}{suffix}
-            </div>
-            <div className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">{label}</div>
+const StatCounter: React.FC<{ value: string; label: string }> = ({ value, label }) => (
+    <div className="text-center">
+        <div className="text-3xl md:text-4xl font-bold text-black dark:text-white">
+            {value}
         </div>
-    );
-};
+        <div className="text-sm text-zinc-500 dark:text-zinc-500 mt-1">{label}</div>
+    </div>
+);
 
 const GridPattern: React.FC = () => (
     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -87,10 +61,10 @@ export const HeroSection: React.FC<{ onEnterSystem?: () => void }> = ({ onEnterS
             <div className="absolute inset-0 bg-gradient-to-b from-white via-zinc-50 to-white dark:from-black dark:via-zinc-950 dark:to-black" />
             <GridPattern />
 
-            {/* Subtle Floating Orbs */}
-            <FloatingOrb delay={0} size={600} x={-10} y={10} />
-            <FloatingOrb delay={2} size={400} x={80} y={60} />
-            <FloatingOrb delay={4} size={300} x={60} y={-10} />
+            {/* Subtle Static Orbs */}
+            <FloatingOrb size={600} x={-10} y={10} />
+            <FloatingOrb size={400} x={80} y={60} />
+            <FloatingOrb size={300} x={60} y={-10} />
 
             {/* Main Content */}
             <div className="relative z-10 max-w-6xl mx-auto w-full">
@@ -186,9 +160,9 @@ export const HeroSection: React.FC<{ onEnterSystem?: () => void }> = ({ onEnterS
                     transition={{ duration: 0.7, delay: 0.6 }}
                     className="flex flex-wrap justify-center gap-12 md:gap-20"
                 >
-                    <AnimatedCounter value={50} suffix="+" label="Ready-to-use Dashboards" />
-                    <AnimatedCounter value={99} suffix="%" label="Uptime Guarantee" />
-                    <AnimatedCounter value={10} suffix="x" label="Faster Decision Making" />
+                    <StatCounter value="50+" label="Ready-to-use Dashboards" />
+                    <StatCounter value="99%" label="Uptime Guarantee" />
+                    <StatCounter value="10x" label="Faster Decision Making" />
                 </motion.div>
             </div>
 
