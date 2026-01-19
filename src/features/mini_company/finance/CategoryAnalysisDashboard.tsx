@@ -266,7 +266,7 @@ export const CategoryAnalysisDashboard: React.FC = () => {
                                 <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
                                 <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
                                 <Tooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} animationDuration={1000} />
+                                <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} animationDuration={1000} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

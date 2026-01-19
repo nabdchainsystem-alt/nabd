@@ -275,12 +275,12 @@ export const SalesAnalysisDashboard: React.FC<SalesAnalysisDashboardProps> = ({ 
                             </div>
                             <div className="h-[260px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SALES_BY_PERSON_DATA} layout="vertical" margin={{ left: 20, right: 10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
-                                        <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" width={80} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                    <BarChart data={SALES_BY_PERSON_DATA} margin={{ left: 10, right: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                        <YAxis hide />
                                         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Bar dataKey="sales" radius={[0, 4, 4, 0]} barSize={24} fill="#3b82f6" animationDuration={1000} />
+                                        <Bar dataKey="sales" radius={[4, 4, 0, 0]} barSize={24} fill="#3b82f6" animationDuration={1000} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
@@ -423,13 +423,13 @@ export const SalesAnalysisDashboard: React.FC<SalesAnalysisDashboardProps> = ({ 
                             </div>
                             <div className="flex-1 min-h-[300px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SALES_BY_REGION_DATA} layout="vertical" margin={{ left: 20, right: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                                        <XAxis type="number" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis dataKey="name" type="category" width={60} fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <BarChart data={SALES_BY_REGION_DATA} margin={{ left: 10, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
                                         <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
                                         <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar dataKey="value" name="Share %" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={18} />
+                                        <Bar dataKey="value" name="Share %" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={18} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

@@ -380,7 +380,7 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                                         <XAxis dataKey="name" fontSize={10} tick={{ fill: '#94a3b8' }} />
                                         <YAxis fontSize={10} tick={{ fill: '#94a3b8' }} />
                                         <Tooltip cursor={{ fill: '#f1f5f9', opacity: 0.5 }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                        <Bar dataKey="forecast" name="Forecast" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={16} animationDuration={1000} />
+                                        <Bar dataKey="forecast" name="Forecast" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={16} animationDuration={1000} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

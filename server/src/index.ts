@@ -35,17 +35,31 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
+const allowedOrigins = isProduction
+    ? [
+        getEnv('CORS_ORIGIN', 'https://nabdchain.com'),
+        'https://nabdchain.com',
+        'https://www.nabdchain.com',
+        'https://nabdchain.vercel.app'
+    ]
+    : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
+
 const corsOptions: cors.CorsOptions = {
-    origin: isProduction
-        ? getEnv('CORS_ORIGIN', 'https://your-domain.com')
-        : (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-            // Allow all localhost origins and requests with no origin (like mobile apps or curl)
-            if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) {
+            return callback(null, true);
+        }
+        // Check if origin is in allowed list
+        if (allowedOrigins.some(allowed => origin.includes(allowed.replace('https://', '').replace('http://', '')))) {
+            return callback(null, true);
+        }
+        // In development, also allow localhost
+        if (!isProduction && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+            return callback(null, true);
+        }
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

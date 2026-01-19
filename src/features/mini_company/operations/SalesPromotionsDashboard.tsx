@@ -265,12 +265,12 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
                             </div>
                             <div className="h-[260px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={REVENUE_PER_CAMPAIGN_DATA} layout="vertical" margin={{ left: 20, right: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
-                                        <XAxis type="number" fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis dataKey="name" type="category" width={80} fontSize={11} tick={{ fill: '#94a3b8' }} />
+                                    <BarChart data={REVENUE_PER_CAMPAIGN_DATA} margin={{ left: 10, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
+                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
                                         <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Bar dataKey="conversion" name="Conv %" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={24} animationDuration={1000} />
+                                        <Bar dataKey="conversion" name="Conv %" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

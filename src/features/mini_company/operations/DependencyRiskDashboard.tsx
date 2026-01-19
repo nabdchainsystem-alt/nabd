@@ -234,8 +234,8 @@ export const DependencyRiskDashboard: React.FC = () => {
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="primary" stackId="a" name="Primary" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={12} animationDuration={1000} />
-                                    <Bar dataKey="secondary" stackId="a" name="Backup" fill="#d1d5db" radius={[0, 4, 4, 0]} barSize={12} animationDuration={1000} />
+                                    <Bar dataKey="primary" stackId="a" name="Primary" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
+                                    <Bar dataKey="secondary" stackId="a" name="Backup" fill="#d1d5db" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -266,7 +266,7 @@ export const DependencyRiskDashboard: React.FC = () => {
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
                                     <Bar dataKey="high" stackId="a" name="High" fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={20} animationDuration={1000} />
                                     <Bar dataKey="medium" stackId="a" name="Medium" fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={20} animationDuration={1000} />
-                                    <Bar dataKey="low" stackId="a" name="Low" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} animationDuration={1000} />
+                                    <Bar dataKey="low" stackId="a" name="Low" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} animationDuration={1000} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>

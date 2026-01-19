@@ -215,10 +215,10 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
                             </div>
                             <div className="h-[260px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart layout="vertical" data={ORDERS_PER_CATEGORY} margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                                    <BarChart data={ORDERS_PER_CATEGORY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis type="number" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis type="category" dataKey="name" fontSize={12} tick={{ fill: '#94a3b8' }} />
+                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
+                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
                                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
@@ -243,10 +243,10 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
                             </div>
                             <div className="h-[260px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart layout="vertical" data={PURCHASE_VELOCITY} margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                                    <BarChart data={PURCHASE_VELOCITY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis type="number" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis type="category" dataKey="name" fontSize={12} tick={{ fill: '#94a3b8' }} />
+                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
+                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
                                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}

@@ -315,15 +315,15 @@ export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = ({ 
                             </div>
                             <div className="h-[260px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart layout="vertical" data={SALES_BY_CHANNEL_DATA} onMouseMove={(e: any) => {
+                                    <BarChart data={SALES_BY_CHANNEL_DATA} onMouseMove={(e: any) => {
                                         if (e.activeTooltipIndex !== undefined) setActiveIndex(prev => ({ ...prev, channel: e.activeTooltipIndex }));
                                     }} onMouseLeave={() => setActiveIndex(prev => ({ ...prev, channel: null }))}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e7eb" />
-                                        <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" width={80} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                                        <YAxis hide />
                                         <Tooltip cursor={{ fill: '#f1f5f9', opacity: 0.5 }} content={<CustomTooltip />} />
 
-                                        <Bar dataKey="value" name="Revenue" radius={[0, 4, 4, 0]} barSize={24} animationDuration={1000} fill="#3b82f6" />
+                                        <Bar dataKey="value" name="Revenue" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} fill="#3b82f6" />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

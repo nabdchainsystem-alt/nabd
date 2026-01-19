@@ -447,14 +447,14 @@ export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hide
                                         { stage: 'Lead→Contact', days: 2.5, conversion: 78 },
                                         { stage: 'Contact→Quote', days: 4.2, conversion: 65 },
                                         { stage: 'Quote→Order', days: 7.8, conversion: 70 },
-                                    ]} layout="vertical" margin={{ left: 20, right: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
-                                        <XAxis type="number" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis dataKey="stage" type="category" width={100} fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    ]} margin={{ left: 10, right: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="stage" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
                                         <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
                                         <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar dataKey="days" name="Avg Days" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={16} />
-                                        <Bar dataKey="conversion" name="Conv %" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={16} />
+                                        <Bar dataKey="days" name="Avg Days" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={16} />
+                                        <Bar dataKey="conversion" name="Conv %" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={16} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

@@ -253,20 +253,17 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
                             <div className="h-[240px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart
-                                        layout="vertical"
                                         data={REVENUE_CHANNEL_DATA}
                                         margin={{ top: 10, right: 40, left: 10, bottom: 0 }}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} vertical={true} stroke="#f3f4f6" />
-                                        <XAxis type="number" hide />
-                                        <YAxis
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis
                                             dataKey="name"
-                                            type="category"
-                                            width={120}
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fill: '#6b7280', fontSize: 11 }}
                                         />
+                                        <YAxis hide />
                                         <Tooltip
                                             cursor={{ fill: 'transparent' }}
                                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}

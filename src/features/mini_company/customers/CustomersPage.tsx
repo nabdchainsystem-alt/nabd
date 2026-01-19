@@ -138,14 +138,6 @@ export const CustomersPage = () => {
                 return <SatisfactionFeedbackDashboard />;
             case 'forecast_risk':
                 return <ForecastLifetimeRiskDashboard />;
-            case 'retention_churn':
-                return <RetentionChurnDashboard />;
-            case 'journey_touchpoints':
-                return <JourneyTouchpointsDashboard />;
-            case 'satisfaction_feedback':
-                return <SatisfactionFeedbackDashboard />;
-            case 'forecast_risk':
-                return <ForecastLifetimeRiskDashboard />;
             default:
                 return null;
         }

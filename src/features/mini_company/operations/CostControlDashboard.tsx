@@ -217,18 +217,18 @@ export const CostControlDashboard: React.FC = () => {
                         </div>
                         <div className="h-[220px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={COST_VS_BUDGET} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#f3f4f6" />
-                                    <XAxis type="number" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis type="category" dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                <BarChart data={COST_VS_BUDGET} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
                                     <Tooltip
                                         cursor={{ fill: '#f9fafb' }}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                         formatter={(val: number) => formatCurrency(val, currency.code, currency.symbol)}
                                     />
                                     <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
-                                    <Bar dataKey="budget" name="Budget" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={12} animationDuration={1000} />
-                                    <Bar dataKey="cost" name="Actual Cost" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={12} animationDuration={1000} />
+                                    <Bar dataKey="budget" name="Budget" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
+                                    <Bar dataKey="cost" name="Actual Cost" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -248,16 +248,16 @@ export const CostControlDashboard: React.FC = () => {
                         </div>
                         <div className="h-[220px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={MONTHLY_COST_TREND} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#f3f4f6" />
-                                    <XAxis type="number" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis type="category" dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                <BarChart data={MONTHLY_COST_TREND} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
                                     <Tooltip
                                         cursor={{ fill: '#f9fafb' }}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                         formatter={(val: number) => formatCurrency(val, currency.code, currency.symbol)}
                                     />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={28} animationDuration={1000} />
+                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
