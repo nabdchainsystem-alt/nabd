@@ -5,7 +5,7 @@ import {
     Layout as LayoutTemplate, Archive, Trash as Trash2, Prohibit as Slash, CaretRight as ChevronRight, CaretLeft as ChevronLeft,
     ArrowLineLeft as ArrowLeftToLine, Lightning as Zap, CheckSquare, Circle, ArrowBendDownLeft as CornerDownLeft,
     MagnifyingGlass as Search, Funnel as Filter, Sliders as SlidersHorizontal, Layout, UserCircle, CheckCircle as CheckCircle2,
-    X, Info, CaretDown as ChevronDown, Users, Chat as MessageSquare, Clock
+    X, Info, CaretDown as ChevronDown, Users, Chat as MessageSquare, Clock, User
 } from 'phosphor-react';
 import {
     format, addDays, startOfWeek, endOfWeek, addWeeks, isSameDay,
@@ -55,7 +55,7 @@ export interface Task {
     tags: string[];
     subtasks: Subtask[];
     assignee?: string;
-    assigneeObj?: { id: string; name: string; avatar?: string };
+    assigneeObj?: { id: string; name: string; avatar?: string; showUserIcon?: boolean };
 }
 
 export interface ColumnType {
@@ -213,7 +213,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onUpdateTask, on
                     title={assigneePerson ? assigneePerson.name : "Assign"}
                 >
                     {assigneePerson ? (
-                        <img src={assigneePerson.avatar} alt={assigneePerson.name} className="w-full h-full object-cover pointer-events-none" />
+                        assigneePerson.showUserIcon ? (
+                            <div className="w-full h-full bg-purple-500 flex items-center justify-center">
+                                <User size={14} weight="fill" className="text-white pointer-events-none" />
+                            </div>
+                        ) : (
+                            <img src={assigneePerson.avatar} alt={assigneePerson.name} className="w-full h-full object-cover pointer-events-none" />
+                        )
                     ) : (
                         <UserCircle size={14} className="pointer-events-none" />
                     )}
@@ -1239,7 +1245,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                                         onClick={() => setFilterAssignee(filterAssignee === person.id ? null : person.id)}
                                         className={`w-full text-left px-4 py-2 hover:bg-stone-50 dark:hover:bg-stone-800 text-sm text-stone-700 dark:text-stone-300 flex items-center gap-2 ${filterAssignee === person.id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600' : ''}`}
                                     >
-                                        <img src={person.avatar} alt={person.name} className="w-5 h-5 rounded-full" />
+                                        {person.showUserIcon ? (
+                                            <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
+                                                <User size={12} weight="fill" className="text-white" />
+                                            </div>
+                                        ) : (
+                                            <img src={person.avatar} alt={person.name} className="w-5 h-5 rounded-full" />
+                                        )}
                                         {person.name}
                                     </button>
                                 ))}

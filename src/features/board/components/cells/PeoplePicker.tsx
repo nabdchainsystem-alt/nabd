@@ -1,24 +1,24 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Check } from 'phosphor-react';
+import { Users, Check, User } from 'phosphor-react';
+
+interface Person {
+    id: string;
+    name: string;
+    avatar?: string;
+    showUserIcon?: boolean;
+}
 
 interface PeoplePickerProps {
-    onSelect: (person: { id: string; name: string; avatar?: string } | null) => void;
+    onSelect: (person: Person | null) => void;
     onClose: () => void;
     current: { id: string; name: string } | null;
     triggerRect?: DOMRect;
 }
 
 // Mock Data
-// Mock Data
 export const MOCK_PEOPLE = [
-    { id: '1', name: 'Mohamed Ali', avatar: 'https://i.pravatar.cc/150?u=10' },
-    { id: '2', name: 'Hasan Ali', avatar: 'https://i.pravatar.cc/150?u=11' },
-    { id: '3', name: 'Mohamed Elkhateb', avatar: 'https://i.pravatar.cc/150?u=12' },
-    { id: '4', name: 'Mohamed Fathy', avatar: 'https://i.pravatar.cc/150?u=13' },
-    { id: '5', name: 'Magdy', avatar: 'https://i.pravatar.cc/150?u=14' },
-    { id: '6', name: 'Mustafa Selim', avatar: 'https://i.pravatar.cc/150?u=15' },
-    { id: '7', name: 'Adel Swaeyh', avatar: 'https://i.pravatar.cc/150?u=16' },
+    { id: '1', name: 'Mohamed Ali', showUserIcon: true },
 ];
 
 export const PeoplePicker: React.FC<PeoplePickerProps> = ({ onSelect, onClose, current, triggerRect }) => {
@@ -97,7 +97,13 @@ export const PeoplePicker: React.FC<PeoplePickerProps> = ({ onSelect, onClose, c
                                 }}
                                 className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}
                             >
-                                <img src={person.avatar} alt={person.name} className="w-6 h-6 rounded-full bg-stone-200 object-cover" />
+                                {person.showUserIcon ? (
+                                    <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
+                                        <User size={14} weight="fill" className="text-white" />
+                                    </div>
+                                ) : (
+                                    <img src={person.avatar} alt={person.name} className="w-6 h-6 rounded-full bg-stone-200 object-cover" />
+                                )}
                                 <span className="flex-1 truncate text-stone-700 dark:text-stone-200">{person.name}</span>
                                 {isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
                             </button>
