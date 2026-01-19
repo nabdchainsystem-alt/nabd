@@ -213,14 +213,13 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
                             </div>
                             <div className="h-[240px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={ORDERS_VS_COMPLETED_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <BarChart data={ORDERS_VS_COMPLETED_DATA} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                                         <XAxis
                                             dataKey="name"
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                            dy={10}
                                         />
                                         <YAxis
                                             axisLine={false}

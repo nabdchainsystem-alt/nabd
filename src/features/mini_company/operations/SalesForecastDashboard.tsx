@@ -332,7 +332,7 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                             </div>
                             <div className="h-[260px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={FORECAST_BY_PRODUCT_DATA} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <BarChart data={FORECAST_BY_PRODUCT_DATA} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                                         <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
                                         <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
@@ -375,10 +375,10 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                             </div>
                             <div className="h-[210px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={FORECAST_BY_REGION_DATA} layout="vertical" margin={{ top: 5, right: 5, left: 20, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
-                                        <XAxis type="number" fontSize={10} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis dataKey="name" type="category" width={60} fontSize={10} tick={{ fill: '#94a3b8' }} />
+                                    <BarChart data={FORECAST_BY_REGION_DATA} margin={{ top: 5, right: 5, left: 10, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#94a3b8' }} />
+                                        <YAxis fontSize={10} tick={{ fill: '#94a3b8' }} />
                                         <Tooltip cursor={{ fill: '#f1f5f9', opacity: 0.5 }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
                                         <Bar dataKey="forecast" name="Forecast" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={16} animationDuration={1000} />
                                     </BarChart>

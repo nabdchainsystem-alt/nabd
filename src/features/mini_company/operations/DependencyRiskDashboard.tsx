@@ -225,10 +225,10 @@ export const DependencyRiskDashboard: React.FC = () => {
                         </div>
                         <div className="h-[220px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={DEPENDENCY_BY_CATEGORY} margin={{ top: 5, right: 5, left: -20, bottom: 0 }} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#f3f4f6" />
-                                    <XAxis type="number" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis dataKey="name" type="category" width={80} fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                <BarChart data={DEPENDENCY_BY_CATEGORY} margin={{ top: 5, right: 5, left: 10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
                                     <Tooltip
                                         cursor={{ fill: '#f9fafb' }}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
@@ -255,10 +255,10 @@ export const DependencyRiskDashboard: React.FC = () => {
                         </div>
                         <div className="h-[220px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={RISK_TREND} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#f3f4f6" />
-                                    <XAxis type="number" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis type="category" dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                <BarChart data={RISK_TREND} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
                                     <Tooltip
                                         cursor={{ fill: '#f9fafb' }}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}

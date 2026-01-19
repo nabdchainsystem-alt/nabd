@@ -246,18 +246,18 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
                             </div>
                             <div className="h-[220px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart layout="vertical" data={SPEND_GROWTH} margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                                    <BarChart data={SPEND_GROWTH} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <YAxis type="category" dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <XAxis xAxisId="left" type="number" orientation="bottom" stroke="#10b981" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <XAxis xAxisId="right" type="number" orientation="top" stroke="#8b5cf6" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis yAxisId="left" orientation="left" stroke="#10b981" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis yAxisId="right" orientation="right" stroke="#8b5cf6" fontSize={10} tick={{ fill: '#9ca3af' }} />
                                         <Tooltip
                                             cursor={{ fill: '#f9fafb' }}
                                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                         />
                                         <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar xAxisId="left" dataKey="Growth" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} name="Growth %" animationDuration={1000} />
-                                        <Bar xAxisId="right" dataKey="Duration" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} name="Term (Yrs)" animationDuration={1000} />
+                                        <Bar yAxisId="left" dataKey="Growth" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name="Growth %" animationDuration={1000} />
+                                        <Bar yAxisId="right" dataKey="Duration" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name="Term (Yrs)" animationDuration={1000} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
@@ -270,15 +270,15 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
                             </div>
                             <div className="h-[220px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart layout="vertical" data={VALUE_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                                    <BarChart data={VALUE_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <YAxis type="category" dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <XAxis type="number" fontSize={10} tick={{ fill: '#9ca3af' }} domain={[0, 100]} />
+                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} domain={[0, 100]} />
                                         <Tooltip
                                             cursor={{ fill: '#f9fafb' }}
                                             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                                         />
-                                        <Bar dataKey="Value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={28} animationDuration={1000} />
+                                        <Bar dataKey="Value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

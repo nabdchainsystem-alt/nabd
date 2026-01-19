@@ -279,20 +279,18 @@ export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = ({ 
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart
                                         data={SALES_OVER_TIME_DATA}
+                                        margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
                                         onMouseMove={(e: any) => {
                                             if (e.activeTooltipIndex !== undefined) setActiveIndex(prev => ({ ...prev, time: e.activeTooltipIndex }));
                                         }}
                                         onMouseLeave={() => setActiveIndex(prev => ({ ...prev, time: null }))}
-                                        wrapperStyle={{ outline: 'none' }}
                                     >
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                                         <XAxis
                                             dataKey="name"
                                             axisLine={false}
                                             tickLine={false}
-                                            tick={<CustomAxisTick />}
-                                            interval={0}
-                                            height={50}
+                                            tick={{ fill: '#94a3b8', fontSize: 12 }}
                                         />
                                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
                                         <Tooltip cursor={{ fill: '#f1f5f9', opacity: 0.5 }} content={<CustomTooltip />} />

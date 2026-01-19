@@ -410,7 +410,7 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
                             </div>
                             <div className="flex-1 min-h-[300px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={REVENUE_PER_CAMPAIGN_DATA} margin={{ left: -10, right: 10 }}>
+                                    <BarChart data={REVENUE_PER_CAMPAIGN_DATA} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94a3b8' }} />
                                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />

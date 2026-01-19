@@ -269,10 +269,10 @@ export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProp
                             </div>
                             <div className="h-[260px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={REPEAT_VS_ONETIME_DATA} layout="vertical" margin={{ left: 20, right: 10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
-                                        <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" width={80} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                                    <BarChart data={REPEAT_VS_ONETIME_DATA} margin={{ left: 10, right: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                                        <YAxis hide />
                                         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
                                         <Legend wrapperStyle={{ fontSize: '10px' }} />
                                         <Bar dataKey="repeat" name="Repeat %" stackId="a" fill="#3b82f6" barSize={24} animationDuration={1000} />
