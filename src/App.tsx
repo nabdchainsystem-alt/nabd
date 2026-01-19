@@ -1046,11 +1046,12 @@ import { SignUpPage } from './features/auth/SignUpPage';
 const AppRoutes: React.FC = () => {
   const { isLoaded, isSignedIn } = useUser();
 
-  // Detect hostname
+  // Detect hostname - be specific about domains to avoid redirect loops
   const hostname = window.location.hostname;
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isAppSubdomain = hostname.startsWith('app.');
-  const isMainDomain = !isAppSubdomain && !isLocalhost;
+  const isAppSubdomain = hostname === 'app.nabdchain.com';
+  const isMainDomain = hostname === 'nabdchain.com' || hostname === 'www.nabdchain.com';
+  // For Vercel previews or other domains, treat like localhost (no redirects)
 
   // View state for auth screens: 'home' (landing), 'signin', 'signup'
   const [authView, setAuthView] = useState<'home' | 'signin' | 'signup'>('home');
