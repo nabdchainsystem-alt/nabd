@@ -23,4 +23,5 @@ export interface TeamMember {
     lastActive: string;
     location?: string;
     color: string;      // Background color for avatar fallback
+    showUserIcon?: boolean; // Show user icon instead of initials
 }

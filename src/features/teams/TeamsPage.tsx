@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     UserPlus, MagnifyingGlass as Search, Funnel as Filter, DotsThree as MoreHorizontal, Envelope as Mail, MapPin,
     Shield, CheckCircle, Clock, Lightning as Zap, Users, UserCircle as UserCheck, UserMinus as UserX,
-    Chat as MessageSquare, Gear as Settings, ArrowUpRight, Copy, X, CircleNotch as Loader
+    Chat as MessageSquare, Gear as Settings, ArrowUpRight, Copy, X, CircleNotch as Loader, User
 } from 'phosphor-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../auth-adapter';
@@ -185,6 +185,8 @@ export const TeamsPage: React.FC = () => {
                                                         <div className={`w-10 h-10 rounded-full ${member.color} text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white dark:ring-monday-dark-surface`}>
                                                             {member.avatarUrl ? (
                                                                 <img src={member.avatarUrl} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                                                            ) : member.showUserIcon ? (
+                                                                <User size={22} weight="fill" />
                                                             ) : (
                                                                 member.initials
                                                             )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Envelope, Phone, MapPin, Bank, Calendar, Star, Clock, CheckCircle, Warning, DotsThree } from 'phosphor-react';
+import { ArrowLeft, Envelope, Phone, MapPin, Bank, Calendar, Star, Clock, CheckCircle, Warning, DotsThree, User } from 'phosphor-react';
 import { TeamMember, TeamRole, TeamStatus } from './types';
 
 interface TeamMemberProfileProps {
@@ -43,6 +43,8 @@ export const TeamMemberProfile: React.FC<TeamMemberProfileProps> = ({ member, on
                         <div className={`w-32 h-32 rounded-2xl ${member.color} flex items-center justify-center text-white text-4xl font-bold shadow-lg flex-shrink-0`}>
                             {member.avatarUrl ? (
                                 <img src={member.avatarUrl} alt={member.name} className="w-full h-full rounded-2xl object-cover" />
+                            ) : member.showUserIcon ? (
+                                <User size={64} weight="fill" />
                             ) : (
                                 member.initials
                             )}
