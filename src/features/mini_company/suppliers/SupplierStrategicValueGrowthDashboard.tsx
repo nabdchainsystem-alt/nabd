@@ -66,6 +66,21 @@ const SCATTER_DATA = [
     }
 ];
 
+// Additional chart data
+const VALUE_BY_SUPPLIER = [
+    { name: 'Stark Ind', Value: 95 },
+    { name: 'Acme Mfg', Value: 92 },
+    { name: 'Globex', Value: 88 },
+    { name: 'Soylent', Value: 82 },
+    { name: 'Initech', Value: 75 },
+];
+
+const INNOVATION_INDEX = [
+    { value: 30, name: 'High Innovation' },
+    { value: 45, name: 'Moderate' },
+    { value: 25, name: 'Low Innovation' }
+];
+
 // Supplier Table
 const SUPPLIER_TABLE = [
     { name: 'Stark Ind', growth: '+30%', contract: '5 Years', score: '95', tier: 'Strategic' },
@@ -122,6 +137,21 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
             center: ['50%', '50%'],
             data: CONTRACT_TYPES,
             color: ['#059669', '#3b82f6', '#f59e0b']
+        }]
+    };
+
+    // Innovation Index Pie
+    const innovationPieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: INNOVATION_INDEX,
+            color: ['#8b5cf6', '#3b82f6', '#9ca3af']
         }]
     };
 
@@ -250,6 +280,45 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
                             </>
                         )}
                     </div>
+
+                    {/* Recharts: Value Score by Supplier (Bar) */}
+                    {isLoading ? (
+                        <ChartSkeleton height="h-[280px]" title="Value Scores" />
+                    ) : (
+                        <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                            <div className="mb-4">
+                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Value Scores</h3>
+                                <p className="text-xs text-gray-400">Strategic Value Index</p>
+                            </div>
+                            <div className="h-[220px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={VALUE_BY_SUPPLIER} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} domain={[0, 100]} />
+                                        <Tooltip
+                                            cursor={{ fill: '#f9fafb' }}
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        />
+                                        <Bar dataKey="Value" fill="#10b981" radius={[4, 4, 0, 0]} barSize={28} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ECharts: Innovation Index (Pie) */}
+                    {isLoading ? (
+                        <PieChartSkeleton title="Innovation Index" />
+                    ) : (
+                        <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                            <div className="mb-2">
+                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Innovation Index</h3>
+                                <p className="text-xs text-gray-400">Supplier Contribution</p>
+                            </div>
+                            <ReactECharts option={innovationPieOption} style={{ height: '200px' }} />
+                        </div>
+                    )}
 
                 </div>
 

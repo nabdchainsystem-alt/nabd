@@ -78,6 +78,20 @@ const WATERFALL_DATA = [
     { name: 'Actual Cost', value: 4200, type: 'total' }
 ];
 
+// Additional chart data
+const SAVINGS_BY_CATEGORY = [
+    { name: 'Negotiation', Savings: 50000 },
+    { name: 'Volume', Savings: 35000 },
+    { name: 'Consolidation', Savings: 20000 },
+    { name: 'Process', Savings: 15000 },
+];
+
+const SPEND_DISTRIBUTION = [
+    { value: 40, name: 'Top 5 Suppliers' },
+    { value: 35, name: 'Next 10 Suppliers' },
+    { value: 25, name: 'Others' }
+];
+
 
 export const SupplierCostDashboard: React.FC = () => {
     const { currency } = useAppContext();
@@ -114,6 +128,21 @@ export const SupplierCostDashboard: React.FC = () => {
             breadcrumb: { show: false },
             label: { show: true, formatter: '{b}' },
             itemStyle: { borderColor: '#fff' }
+        }]
+    };
+
+    // Spend Distribution Pie
+    const spendDistPieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: SPEND_DISTRIBUTION,
+            color: ['#3b82f6', '#8b5cf6', '#9ca3af']
         }]
     };
 
@@ -234,6 +263,37 @@ export const SupplierCostDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">By Category</p>
                         </div>
                         <ReactECharts option={treemapOption} style={{ height: '200px' }} />
+                    </div>
+
+                    {/* Recharts: Savings by Category (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Savings Sources</h3>
+                            <p className="text-xs text-gray-400">By Initiative Type</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={SAVINGS_BY_CATEGORY} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Bar dataKey="Savings" fill="#10b981" radius={[4, 4, 0, 0]} barSize={28} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Spend Distribution (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Spend Distribution</h3>
+                            <p className="text-xs text-gray-400">Concentration Analysis</p>
+                        </div>
+                        <ReactECharts option={spendDistPieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

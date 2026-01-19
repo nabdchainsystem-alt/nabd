@@ -72,6 +72,21 @@ const SANKEY_LINKS = [
     { source: 'Demo', target: 'Drop', value: 5 },
 ];
 
+// Additional chart data
+const CHANNEL_PERFORMANCE = [
+    { name: 'Email', Conversions: 45 },
+    { name: 'Paid Search', Conversions: 38 },
+    { name: 'Social', Conversions: 25 },
+    { name: 'Direct', Conversions: 20 },
+];
+
+const DROP_POINT_SPLIT = [
+    { value: 40, name: 'Checkout' },
+    { value: 25, name: 'Cart' },
+    { value: 20, name: 'Product Page' },
+    { value: 15, name: 'Landing Page' }
+];
+
 export const JourneyTouchpointsDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -108,6 +123,21 @@ export const JourneyTouchpointsDashboard: React.FC = () => {
                 color: ['#0f766e', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4']
             }
         ]
+    };
+
+    // Drop Point Split Pie
+    const dropPieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: DROP_POINT_SPLIT,
+            color: ['#ef4444', '#f59e0b', '#3b82f6', '#10b981']
+        }]
     };
 
     // Sankey Chart
@@ -205,6 +235,37 @@ export const JourneyTouchpointsDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">Yield Analysis</p>
                         </div>
                         <ReactECharts option={funnelOption} style={{ height: '220px' }} />
+                    </div>
+
+                    {/* Recharts: Channel Performance (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Channel Performance</h3>
+                            <p className="text-xs text-gray-400">Conversions by Source</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={CHANNEL_PERFORMANCE} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Bar dataKey="Conversions" fill="#14b8a6" radius={[4, 4, 0, 0]} barSize={28} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Drop Point Split (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Drop-Off Points</h3>
+                            <p className="text-xs text-gray-400">Where Customers Leave</p>
+                        </div>
+                        <ReactECharts option={dropPieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

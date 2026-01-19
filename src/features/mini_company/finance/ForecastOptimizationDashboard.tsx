@@ -58,6 +58,21 @@ const LANDSCAPE_DATA = [
     [8, 5000, 'Staffing (High Risk)']
 ];
 
+// Additional chart data
+const SAVINGS_BY_INITIATIVE = [
+    { name: 'License Consolidation', value: 3500 },
+    { name: 'Travel Policy', value: 2000 },
+    { name: 'Bulk Purchasing', value: 1500 },
+    { name: 'Energy Efficiency', value: 1000 },
+    { name: 'Outsourcing', value: 500 },
+];
+
+const OPTIMIZATION_STATUS = [
+    { value: 45, name: 'Implemented' },
+    { value: 30, name: 'In Progress' },
+    { value: 25, name: 'Planned' }
+];
+
 export const ForecastOptimizationDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -81,6 +96,21 @@ export const ForecastOptimizationDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
             data: FUTURE_ALLOCATION,
             color: ['#8b5cf6', '#f59e0b', '#3b82f6', '#10b981', '#6366f1']
+        }]
+    };
+
+    // Optimization Status Pie
+    const statusPieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: OPTIMIZATION_STATUS,
+            color: ['#10b981', '#3b82f6', '#f59e0b']
         }]
     };
 
@@ -189,6 +219,37 @@ export const ForecastOptimizationDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">Projected Spend Share</p>
                         </div>
                         <ReactECharts option={pieOption} style={{ height: '200px' }} />
+                    </div>
+
+                    {/* Recharts: Savings by Initiative (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Savings by Initiative</h3>
+                            <p className="text-xs text-gray-400">Potential savings breakdown</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={SAVINGS_BY_INITIATIVE} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Optimization Status (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Optimization Status</h3>
+                            <p className="text-xs text-gray-400">Initiative progress</p>
+                        </div>
+                        <ReactECharts option={statusPieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

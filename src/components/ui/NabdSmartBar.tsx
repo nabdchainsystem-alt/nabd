@@ -160,9 +160,11 @@ export const NabdSmartBar: React.FC<NabdSmartBarProps> = ({ boards, onCreateTask
   // Filter boards for picker (including sub-boards)
   const filteredBoards = useMemo(() => {
     if (!showBoardPicker) return [];
+    // Normalize input by removing spaces (to match "@new task/" as "@newtask/")
+    const normalizedInput = inputValue.toLowerCase().replace(/\s+/g, '');
     // Extract search query after the slash
-    const slashMatch = inputValue.match(/@newtask\/(.*)$/i);
-    const query = slashMatch ? slashMatch[1].toLowerCase() : '';
+    const slashMatch = normalizedInput.match(/@newtask\/(.*)$/i);
+    const query = slashMatch ? slashMatch[1] : '';
 
     if (!query) return flattenedBoards.slice(0, 10);
 
@@ -181,8 +183,19 @@ export const NabdSmartBar: React.FC<NabdSmartBarProps> = ({ boards, onCreateTask
     }).slice(0, 5);
   }, [notes]);
 
+  // Filter commands based on partial input
+  const filteredCommands = useMemo(() => {
+    if (!inputValue.startsWith('@') || activeCommand) return COMMANDS;
+    const query = inputValue.slice(1).toLowerCase().replace(/\s+/g, ''); // Remove @ and spaces
+    if (!query) return COMMANDS;
+    return COMMANDS.filter(cmd =>
+      cmd.keyword.includes(query) ||
+      cmd.label.toLowerCase().replace(/\s+/g, '').includes(query)
+    );
+  }, [inputValue, activeCommand, COMMANDS]);
+
   // Determine current list
-  const currentList = showCommandMenu ? COMMANDS :
+  const currentList = showCommandMenu ? filteredCommands :
     showBoardPicker ? filteredBoards :
       activeCommand === 'search' ? searchResults :
         activeCommand === 'notes' ? recentNotes : [];
@@ -211,14 +224,14 @@ export const NabdSmartBar: React.FC<NabdSmartBarProps> = ({ boards, onCreateTask
 
   // Detect @newtask/ pattern to show board picker
   useEffect(() => {
-    const lowerInput = inputValue.toLowerCase();
+    const lowerInput = inputValue.toLowerCase().replace(/\s+/g, ''); // Normalize by removing spaces
 
-    // Show command menu when just @ is typed
-    if (inputValue === '@' && !activeCommand) {
+    // Show command menu when @ is typed (with optional partial command)
+    if (inputValue.startsWith('@') && !lowerInput.startsWith('@newtask/') && !activeCommand) {
       setShowCommandMenu(true);
       setShowBoardPicker(false);
     }
-    // Show board picker when @newtask/ is typed
+    // Show board picker when @newtask/ is typed (with or without spaces)
     else if (lowerInput.startsWith('@newtask/') && !activeCommand) {
       setShowCommandMenu(false);
       setShowBoardPicker(true);
@@ -264,9 +277,9 @@ export const NabdSmartBar: React.FC<NabdSmartBarProps> = ({ boards, onCreateTask
     }
 
     // Select from command menu
-    if (e.key === 'Enter' && showCommandMenu && COMMANDS[selectedIndex]) {
+    if (e.key === 'Enter' && showCommandMenu && filteredCommands[selectedIndex]) {
       e.preventDefault();
-      selectCommand(COMMANDS[selectedIndex]);
+      selectCommand(filteredCommands[selectedIndex]);
       return;
     }
 
@@ -482,24 +495,28 @@ export const NabdSmartBar: React.FC<NabdSmartBarProps> = ({ boards, onCreateTask
                 {/* Command Menu */}
                 {showCommandMenu && (
                   <div>
-                    {COMMANDS.map((cmd, index) => (
-                      <button
-                        key={cmd.id}
-                        onClick={() => selectCommand(cmd)}
-                        className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
-                      >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cmd.color}`}>
-                          <cmd.icon size={16} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {cmd.label}
-                            <span className="ml-1.5 text-gray-400 font-normal">@{cmd.keyword}</span>
-                          </p>
-                          <p className="text-xs text-gray-500">{cmd.hint}</p>
-                        </div>
-                      </button>
-                    ))}
+                    {filteredCommands.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-gray-400 text-sm">{t('no_commands_found')}</div>
+                    ) : (
+                      filteredCommands.map((cmd, index) => (
+                        <button
+                          key={cmd.id}
+                          onClick={() => selectCommand(cmd)}
+                          className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${index === selectedIndex ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cmd.color}`}>
+                            <cmd.icon size={16} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              {cmd.label}
+                              <span className="ml-1.5 text-gray-400 font-normal">@{cmd.keyword}</span>
+                            </p>
+                            <p className="text-xs text-gray-500">{cmd.hint}</p>
+                          </div>
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
 

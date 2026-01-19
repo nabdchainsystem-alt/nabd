@@ -53,6 +53,22 @@ const BOX_PLOT_DATA = [
     { name: 'Umbrella', value: [30, 32, 35, 38, 45] }
 ];
 
+// Additional chart data
+const RESPONSE_BY_SUPPLIER = [
+    { name: 'Acme Mfg', Hours: 4 },
+    { name: 'Initech', Hours: 6 },
+    { name: 'Stark', Hours: 8 },
+    { name: 'Globex', Hours: 24 },
+    { name: 'Umbrella', Hours: 48 },
+];
+
+const PERFORMANCE_TIER = [
+    { value: 35, name: 'Excellent' },
+    { value: 40, name: 'Good' },
+    { value: 15, name: 'Average' },
+    { value: 10, name: 'Poor' }
+];
+
 // Supplier Table
 const SUPPLIER_TABLE = [
     { name: 'Acme Mfg', leadTime: '5 Days', response: '4h', variance: '±0.5', score: '98' },
@@ -109,6 +125,21 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
             center: ['50%', '50%'],
             data: ORDER_URGENCY,
             color: ['#3b82f6', '#f59e0b']
+        }]
+    };
+
+    // Performance Tier Pie
+    const performancePieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: PERFORMANCE_TIER,
+            color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
         }]
     };
 
@@ -239,6 +270,45 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
                             </>
                         )}
                     </div>
+
+                    {/* Recharts: Response Time by Supplier (Bar) */}
+                    {isLoading ? (
+                        <ChartSkeleton height="h-[280px]" title="Response Times" />
+                    ) : (
+                        <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                            <div className="mb-4">
+                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Response Times</h3>
+                                <p className="text-xs text-gray-400">Hours to RFQ Response</p>
+                            </div>
+                            <div className="h-[220px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={RESPONSE_BY_SUPPLIER} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <Tooltip
+                                            cursor={{ fill: '#f9fafb' }}
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        />
+                                        <Bar dataKey="Hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={28} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ECharts: Performance Tier (Pie) */}
+                    {isLoading ? (
+                        <PieChartSkeleton title="Performance Tier" />
+                    ) : (
+                        <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                            <div className="mb-2">
+                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Performance Tier</h3>
+                                <p className="text-xs text-gray-400">Supplier Distribution</p>
+                            </div>
+                            <ReactECharts option={performancePieOption} style={{ height: '200px' }} />
+                        </div>
+                    )}
 
                 </div>
 

@@ -62,6 +62,22 @@ const HEATMAP_DATA = [
 const SUPPLIER_NAMES = ['Acme', 'Globex', 'Soylent', 'Initech', 'Umbrella'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 
+// Additional chart data
+const DELIVERY_BY_CARRIER = [
+    { name: 'FedEx', OnTime: 95, Late: 5 },
+    { name: 'UPS', OnTime: 92, Late: 8 },
+    { name: 'DHL', OnTime: 88, Late: 12 },
+    { name: 'Ocean', OnTime: 85, Late: 15 },
+];
+
+const ISSUE_CATEGORIES = [
+    { value: 35, name: 'Late Arrival' },
+    { value: 25, name: 'Damaged Goods' },
+    { value: 20, name: 'Wrong Item' },
+    { value: 15, name: 'Missing Docs' },
+    { value: 5, name: 'Other' }
+];
+
 export const SupplierDeliveryDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -88,6 +104,21 @@ export const SupplierDeliveryDashboard: React.FC = () => {
             data: HEATMAP_DATA,
             label: { show: true },
             emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+        }]
+    };
+
+    // Issue Categories Pie
+    const issuePieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: ISSUE_CATEGORIES,
+            color: ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#6b7280']
         }]
     };
 
@@ -203,6 +234,39 @@ export const SupplierDeliveryDashboard: React.FC = () => {
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
+                    </div>
+
+                    {/* Recharts: Delivery by Carrier (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Carrier Performance</h3>
+                            <p className="text-xs text-gray-400">On-Time vs Late by Carrier</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={DELIVERY_BY_CARRIER} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                                    <Bar dataKey="OnTime" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} barSize={28} name="On-Time" />
+                                    <Bar dataKey="Late" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={28} name="Late" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Issue Categories (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Issue Breakdown</h3>
+                            <p className="text-xs text-gray-400">By Category</p>
+                        </div>
+                        <ReactECharts option={issuePieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

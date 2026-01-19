@@ -60,6 +60,20 @@ const SPIRAL_DATA = [
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 const RISK_LEVELS = ['Safe', 'Watch', 'Risk', 'Critical'];
 
+// Additional chart data
+const CHURN_BY_REASON = [
+    { name: 'Competitor', Count: 25 },
+    { name: 'Price', Count: 20 },
+    { name: 'Service', Count: 15 },
+    { name: 'Product', Count: 10 },
+];
+
+const TENURE_BREAKDOWN = [
+    { value: 35, name: '< 6 months' },
+    { value: 40, name: '6-12 months' },
+    { value: 25, name: '> 12 months' }
+];
+
 export const RetentionChurnDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -83,6 +97,21 @@ export const RetentionChurnDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
             data: CHURN_SPLIT,
             color: ['#6366f1', '#f43f5e', '#f97316']
+        }]
+    };
+
+    // Tenure Breakdown Pie
+    const tenurePieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: TENURE_BREAKDOWN,
+            color: ['#ef4444', '#f59e0b', '#10b981']
         }]
     };
 
@@ -208,6 +237,37 @@ export const RetentionChurnDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">Current Status</p>
                         </div>
                         <ReactECharts option={pieOption} style={{ height: '200px' }} />
+                    </div>
+
+                    {/* Recharts: Churn by Reason (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Churn Reasons</h3>
+                            <p className="text-xs text-gray-400">Exit Cause Analysis</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={CHURN_BY_REASON} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Bar dataKey="Count" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={28} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Tenure Breakdown (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Tenure Breakdown</h3>
+                            <p className="text-xs text-gray-400">Churned by Time</p>
+                        </div>
+                        <ReactECharts option={tenurePieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

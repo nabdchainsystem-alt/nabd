@@ -3,7 +3,7 @@ import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ArrowsOut, Info, TrendUp, Warning, Tag, ChartBar, Target, ArrowDown, Activity } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { CategoryAnalysisInfo } from './CategoryAnalysisInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -67,6 +67,21 @@ const RADAR_DATA = [
     }
 ];
 
+// Additional chart data
+const CATEGORY_TREND = [
+    { name: 'Jan', Payroll: 44000, Marketing: 12000, IT: 7500 },
+    { name: 'Feb', Payroll: 45000, Marketing: 13000, IT: 8000 },
+    { name: 'Mar', Payroll: 44500, Marketing: 14000, IT: 7800 },
+    { name: 'Apr', Payroll: 45500, Marketing: 15000, IT: 8200 },
+    { name: 'May', Payroll: 45000, Marketing: 14500, IT: 8000 },
+];
+
+const BUDGET_STATUS = [
+    { value: 40, name: 'On Track' },
+    { value: 35, name: 'Under Budget' },
+    { value: 25, name: 'Over Budget' }
+];
+
 export const CategoryAnalysisDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -89,6 +104,21 @@ export const CategoryAnalysisDashboard: React.FC = () => {
             label: { show: false },
             data: CATEGORY_SHARE,
             color: ['#6366f1', '#e11d48', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6']
+        }]
+    };
+
+    // Budget Status Pie
+    const budgetStatusPieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: BUDGET_STATUS,
+            color: ['#3b82f6', '#10b981', '#ef4444']
         }]
     };
 
@@ -192,6 +222,40 @@ export const CategoryAnalysisDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">Departmental breakdown</p>
                         </div>
                         <ReactECharts option={pieOption} style={{ height: '200px' }} />
+                    </div>
+
+                    {/* Recharts: Category Trend (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Category Trend</h3>
+                            <p className="text-xs text-gray-400">Monthly spend by category</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={CATEGORY_TREND} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Legend iconType="circle" fontSize={10} />
+                                    <Bar dataKey="Payroll" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={10} />
+                                    <Bar dataKey="Marketing" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={10} />
+                                    <Bar dataKey="IT" fill="#10b981" radius={[4, 4, 0, 0]} barSize={10} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Budget Status (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Budget Status</h3>
+                            <p className="text-xs text-gray-400">Categories by status</p>
+                        </div>
+                        <ReactECharts option={budgetStatusPieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

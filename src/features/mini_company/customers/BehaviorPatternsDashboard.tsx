@@ -54,6 +54,20 @@ const WAVE_DATA = {
     planned: [30, 25, 40, 20, 45, 30]
 };
 
+// Additional chart data
+const FREQUENCY_BY_SEGMENT = [
+    { name: 'Weekly', Count: 350 },
+    { name: 'Bi-Weekly', Count: 480 },
+    { name: 'Monthly', Count: 620 },
+    { name: 'Quarterly', Count: 280 },
+];
+
+const PURCHASE_TYPE = [
+    { value: 45, name: 'Routine' },
+    { value: 30, name: 'Planned' },
+    { value: 25, name: 'Impulse' }
+];
+
 export const BehaviorPatternsDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -77,6 +91,21 @@ export const BehaviorPatternsDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
             data: PURCHASE_MIX,
             color: ['#f59e0b', '#ec4899', '#10b981', '#6366f1']
+        }]
+    };
+
+    // Purchase Type Pie
+    const purchaseTypePieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: PURCHASE_TYPE,
+            color: ['#3b82f6', '#8b5cf6', '#f43f5e']
         }]
     };
 
@@ -171,6 +200,37 @@ export const BehaviorPatternsDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">Preferential Split</p>
                         </div>
                         <ReactECharts option={pieOption} style={{ height: '200px' }} />
+                    </div>
+
+                    {/* Recharts: Frequency by Segment (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Purchase Frequency</h3>
+                            <p className="text-xs text-gray-400">Customer Count by Interval</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={FREQUENCY_BY_SEGMENT} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Bar dataKey="Count" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={28} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Purchase Type (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Purchase Type</h3>
+                            <p className="text-xs text-gray-400">Buying Behavior</p>
+                        </div>
+                        <ReactECharts option={purchaseTypePieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

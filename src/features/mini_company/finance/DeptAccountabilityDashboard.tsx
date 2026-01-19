@@ -3,7 +3,7 @@ import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ArrowsOut, Info, TrendUp, Warning, UsersThree, Buildings, Target, Trophy, ChartPieSlice } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { DeptAccountabilityInfo } from './DeptAccountabilityInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -69,6 +69,21 @@ const NETWORK_LINKS = [
     { source: '2', target: '3' }  // Sales -> Marketing interaction
 ];
 
+// Additional chart data
+const BUDGET_VS_ACTUAL = [
+    { name: 'Engineering', Budget: 110000, Actual: 120000 },
+    { name: 'Sales', Budget: 100000, Actual: 95000 },
+    { name: 'Marketing', Budget: 80000, Actual: 85000 },
+    { name: 'Operations', Budget: 50000, Actual: 45000 },
+    { name: 'HR', Budget: 25000, Actual: 25000 },
+];
+
+const VARIANCE_STATUS = [
+    { value: 40, name: 'Over Budget' },
+    { value: 35, name: 'On Track' },
+    { value: 25, name: 'Under Budget' }
+];
+
 export const DeptAccountabilityDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -92,6 +107,21 @@ export const DeptAccountabilityDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
             data: DEPT_SHARE,
             color: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#6366f1', '#ec4899']
+        }]
+    };
+
+    // Variance Status Pie
+    const variancePieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: VARIANCE_STATUS,
+            color: ['#ef4444', '#3b82f6', '#10b981']
         }]
     };
 
@@ -193,6 +223,39 @@ export const DeptAccountabilityDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">Share by Department</p>
                         </div>
                         <ReactECharts option={pieOption} style={{ height: '200px' }} />
+                    </div>
+
+                    {/* Recharts: Budget vs Actual (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Budget vs Actual</h3>
+                            <p className="text-xs text-gray-400">Performance comparison</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={BUDGET_VS_ACTUAL} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Legend iconType="circle" fontSize={10} />
+                                    <Bar dataKey="Budget" fill="#dbeafe" radius={[4, 4, 0, 0]} barSize={12} />
+                                    <Bar dataKey="Actual" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Variance Status (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Variance Status</h3>
+                            <p className="text-xs text-gray-400">Budget adherence</p>
+                        </div>
+                        <ReactECharts option={variancePieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

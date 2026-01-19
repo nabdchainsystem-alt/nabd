@@ -62,6 +62,22 @@ const BUBBLE_DATA = [
     [[200000, 3.5, 50, 'Cyberdyne', 'High Risk']]
 ];
 
+// Additional chart data
+const RATING_BY_SUPPLIER = [
+    { name: 'Acme Mfg', Rating: 4.8 },
+    { name: 'Globex', Rating: 4.2 },
+    { name: 'Soylent', Rating: 3.9 },
+    { name: 'Initech', Rating: 4.5 },
+    { name: 'Umbrella', Rating: 2.5 },
+];
+
+const SUPPLIER_STATUS = [
+    { value: 45, name: 'Strategic' },
+    { value: 30, name: 'Active' },
+    { value: 15, name: 'Probation' },
+    { value: 10, name: 'New' }
+];
+
 
 export const SupplierOverviewDashboard: React.FC = () => {
     const { currency } = useAppContext();
@@ -97,6 +113,21 @@ export const SupplierOverviewDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
             data: CATEGORY_SPLIT,
             color: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+        }]
+    };
+
+    // Supplier Status Pie
+    const statusPieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: SUPPLIER_STATUS,
+            color: ['#8b5cf6', '#10b981', '#ef4444', '#f59e0b']
         }]
     };
 
@@ -215,6 +246,45 @@ export const SupplierOverviewDashboard: React.FC = () => {
                                 <p className="text-xs text-gray-400">By Category</p>
                             </div>
                             <ReactECharts option={pieOption} style={{ height: '200px' }} />
+                        </div>
+                    )}
+
+                    {/* Recharts: Rating by Supplier (Bar) */}
+                    {isLoading ? (
+                        <ChartSkeleton height="h-[280px]" title="Supplier Ratings" />
+                    ) : (
+                        <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                            <div className="mb-4">
+                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Supplier Ratings</h3>
+                                <p className="text-xs text-gray-400">Performance Score</p>
+                            </div>
+                            <div className="h-[220px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={RATING_BY_SUPPLIER} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} domain={[0, 5]} />
+                                        <Tooltip
+                                            cursor={{ fill: '#f9fafb' }}
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        />
+                                        <Bar dataKey="Rating" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={28} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ECharts: Supplier Status (Pie) */}
+                    {isLoading ? (
+                        <PieChartSkeleton title="Status Mix" />
+                    ) : (
+                        <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow animate-fade-in-up">
+                            <div className="mb-2">
+                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Status Mix</h3>
+                                <p className="text-xs text-gray-400">By Classification</p>
+                            </div>
+                            <ReactECharts option={statusPieOption} style={{ height: '200px' }} />
                         </div>
                     )}
 

@@ -220,20 +220,93 @@ export const useRoomBoardData = (storageKey: string, initialBoardData?: IBoard |
                 }
             }
 
-            // If ID is the same, verify if metadata changed (e.g. added a view)
+            // If ID is the same, verify if metadata or tasks changed
             const flat = initialBoardData as Board;
             // Simple validation to check if we received a flat Board update from parent
             if (!('groups' in flat)) {
-                if (
+                const metadataChanged =
                     JSON.stringify(prev.availableViews) !== JSON.stringify(flat.availableViews) ||
                     JSON.stringify(prev.pinnedViews) !== JSON.stringify(flat.pinnedViews) ||
                     prev.defaultView !== flat.defaultView ||
                     prev.name !== flat.name ||
-                    prev.description !== flat.description
-                ) {
+                    prev.description !== flat.description;
+
+                // Check if tasks changed (compare task IDs and count)
+                const prevTaskIds = prev.groups.flatMap(g => g.tasks.map(t => t.id)).sort().join(',');
+                const newTaskIds = (flat.tasks || []).map(t => t.id).sort().join(',');
+                const tasksChanged = prevTaskIds !== newTaskIds;
+
+                if (metadataChanged || tasksChanged) {
                     isExternalUpdate.current = true;
+
+                    // If tasks changed, we need to merge them into groups
+                    let updatedGroups = prev.groups;
+                    if (tasksChanged && flat.tasks) {
+                        // Find new tasks that don't exist in current groups
+                        const existingTaskIds = new Set(prev.groups.flatMap(g => g.tasks.map(t => t.id)));
+                        const newTasks = flat.tasks.filter(t => !existingTaskIds.has(t.id));
+
+                        // Find deleted tasks
+                        const newTaskIdSet = new Set(flat.tasks.map(t => t.id));
+
+                        // Add new tasks to appropriate groups based on status/groupId
+                        if (newTasks.length > 0) {
+                            updatedGroups = prev.groups.map(g => {
+                                const tasksForGroup = newTasks.filter(t => {
+                                    const targetGroup = t.groupId || t.status || 'To Do';
+                                    return g.id === targetGroup || g.title === targetGroup;
+                                });
+
+                                if (tasksForGroup.length > 0) {
+                                    return {
+                                        ...g,
+                                        tasks: [...tasksForGroup.map(t => ({
+                                            id: t.id,
+                                            name: t.name,
+                                            status: t.status as Status,
+                                            priority: t.priority as Priority,
+                                            personId: t.person,
+                                            dueDate: t.date,
+                                            textValues: {},
+                                            selected: false,
+                                            ...t
+                                        })), ...g.tasks]
+                                    };
+                                }
+                                return g;
+                            });
+
+                            // If no group matched, add to first group
+                            const placedIds = new Set(updatedGroups.flatMap(g => g.tasks.map(t => t.id)));
+                            const unplacedTasks = newTasks.filter(t => !placedIds.has(t.id));
+                            if (unplacedTasks.length > 0 && updatedGroups.length > 0) {
+                                updatedGroups[0] = {
+                                    ...updatedGroups[0],
+                                    tasks: [...unplacedTasks.map(t => ({
+                                        id: t.id,
+                                        name: t.name,
+                                        status: t.status as Status,
+                                        priority: t.priority as Priority,
+                                        personId: t.person,
+                                        dueDate: t.date,
+                                        textValues: {},
+                                        selected: false,
+                                        ...t
+                                    })), ...updatedGroups[0].tasks]
+                                };
+                            }
+                        }
+
+                        // Remove deleted tasks from groups
+                        updatedGroups = updatedGroups.map(g => ({
+                            ...g,
+                            tasks: g.tasks.filter(t => newTaskIdSet.has(t.id))
+                        }));
+                    }
+
                     return {
                         ...prev,
+                        groups: updatedGroups,
                         availableViews: flat.availableViews,
                         pinnedViews: flat.pinnedViews,
                         defaultView: flat.defaultView,

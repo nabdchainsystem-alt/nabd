@@ -885,7 +885,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full w-full bg-[#FCFCFD] dark:bg-monday-dark-bg font-sans text-[#323338] dark:text-monday-dark-text transition-colors duration-200">
-      <TopBar onNavigate={handleNavigate} />
+      <TopBar onNavigate={handleNavigate} boards={workspaceBoards} onCreateTask={handleCreateTaskOnBoard} />
       <div className="flex flex-1 min-h-0 relative overflow-hidden">
         <Sidebar
           activeView={activeView}

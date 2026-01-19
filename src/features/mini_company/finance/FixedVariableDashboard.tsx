@@ -64,6 +64,22 @@ const MATRIX_DATA = [
     [5, 5, 'Utilities', 'Semi-Var']
 ];
 
+// Additional chart data
+const FIXED_BY_CATEGORY = [
+    { name: 'Salaries', value: 45000 },
+    { name: 'Rent', value: 20000 },
+    { name: 'Insurance', value: 5000 },
+    { name: 'Depreciation', value: 3000 },
+    { name: 'Subscriptions', value: 2000 },
+];
+
+const VARIABLE_BREAKDOWN = [
+    { value: 35, name: 'Marketing' },
+    { value: 28, name: 'Shipping' },
+    { value: 22, name: 'Commissions' },
+    { value: 15, name: 'Utilities' }
+];
+
 export const FixedVariableDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -86,6 +102,21 @@ export const FixedVariableDashboard: React.FC = () => {
             label: { show: false },
             data: COST_STRUCTURE,
             color: ['#64748b', '#3b82f6'] // Slate for Fixed, Blue for Variable
+        }]
+    };
+
+    // Variable Breakdown Pie
+    const variablePieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: VARIABLE_BREAKDOWN,
+            color: ['#3b82f6', '#0ea5e9', '#8b5cf6', '#10b981']
         }]
     };
 
@@ -192,6 +223,37 @@ export const FixedVariableDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">Fixed vs Variable Ratio</p>
                         </div>
                         <ReactECharts option={pieOption} style={{ height: '200px' }} />
+                    </div>
+
+                    {/* Recharts: Fixed by Category (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Fixed Cost Breakdown</h3>
+                            <p className="text-xs text-gray-400">Major fixed expenses</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={FIXED_BY_CATEGORY} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Bar dataKey="value" fill="#64748b" radius={[4, 4, 0, 0]} barSize={24} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Variable Breakdown (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Variable Cost Mix</h3>
+                            <p className="text-xs text-gray-400">Variable expense types</p>
+                        </div>
+                        <ReactECharts option={variablePieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>

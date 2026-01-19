@@ -3,7 +3,7 @@ import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ArrowsOut, Info, TrendUp, Warning, CheckCircle, Clock, XCircle, TreeStructure, Hourglass } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ApprovalFlowInfo } from './ApprovalFlowInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -65,6 +65,20 @@ const SANKEY_DATA = {
     ]
 };
 
+// Additional chart data
+const APPROVALS_BY_TYPE = [
+    { name: 'Travel', Approved: 15, Rejected: 2 },
+    { name: 'Software', Approved: 10, Rejected: 1 },
+    { name: 'Marketing', Approved: 8, Rejected: 1 },
+    { name: 'Office', Approved: 5, Rejected: 1 },
+];
+
+const APPROVAL_OUTCOME = [
+    { value: 84, name: 'Approved' },
+    { value: 11, name: 'Rejected' },
+    { value: 5, name: 'Pending' }
+];
+
 export const ApprovalFlowDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const [showInfo, setShowInfo] = useState(false);
@@ -100,6 +114,21 @@ export const ApprovalFlowDashboard: React.FC = () => {
                 color: ['#3b82f6', '#0ea5e9', '#10b981', '#6366f1']
             }
         ]
+    };
+
+    // Approval Outcome Pie
+    const outcomePieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['50%', '45%'],
+            itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false },
+            data: APPROVAL_OUTCOME,
+            color: ['#10b981', '#ef4444', '#f59e0b']
+        }]
     };
 
     // Sankey Chart
@@ -199,6 +228,39 @@ export const ApprovalFlowDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">Request Progression</p>
                         </div>
                         <ReactECharts option={funnelOption} style={{ height: '200px' }} />
+                    </div>
+
+                    {/* Recharts: Approvals by Type (Bar) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-4">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Approvals by Type</h3>
+                            <p className="text-xs text-gray-400">Approved vs Rejected</p>
+                        </div>
+                        <div className="h-[220px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={APPROVALS_BY_TYPE} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                    />
+                                    <Legend iconType="circle" fontSize={10} />
+                                    <Bar dataKey="Approved" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} />
+                                    <Bar dataKey="Rejected" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={12} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ECharts: Approval Outcome (Pie) */}
+                    <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-2xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="mb-2">
+                            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">Approval Outcome</h3>
+                            <p className="text-xs text-gray-400">Overall success rate</p>
+                        </div>
+                        <ReactECharts option={outcomePieOption} style={{ height: '200px' }} />
                     </div>
 
                 </div>
