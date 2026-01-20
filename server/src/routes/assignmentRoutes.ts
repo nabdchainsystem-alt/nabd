@@ -51,7 +51,7 @@ async function getOrCreateAssignedBoard(userId: string): Promise<string> {
     return board.id;
 }
 
-// POST /: Create Assignment (assign task to user)
+// POST /: Create Assignment (assign task to user) - just creates the notification record
 router.post('/', requireAuth, async (req, res: Response) => {
     try {
         const userId = (req as AuthRequest).auth.userId;
@@ -71,53 +71,7 @@ router.post('/', requireAuth, async (req, res: Response) => {
             return res.status(403).json({ error: "You can only assign tasks to connected team members" });
         }
 
-        // Get assigner info
-        const assigner = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true, name: true, email: true, avatarUrl: true }
-        });
-
-        // Get source board info
-        const sourceBoard = await prisma.board.findUnique({
-            where: { id: data.sourceBoardId },
-            select: { name: true }
-        });
-
-        // Get or create "Assigned to me" board for assignee
-        const assignedBoardId = await getOrCreateAssignedBoard(data.assignedToUserId);
-
-        // Get current tasks from the assigned board
-        const assignedBoard = await prisma.board.findUnique({
-            where: { id: assignedBoardId }
-        });
-
-        const currentTasks = assignedBoard?.tasks ? JSON.parse(assignedBoard.tasks) : [];
-
-        // Create copied task with metadata
-        const copiedRowId = crypto.randomUUID();
-        const taskData = typeof data.sourceTaskData === 'string'
-            ? JSON.parse(data.sourceTaskData)
-            : data.sourceTaskData;
-
-        const copiedTask = {
-            ...taskData,
-            id: copiedRowId,
-            _originalTaskId: data.sourceRowId,
-            _sourceBoardId: data.sourceBoardId,
-            _sourceBoardName: sourceBoard?.name || 'Unknown Board',
-            assignedBy: assigner?.name || assigner?.email || 'Unknown',
-            assignedById: userId,
-            assignedAt: new Date().toISOString(),
-        };
-
-        // Add task to board
-        currentTasks.push(copiedTask);
-        await prisma.board.update({
-            where: { id: assignedBoardId },
-            data: { tasks: JSON.stringify(currentTasks) }
-        });
-
-        // Create assignment record
+        // Create assignment record (board creation happens when user clicks notification)
         const assignment = await prisma.assignment.create({
             data: {
                 sourceBoardId: data.sourceBoardId,
@@ -125,8 +79,7 @@ router.post('/', requireAuth, async (req, res: Response) => {
                 sourceTaskData: JSON.stringify(data.sourceTaskData),
                 assignedFromUserId: userId,
                 assignedToUserId: data.assignedToUserId,
-                copiedBoardId: assignedBoardId,
-                copiedRowId: copiedRowId,
+                // copiedBoardId and copiedRowId will be set when user views the notification
             },
             include: {
                 assignedFromUser: {
@@ -195,7 +148,7 @@ router.get('/count', requireAuth, async (req, res: Response) => {
     }
 });
 
-// PUT /:id/viewed: Mark assignment as viewed
+// PUT /:id/viewed: Mark assignment as viewed AND create "Assigned to me" board with task
 router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
     try {
         const userId = (req as AuthRequest).auth.userId;
@@ -206,6 +159,11 @@ router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
             where: {
                 id,
                 assignedToUserId: userId
+            },
+            include: {
+                assignedFromUser: {
+                    select: { id: true, name: true, email: true, avatarUrl: true }
+                }
             }
         });
 
@@ -213,15 +171,68 @@ router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
             return res.status(404).json({ error: "Assignment not found" });
         }
 
+        let copiedBoardId = assignment.copiedBoardId;
+        let copiedRowId = assignment.copiedRowId;
+
+        // Only create board and copy task if not already done
+        if (!copiedBoardId || !copiedRowId) {
+            // Get source board info
+            const sourceBoard = await prisma.board.findUnique({
+                where: { id: assignment.sourceBoardId },
+                select: { name: true }
+            });
+
+            // Get or create "Assigned to me" board for the user
+            copiedBoardId = await getOrCreateAssignedBoard(userId);
+
+            // Get current tasks from the assigned board
+            const assignedBoard = await prisma.board.findUnique({
+                where: { id: copiedBoardId }
+            });
+
+            const currentTasks = assignedBoard?.tasks ? JSON.parse(assignedBoard.tasks) : [];
+
+            // Create copied task with metadata
+            copiedRowId = crypto.randomUUID();
+            const taskData = assignment.sourceTaskData
+                ? JSON.parse(assignment.sourceTaskData)
+                : {};
+
+            const copiedTask = {
+                ...taskData,
+                id: copiedRowId,
+                _originalTaskId: assignment.sourceRowId,
+                _sourceBoardId: assignment.sourceBoardId,
+                _sourceBoardName: sourceBoard?.name || 'Unknown Board',
+                assignedBy: assignment.assignedFromUser?.name || assignment.assignedFromUser?.email || 'Unknown',
+                assignedById: assignment.assignedFromUserId,
+                assignedAt: assignment.createdAt.toISOString(),
+            };
+
+            // Add task to board
+            currentTasks.push(copiedTask);
+            await prisma.board.update({
+                where: { id: copiedBoardId },
+                data: { tasks: JSON.stringify(currentTasks) }
+            });
+        }
+
+        // Update assignment with viewed status and board/row IDs
         const updated = await prisma.assignment.update({
             where: { id },
             data: {
                 isViewed: true,
-                viewedAt: new Date()
+                viewedAt: new Date(),
+                copiedBoardId,
+                copiedRowId
             }
         });
 
-        res.json(updated);
+        res.json({
+            ...updated,
+            copiedBoardId,
+            copiedRowId
+        });
     } catch (error) {
         console.error("Mark Assignment Viewed Error:", error);
         res.status(500).json({ error: "Failed to mark assignment as viewed" });
