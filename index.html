@@ -169,8 +169,37 @@
 
 <body
   class="bg-monday-bg dark:bg-monday-dark-bg text-monday-text dark:text-monday-dark-text transition-colors duration-200">
-  <div id="root"></div>
+  <div id="root">
+    <!-- Fallback loading state shown until React mounts -->
+    <div id="initial-loader" style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column;">
+      <div style="width: 32px; height: 32px; border: 4px solid #3B82F6; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <p style="margin-top: 16px; color: #6B7280; font-size: 14px;">Loading NABD...</p>
+    </div>
+    <style>
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
+  <script>
+    // Remove initial loader once React mounts (timeout fallback for debugging)
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        var loader = document.getElementById('initial-loader');
+        if (loader && loader.parentElement.children.length > 2) {
+          loader.remove();
+        }
+      }, 100);
+    });
+    // Show error message if React fails to mount after 15 seconds
+    setTimeout(function() {
+      var loader = document.getElementById('initial-loader');
+      if (loader) {
+        loader.innerHTML = '<div style="text-align: center; padding: 20px;"><h2 style="color: #EF4444; margin-bottom: 10px;">Failed to load application</h2><p style="color: #6B7280; margin-bottom: 15px;">The app took too long to load. This may be a network issue.</p><button onclick="window.location.reload()" style="padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer;">Reload Page</button></div>';
+      }
+    }, 15000);
+  </script>
 </body>
 
 </html>

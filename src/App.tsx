@@ -1112,6 +1112,43 @@ const AppContent: React.FC = () => {
 
 import { SignUpPage } from './features/auth/SignUpPage';
 
+// Error boundary for the entire app content
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('App Error Boundary caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen w-full flex flex-col items-center justify-center bg-white p-8">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
+          <p className="text-gray-600 mb-4">{this.state.error?.message}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Component to handle signed-in users - redirects to app subdomain if on main domain
 const SignedInContent: React.FC<{ isMainDomain: boolean }> = ({ isMainDomain }) => {
   useEffect(() => {
@@ -1128,7 +1165,11 @@ const SignedInContent: React.FC<{ isMainDomain: boolean }> = ({ isMainDomain }) 
     );
   }
 
-  return <AppContent />;
+  return (
+    <AppErrorBoundary>
+      <AppContent />
+    </AppErrorBoundary>
+  );
 };
 
 const AppRoutes: React.FC = () => {
@@ -1139,6 +1180,9 @@ const AppRoutes: React.FC = () => {
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
   const isAppSubdomain = hostname === 'app.nabdchain.com';
   const isMainDomain = hostname === 'nabdchain.com' || hostname === 'www.nabdchain.com';
+
+  // Track if auth loading is taking too long
+  const [authTimeout, setAuthTimeout] = useState(false);
 
   // View state for auth screens: 'home' (landing), 'signin', 'signup'
   // On app subdomain, default to signin if not authenticated
@@ -1160,10 +1204,33 @@ const AppRoutes: React.FC = () => {
     }
   }, []);
 
+  // Timeout for auth loading - if it takes more than 10 seconds, show retry option
+  useEffect(() => {
+    if (!isLoaded) {
+      const timeout = setTimeout(() => {
+        setAuthTimeout(true);
+      }, 10000);
+      return () => clearTimeout(timeout);
+    } else {
+      setAuthTimeout(false);
+    }
+  }, [isLoaded]);
+
   if (!isLoaded) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#F7F9FB] dark:bg-monday-dark-bg">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#F7F9FB] dark:bg-monday-dark-bg">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        {authTimeout && (
+          <div className="mt-4 text-center">
+            <p className="text-gray-600 mb-2">Loading is taking longer than expected...</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+            >
+              Reload Page
+            </button>
+          </div>
+        )}
       </div>
     );
   }
