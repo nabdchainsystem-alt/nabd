@@ -324,7 +324,8 @@ router.get('/members', requireAuth, async (req: any, res: Response) => {
                 email: true,
                 name: true,
                 avatarUrl: true,
-                createdAt: true
+                createdAt: true,
+                lastActiveAt: true
             }
         });
 
@@ -335,6 +336,7 @@ router.get('/members', requireAuth, async (req: any, res: Response) => {
             );
             return {
                 ...member,
+                lastActiveAt: member.lastActiveAt,
                 connectionId: connection?.id,
                 connectedAt: connection?.updatedAt
             };

@@ -70,6 +70,13 @@ export const TeamsPage: React.FC = () => {
         setRefreshKey(prev => prev + 1);
     };
 
+    // Check if user is online (active within last 5 minutes)
+    const isUserOnline = (lastActiveAt: string | null | undefined): boolean => {
+        if (!lastActiveAt) return false;
+        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+        return new Date(lastActiveAt).getTime() > fiveMinutesAgo;
+    };
+
     const handleGenerateInvite = async () => {
         setIsGenerating(true);
         setInviteLink('');
@@ -94,14 +101,15 @@ export const TeamsPage: React.FC = () => {
             name: m.name || m.email.split('@')[0],
             email: m.email,
             initials: (m.name || m.email).substring(0, 2).toUpperCase(),
-            status: TeamStatus.ACTIVE,
+            status: isUserOnline(m.lastActiveAt) ? TeamStatus.ACTIVE : TeamStatus.AWAY,
             role: TeamRole.MEMBER,
             department: 'Team',
             location: 'Remote',
             color: 'bg-gradient-to-br from-blue-500 to-indigo-600',
             avatarUrl: m.avatarUrl || undefined,
             showUserIcon: !m.avatarUrl && !m.name,
-            isConnected: true
+            isConnected: true,
+            lastActiveAt: m.lastActiveAt
         })),
         ...MOCK_MEMBERS
     ];

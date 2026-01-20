@@ -1,0 +1,377 @@
+import express, { Response } from 'express';
+import { requireAuth, AuthRequest } from '../middleware/auth';
+import { z } from 'zod';
+import { prisma } from '../lib/prisma';
+
+const router = express.Router();
+
+// Input validation schemas
+const createConversationSchema = z.object({
+    type: z.enum(['dm', 'channel']),
+    participantId: z.string().optional(), // For DM
+    name: z.string().optional(), // For channel
+});
+
+const sendMessageSchema = z.object({
+    content: z.string().min(1).max(10000),
+});
+
+// Get all conversations for current user
+router.get('/conversations', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+
+        // Find all conversations where user is a participant
+        const participations = await prisma.conversationParticipant.findMany({
+            where: { userId },
+            include: {
+                conversation: {
+                    include: {
+                        participants: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        email: true,
+                                        name: true,
+                                        avatarUrl: true,
+                                        lastActiveAt: true
+                                    }
+                                }
+                            }
+                        },
+                        messages: {
+                            orderBy: { createdAt: 'desc' },
+                            take: 1 // Get latest message for preview
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                conversation: {
+                    updatedAt: 'desc'
+                }
+            }
+        });
+
+        // Format response
+        const conversations = participations.map(p => {
+            const conv = p.conversation;
+            const otherParticipants = conv.participants
+                .filter(part => part.userId !== userId)
+                .map(part => part.user);
+
+            // Count unread messages
+            const lastReadAt = p.lastReadAt;
+            const unreadCount = lastReadAt
+                ? conv.messages.filter(m => new Date(m.createdAt) > new Date(lastReadAt)).length
+                : conv.messages.length;
+
+            return {
+                id: conv.id,
+                type: conv.type,
+                name: conv.type === 'channel' ? conv.name : null,
+                participants: otherParticipants,
+                lastMessage: conv.messages[0] || null,
+                unreadCount,
+                updatedAt: conv.updatedAt
+            };
+        });
+
+        res.json(conversations);
+    } catch (error) {
+        console.error('Get conversations error:', error);
+        res.status(500).json({ error: 'Failed to get conversations' });
+    }
+});
+
+// Get or create a DM conversation with a user
+router.post('/conversations/dm', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { participantId } = z.object({ participantId: z.string() }).parse(req.body);
+
+        if (participantId === userId) {
+            return res.status(400).json({ error: 'Cannot create DM with yourself' });
+        }
+
+        // Check if other user exists
+        const otherUser = await prisma.user.findUnique({
+            where: { id: participantId }
+        });
+
+        if (!otherUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Check if DM already exists between these users
+        const existingConversation = await prisma.conversation.findFirst({
+            where: {
+                type: 'dm',
+                AND: [
+                    { participants: { some: { userId } } },
+                    { participants: { some: { userId: participantId } } }
+                ]
+            },
+            include: {
+                participants: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                email: true,
+                                name: true,
+                                avatarUrl: true,
+                                lastActiveAt: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (existingConversation) {
+            const otherParticipants = existingConversation.participants
+                .filter(p => p.userId !== userId)
+                .map(p => p.user);
+
+            return res.json({
+                id: existingConversation.id,
+                type: existingConversation.type,
+                name: null,
+                participants: otherParticipants,
+                isNew: false
+            });
+        }
+
+        // Create new DM conversation
+        const newConversation = await prisma.conversation.create({
+            data: {
+                type: 'dm',
+                participants: {
+                    create: [
+                        { userId },
+                        { userId: participantId }
+                    ]
+                }
+            },
+            include: {
+                participants: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                email: true,
+                                name: true,
+                                avatarUrl: true,
+                                lastActiveAt: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const otherParticipants = newConversation.participants
+            .filter(p => p.userId !== userId)
+            .map(p => p.user);
+
+        res.json({
+            id: newConversation.id,
+            type: newConversation.type,
+            name: null,
+            participants: otherParticipants,
+            isNew: true
+        });
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ error: 'Invalid input', details: error.issues });
+        }
+        console.error('Create DM error:', error);
+        res.status(500).json({ error: 'Failed to create conversation' });
+    }
+});
+
+// Get messages for a conversation (paginated)
+router.get('/conversations/:id/messages', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+        const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+        const before = req.query.before as string | undefined;
+
+        // Verify user is participant
+        const participation = await prisma.conversationParticipant.findUnique({
+            where: {
+                conversationId_userId: {
+                    conversationId: id,
+                    userId
+                }
+            }
+        });
+
+        if (!participation) {
+            return res.status(403).json({ error: 'Not a participant of this conversation' });
+        }
+
+        // Build query
+        const whereClause: any = { conversationId: id };
+        if (before) {
+            whereClause.createdAt = { lt: new Date(before) };
+        }
+
+        const messages = await prisma.message.findMany({
+            where: whereClause,
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            include: {
+                sender: {
+                    select: {
+                        id: true,
+                        email: true,
+                        name: true,
+                        avatarUrl: true
+                    }
+                }
+            }
+        });
+
+        // Update last read
+        await prisma.conversationParticipant.update({
+            where: {
+                conversationId_userId: {
+                    conversationId: id,
+                    userId
+                }
+            },
+            data: { lastReadAt: new Date() }
+        });
+
+        // Return in chronological order (oldest first)
+        res.json(messages.reverse());
+    } catch (error) {
+        console.error('Get messages error:', error);
+        res.status(500).json({ error: 'Failed to get messages' });
+    }
+});
+
+// Send a message
+router.post('/conversations/:id/messages', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+        const { content } = sendMessageSchema.parse(req.body);
+
+        // Verify user is participant
+        const participation = await prisma.conversationParticipant.findUnique({
+            where: {
+                conversationId_userId: {
+                    conversationId: id,
+                    userId
+                }
+            }
+        });
+
+        if (!participation) {
+            return res.status(403).json({ error: 'Not a participant of this conversation' });
+        }
+
+        // Create message
+        const message = await prisma.message.create({
+            data: {
+                conversationId: id,
+                senderId: userId,
+                content
+            },
+            include: {
+                sender: {
+                    select: {
+                        id: true,
+                        email: true,
+                        name: true,
+                        avatarUrl: true
+                    }
+                }
+            }
+        });
+
+        // Update conversation updatedAt
+        await prisma.conversation.update({
+            where: { id },
+            data: { updatedAt: new Date() }
+        });
+
+        // Update sender's lastReadAt
+        await prisma.conversationParticipant.update({
+            where: {
+                conversationId_userId: {
+                    conversationId: id,
+                    userId
+                }
+            },
+            data: { lastReadAt: new Date() }
+        });
+
+        res.json(message);
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ error: 'Invalid input', details: error.issues });
+        }
+        console.error('Send message error:', error);
+        res.status(500).json({ error: 'Failed to send message' });
+    }
+});
+
+// Mark conversation as read
+router.post('/conversations/:id/read', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+
+        await prisma.conversationParticipant.update({
+            where: {
+                conversationId_userId: {
+                    conversationId: id,
+                    userId
+                }
+            },
+            data: { lastReadAt: new Date() }
+        });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Mark read error:', error);
+        res.status(500).json({ error: 'Failed to mark as read' });
+    }
+});
+
+// Delete a message (only sender can delete)
+router.delete('/messages/:id', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+
+        const message = await prisma.message.findUnique({
+            where: { id }
+        });
+
+        if (!message) {
+            return res.status(404).json({ error: 'Message not found' });
+        }
+
+        if (message.senderId !== userId) {
+            return res.status(403).json({ error: 'Can only delete your own messages' });
+        }
+
+        await prisma.message.delete({
+            where: { id }
+        });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Delete message error:', error);
+        res.status(500).json({ error: 'Failed to delete message' });
+    }
+});
+
+export default router;

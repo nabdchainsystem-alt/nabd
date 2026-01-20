@@ -11,6 +11,7 @@ import teamRoutes from './routes/teamRoutes';
 import boardRoutes from './routes/boardRoutes';
 import vaultRoutes from './routes/vaultRoutes';
 import docRoutes from './routes/docRoutes';
+import talkRoutes from './routes/talkRoutes';
 import { requireAuth } from './middleware/auth';
 import { validateEnv, isProduction, getEnv } from './utils/env';
 import { prisma } from './lib/prisma';
@@ -109,7 +110,8 @@ app.use(async (req: any, res, next) => {
                                 id: req.auth.userId,
                                 email: email.toLowerCase(),
                                 name,
-                                avatarUrl: clerkUser.imageUrl || null
+                                avatarUrl: clerkUser.imageUrl || null,
+                                lastActiveAt: new Date()
                             }
                         });
                     } catch (clerkErr) {
@@ -117,7 +119,8 @@ app.use(async (req: any, res, next) => {
                         await prisma.user.create({
                             data: {
                                 id: req.auth.userId,
-                                email: `${req.auth.userId}@placeholder.com`
+                                email: `${req.auth.userId}@placeholder.com`,
+                                lastActiveAt: new Date()
                             }
                         });
                     }
@@ -139,6 +142,12 @@ app.use(async (req: any, res, next) => {
                     } catch (clerkErr) {
                         // Ignore - keep placeholder for now
                     }
+                } else {
+                    // Update lastActiveAt for existing users (track online status)
+                    await prisma.user.update({
+                        where: { id: req.auth.userId },
+                        data: { lastActiveAt: new Date() }
+                    });
                 }
             } catch (e) {
                 console.error("User Sync Error", e);
@@ -163,6 +172,7 @@ app.use('/api/team', teamRoutes);
 app.use('/api/boards', boardRoutes);
 app.use('/api/vault', vaultRoutes);
 app.use('/api/docs', docRoutes);
+app.use('/api/talk', talkRoutes);
 
 // --- Workspace Routes ---
 app.get('/api/workspaces', requireAuth, async (req: any, res) => {

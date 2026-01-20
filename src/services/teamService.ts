@@ -5,6 +5,7 @@ export interface TeamMember {
     email: string;
     name: string | null;
     avatarUrl: string | null;
+    lastActiveAt?: string | null;
     connectionId?: string;
     connectedAt?: string;
 }
