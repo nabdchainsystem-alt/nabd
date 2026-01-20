@@ -69,6 +69,9 @@ const MobileContent: React.FC = () => {
 };
 
 const MobileSignIn: React.FC = () => {
+  // Use current origin to ensure redirect stays on mobile subdomain
+  const redirectUrl = typeof window !== 'undefined' ? window.location.origin : '/';
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
@@ -81,7 +84,8 @@ const MobileSignIn: React.FC = () => {
         </div>
 
         <SignIn
-          fallbackRedirectUrl="/"
+          fallbackRedirectUrl={redirectUrl}
+          forceRedirectUrl={redirectUrl}
           appearance={{
             variables: {
               colorPrimary: '#2563eb',
