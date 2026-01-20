@@ -118,18 +118,21 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     const signOut = async () => {
-        setIsSignedIn(false);
-        setUserData(null);
+        // Clear token first
         localStorage.removeItem('mock_auth_token');
-        // Redirect to main domain
+
+        // Redirect IMMEDIATELY on app subdomain (before React re-renders)
         const hostname = window.location.hostname;
         if (hostname === 'app.nabdchain.com') {
-            window.location.href = 'https://nabdchain.com';
-        } else {
-            // Local dev - just go to home
-            window.history.pushState({}, '', '/');
-            window.dispatchEvent(new PopStateEvent('popstate'));
+            window.location.replace('https://nabdchain.com');
+            return; // Stop execution - page is redirecting
         }
+
+        // Only for localhost - update state
+        setIsSignedIn(false);
+        setUserData(null);
+        window.history.pushState({}, '', '/');
+        window.dispatchEvent(new PopStateEvent('popstate'));
     };
 
     const getToken = async () => {
