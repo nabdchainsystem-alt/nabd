@@ -28,6 +28,18 @@ export interface AdminStatus {
     } | null;
 }
 
+export interface UserPagePermission {
+    pageKey: string;
+    enabled: boolean;
+    source: 'user' | 'global';
+    globalEnabled: boolean;
+}
+
+export interface UserPermissionsResponse {
+    userId: string;
+    permissions: UserPagePermission[];
+}
+
 export const adminService = {
     // Get current user's admin status
     async getAdminStatus(token: string): Promise<AdminStatus> {
@@ -104,6 +116,65 @@ export const adminService = {
         }
 
         return response.json();
+    },
+
+    // Get current user's effective page visibility
+    async getMyVisibility(token: string): Promise<Record<string, boolean>> {
+        const response = await fetch(`${API_URL}/admin/me/visibility`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to get visibility');
+        }
+
+        return response.json();
+    },
+
+    // Get a user's page permissions (admin only)
+    async getUserPermissions(token: string, userId: string): Promise<UserPermissionsResponse> {
+        const response = await fetch(`${API_URL}/admin/users/${userId}/permissions`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to get user permissions');
+        }
+
+        return response.json();
+    },
+
+    // Update a user's page permissions (admin only)
+    async updateUserPermissions(
+        token: string,
+        userId: string,
+        permissions: { pageKey: string; enabled: boolean | null }[]
+    ): Promise<void> {
+        const response = await fetch(`${API_URL}/admin/users/${userId}/permissions`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ permissions })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update user permissions');
+        }
+    },
+
+    // Reset a user's permissions to global defaults (admin only)
+    async resetUserPermissions(token: string, userId: string): Promise<void> {
+        const response = await fetch(`${API_URL}/admin/users/${userId}/permissions`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to reset user permissions');
+        }
     }
 };
 

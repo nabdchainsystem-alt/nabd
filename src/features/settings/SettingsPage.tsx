@@ -10,7 +10,7 @@ import {
     Monitor, User, Bell, Eye, Moon, Sun, SignOut, Crown, ToggleLeft, SpinnerGap,
     Flask
 } from 'phosphor-react';
-import { adminService, FeatureFlag, AdminUser } from '../../services/adminService';
+import { adminService, FeatureFlag, AdminUser, UserPagePermission } from '../../services/adminService';
 
 export const ALL_PAGES = {
     // Top Level

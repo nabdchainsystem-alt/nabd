@@ -30,6 +30,7 @@ model User {
   rooms                    Room[]
   workspace                Workspace?                @relation(fields: [workspaceId], references: [id])
   vaultItems               VaultItem[]
+  pagePermissions          UserPagePermission[]
 
   @@index([workspaceId])
   @@index([lastActiveAt])
@@ -408,4 +409,17 @@ model FeatureFlag {
   updatedBy String?
 
   @@index([key])
+}
+
+model UserPagePermission {
+  id        String   @id @default(uuid())
+  userId    String
+  pageKey   String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pageKey])
+  @@index([userId])
 }

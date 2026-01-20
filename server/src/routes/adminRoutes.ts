@@ -206,4 +206,122 @@ router.get('/me', requireAuth, async (req, res: Response) => {
     }
 });
 
+// GET /me/visibility: Get current user's effective page visibility
+router.get('/me/visibility', requireAuth, async (req, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+
+        // Get global feature flags
+        const globalFlags = await prisma.featureFlag.findMany();
+        const visibility: Record<string, boolean> = {};
+
+        // Start with defaults (all enabled)
+        for (const flag of DEFAULT_FEATURE_FLAGS) {
+            const global = globalFlags.find(f => f.key === flag.key);
+            const key = flag.key.replace('page_', '');
+            visibility[key] = global?.enabled ?? true;
+        }
+
+        // Apply user-specific overrides
+        const userPerms = await prisma.userPagePermission.findMany({
+            where: { userId }
+        });
+
+        for (const perm of userPerms) {
+            const key = perm.pageKey.replace('page_', '');
+            visibility[key] = perm.enabled;
+        }
+
+        res.json(visibility);
+    } catch (error) {
+        console.error('Get Visibility Error:', error);
+        res.status(500).json({ error: 'Failed to get visibility' });
+    }
+});
+
+// GET /users/:userId/permissions: Get a user's page permissions (admin only)
+router.get('/users/:userId/permissions', requireAuth, requireAdmin, async (req, res: Response) => {
+    try {
+        const { userId } = req.params;
+
+        // Get global feature flags
+        const globalFlags = await prisma.featureFlag.findMany();
+        const globalMap = new Map(globalFlags.map(f => [f.key, f.enabled]));
+
+        // Get user-specific permissions
+        const userPerms = await prisma.userPagePermission.findMany({
+            where: { userId }
+        });
+        const userMap = new Map(userPerms.map(p => [p.pageKey, p.enabled]));
+
+        // Merge into response
+        const permissions = DEFAULT_FEATURE_FLAGS.map(flag => ({
+            pageKey: flag.key,
+            enabled: userMap.has(flag.key) ? userMap.get(flag.key) : (globalMap.get(flag.key) ?? true),
+            source: userMap.has(flag.key) ? 'user' : 'global',
+            globalEnabled: globalMap.get(flag.key) ?? true
+        }));
+
+        res.json({ userId, permissions });
+    } catch (error) {
+        console.error('Get User Permissions Error:', error);
+        res.status(500).json({ error: 'Failed to get user permissions' });
+    }
+});
+
+// PUT /users/:userId/permissions: Update a user's page permissions (admin only)
+router.put('/users/:userId/permissions', requireAuth, requireAdmin, async (req, res: Response) => {
+    try {
+        const adminUserId = (req as AuthRequest).auth.userId;
+        const { userId } = req.params;
+        const { permissions } = req.body;
+
+        if (!Array.isArray(permissions)) {
+            return res.status(400).json({ error: 'permissions must be an array' });
+        }
+
+        for (const perm of permissions) {
+            if (perm.enabled === null) {
+                // Delete - revert to global
+                await prisma.userPagePermission.deleteMany({
+                    where: { userId, pageKey: perm.pageKey }
+                });
+            } else {
+                // Upsert
+                await prisma.userPagePermission.upsert({
+                    where: { userId_pageKey: { userId, pageKey: perm.pageKey } },
+                    update: { enabled: perm.enabled, updatedBy: adminUserId },
+                    create: { userId, pageKey: perm.pageKey, enabled: perm.enabled, updatedBy: adminUserId }
+                });
+            }
+        }
+
+        console.log(`[Admin] User ${userId} permissions updated by admin ${adminUserId}`);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Update User Permissions Error:', error);
+        res.status(500).json({ error: 'Failed to update user permissions' });
+    }
+});
+
+// DELETE /users/:userId/permissions: Reset user to global defaults (admin only)
+router.delete('/users/:userId/permissions', requireAuth, requireAdmin, async (req, res: Response) => {
+    try {
+        const adminUserId = (req as AuthRequest).auth.userId;
+        const { userId } = req.params;
+
+        await prisma.userPagePermission.deleteMany({
+            where: { userId }
+        });
+
+        console.log(`[Admin] User ${userId} permissions reset to global by admin ${adminUserId}`);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Reset User Permissions Error:', error);
+        res.status(500).json({ error: 'Failed to reset user permissions' });
+    }
+});
+
 export default router;

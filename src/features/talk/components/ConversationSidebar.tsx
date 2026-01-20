@@ -440,49 +440,49 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 </div>
 
                 {/* Reminders Section */}
-                <div className="flex-1 border-b flex flex-col min-h-0 border-border-light dark:border-border-dark">
-                    <div className="p-4 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30">
-                        <h3 className="font-semibold uppercase tracking-wider text-sm text-text-secondary-light dark:text-text-secondary-dark flex items-center">
-                            <Bell className="mr-2 text-base" weight="bold" />
+                <div className="flex-1 border-b flex flex-col min-h-0 border-gray-200 dark:border-gray-800">
+                    <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+                        <h3 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                            <Bell className="mr-2" size={16} />
                             Reminders
                         </h3>
                         <button
                             onClick={() => setShowAddReminder(true)}
-                            className="text-primary hover:text-primary-dark transition-colors"
+                            className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
                             title="Add Reminder"
                         >
-                            <Plus size={18} weight="bold" />
+                            <Plus size={16} />
                         </button>
                     </div>
-                    <div className="p-3 space-y-2 overflow-y-auto conversation-sidebar-scrollbar flex-1">
+                    <div className="p-3 space-y-1 overflow-y-auto conversation-sidebar-scrollbar flex-1">
                         {/* Add Reminder Input */}
                         {showAddReminder && (
-                            <div className="p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg mb-2">
+                            <div className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg mb-2">
                                 <input
                                     type="text"
                                     value={newReminderText}
                                     onChange={(e) => setNewReminderText(e.target.value)}
                                     placeholder="Reminder..."
-                                    className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary mb-2"
+                                    className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:outline-none focus:border-gray-400 mb-2"
                                     autoFocus
                                 />
                                 <input
                                     type="datetime-local"
                                     value={newReminderDate}
                                     onChange={(e) => setNewReminderDate(e.target.value)}
-                                    className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                    className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded focus:outline-none focus:border-gray-400"
                                 />
                                 <div className="flex gap-2 mt-2">
                                     <button
                                         onClick={() => setShowAddReminder(false)}
-                                        className="flex-1 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                        className="flex-1 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleAddReminder}
                                         disabled={!newReminderText.trim()}
-                                        className="flex-1 py-1.5 text-xs bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                                        className="flex-1 py-1.5 text-xs bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-colors"
                                     >
                                         Add
                                     </button>
@@ -491,45 +491,45 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                         )}
 
                         {reminders.length === 0 && !showAddReminder ? (
-                            <div className="text-text-secondary-light dark:text-text-secondary-dark opacity-50 text-center py-8">
-                                <Bell size={32} className="mx-auto mb-2 opacity-50" />
+                            <div className="text-gray-400 text-center py-6">
+                                <Bell size={28} className="mx-auto mb-2" />
                                 <p className="text-xs">No reminders</p>
                                 <button
                                     onClick={() => setShowAddReminder(true)}
-                                    className="mt-3 text-xs text-primary hover:text-primary-dark"
+                                    className="mt-2 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white underline"
                                 >
-                                    Add a reminder
+                                    Add reminder
                                 </button>
                             </div>
                         ) : (
                             reminders.map(reminder => (
                                 <div
                                     key={reminder.id}
-                                    className="group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                                    className="group p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                                 >
                                     <div className="flex items-start gap-2">
                                         <button
                                             onClick={() => toggleReminderCompleted(reminder.id)}
-                                            className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                                            className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                                                 reminder.completed
-                                                    ? 'bg-green-500 border-green-500'
-                                                    : 'border-gray-300 hover:border-primary'
+                                                    ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                                                    : 'border-gray-300 hover:border-gray-500'
                                             }`}
                                         >
                                             {reminder.completed && (
-                                                <Check size={10} className="text-white" weight="bold" />
+                                                <Check size={10} className="text-white dark:text-gray-900" weight="bold" />
                                             )}
                                         </button>
                                         <div className="flex-1 min-w-0">
-                                            <p className={`text-sm font-medium truncate ${
-                                                reminder.completed ? 'line-through text-gray-400' : ''
+                                            <p className={`text-sm truncate ${
+                                                reminder.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'
                                             }`}>
                                                 {reminder.text}
                                             </p>
                                             <p className={`text-xs flex items-center gap-1 mt-0.5 ${
                                                 isOverdue(reminder.dueDate) && !reminder.completed
                                                     ? 'text-red-500'
-                                                    : 'text-gray-500'
+                                                    : 'text-gray-400'
                                             }`}>
                                                 <Clock size={10} />
                                                 {formatDate(reminder.dueDate)}
@@ -537,7 +537,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                         </div>
                                         <button
                                             onClick={() => deleteReminder(reminder.id)}
-                                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                            className="p-1 text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors opacity-0 group-hover:opacity-100"
                                             title="Delete"
                                         >
                                             <Trash size={14} />
@@ -551,39 +551,39 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
                 {/* Files Section */}
                 <div className="flex-1 flex flex-col min-h-0">
-                    <div className="p-4 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/30">
-                        <h3 className="font-semibold uppercase tracking-wider text-sm text-text-secondary-light dark:text-text-secondary-dark flex items-center">
-                            <Folder className="mr-2 text-base" weight="bold" />
+                    <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+                        <h3 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                            <Folder className="mr-2" size={16} />
                             Files
                         </h3>
                         <button
                             onClick={() => onNavigate?.('vault')}
-                            className="text-primary hover:text-primary-dark text-xs font-medium"
+                            className="text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white underline"
                         >
                             View All
                         </button>
                     </div>
-                    <div className="p-4 space-y-3 overflow-y-auto conversation-sidebar-scrollbar flex-1 flex flex-col items-center justify-center text-center">
+                    <div className="p-3 space-y-1 overflow-y-auto conversation-sidebar-scrollbar flex-1 flex flex-col items-center justify-center text-center">
                         {files.length === 0 ? (
-                            <div className="text-text-secondary-light dark:text-text-secondary-dark opacity-50">
-                                <File size={32} className="mx-auto mb-2 opacity-50" />
-                                <p className="text-xs">No files shared</p>
+                            <div className="text-gray-400">
+                                <File size={28} className="mx-auto mb-2" />
+                                <p className="text-xs">No files</p>
                                 <button
                                     onClick={() => onNavigate?.('vault')}
-                                    className="mt-3 text-xs text-primary hover:text-primary-dark"
+                                    className="mt-2 text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white underline"
                                 >
                                     Open Vault
                                 </button>
                             </div>
                         ) : (
-                            <div className="w-full space-y-2">
+                            <div className="w-full space-y-1">
                                 {files.map(file => (
                                     <div
                                         key={file.id}
-                                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                                        className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
                                     >
                                         <File size={16} className="text-gray-400" />
-                                        <span className="text-sm truncate">{file.name}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{file.name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -594,10 +594,10 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
             {/* Send to Board Modal */}
             {showSendToBoardModal && selectedTask && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-2xl max-w-md w-full m-4 border border-gray-200 dark:border-gray-700">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-xl max-w-sm w-full m-4 border border-gray-200 dark:border-gray-800">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold">Send Task to Board</h3>
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-white">Send to Board</h3>
                             <button
                                 onClick={() => {
                                     setShowSendToBoardModal(false);
@@ -606,77 +606,79 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                 }}
                                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                             >
-                                <X size={20} />
+                                <X size={18} />
                             </button>
                         </div>
 
-                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <p className="text-sm text-gray-500 mb-1">Task:</p>
-                            <p className="font-medium">{selectedTask.name}</p>
+                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                            <p className="text-xs text-gray-500 mb-1">Task</p>
+                            <p className="text-sm text-gray-900 dark:text-white">{selectedTask.name}</p>
                         </div>
 
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                            Select a board to add this task to:
+                        <p className="text-xs text-gray-500 mb-2">
+                            Select board:
                         </p>
 
                         {loadingBoards ? (
-                            <div className="flex items-center justify-center py-8">
-                                <CircleNotch size={24} className="animate-spin text-gray-400" />
+                            <div className="flex items-center justify-center py-6">
+                                <CircleNotch size={20} className="animate-spin text-gray-400" />
                             </div>
                         ) : boards.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
-                                <p>No boards available.</p>
+                            <div className="text-center py-6 text-gray-500">
+                                <p className="text-sm">No boards available.</p>
                                 <button
                                     onClick={() => onNavigate?.('home')}
-                                    className="mt-2 text-primary hover:text-primary-dark text-sm"
+                                    className="mt-2 text-sm text-gray-700 dark:text-gray-300 underline hover:no-underline"
                                 >
                                     Create a board first
                                 </button>
                             </div>
                         ) : (
-                            <div className="max-h-48 overflow-y-auto mb-4 space-y-1">
+                            <div className="max-h-40 overflow-y-auto mb-4 space-y-1">
                                 {boards.map(board => (
                                     <button
                                         key={board.id}
                                         onClick={() => setSelectedBoardId(board.id)}
-                                        className={`w-full flex items-center p-3 rounded-lg transition-colors text-left ${
+                                        className={`w-full flex items-center p-2.5 rounded transition-colors text-left text-sm ${
                                             selectedBoardId === board.id
-                                                ? 'bg-primary/10 border-2 border-primary'
-                                                : 'hover:bg-gray-100 dark:hover:bg-gray-800 border-2 border-transparent'
+                                                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                                                : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                                         }`}
                                     >
-                                        <div className="w-3 h-3 rounded bg-primary mr-3" />
-                                        <span className="font-medium">{board.name}</span>
+                                        <div className={`w-2 h-2 rounded-sm mr-2.5 ${
+                                            selectedBoardId === board.id ? 'bg-white dark:bg-gray-900' : 'bg-gray-400'
+                                        }`} />
+                                        {board.name}
                                     </button>
                                 ))}
                             </div>
                         )}
 
-                        <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-800">
                             <button
                                 onClick={() => {
                                     setShowSendToBoardModal(false);
                                     setSelectedTask(null);
                                     setSelectedBoardId('');
                                 }}
-                                className="flex-1 py-2.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium"
+                                className="flex-1 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSendToBoard}
                                 disabled={!selectedBoardId || isSending}
-                                className="flex-1 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors font-medium flex items-center justify-center gap-2"
+                                className="flex-1 py-2 text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
                             >
                                 {isSending ? (
                                     <>
-                                        <CircleNotch size={16} className="animate-spin" />
+                                        <CircleNotch size={14} className="animate-spin" />
                                         Sending...
                                     </>
                                 ) : (
                                     <>
-                                        <PaperPlaneTilt size={16} />
-                                        Send to Board
+                                        <ArrowSquareOut size={14} />
+                                        Send
                                     </>
                                 )}
                             </button>
