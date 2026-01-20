@@ -22,6 +22,7 @@ import { appLogger, boardLogger } from './utils/logger';
 import { FeatureErrorBoundary } from './components/common/FeatureErrorBoundary';
 import { API_URL } from './config/api';
 import { adminService } from './services/adminService';
+import { MobileApp } from './features/mobile/MobileApp';
 
 // Lazy load feature pages for better initial bundle size
 const Dashboard = lazyWithRetry(() => import('./features/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -1628,6 +1629,23 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  // Check for mobile subdomain
+  const hostname = window.location.hostname;
+  const isMobileSubdomain = hostname === 'mobile.nabdchain.com' ||
+                            hostname === 'mobile.app.nabdchain.com' ||
+                            hostname.startsWith('mobile.localhost') ||
+                            // For local testing: use ?mobile=true query param
+                            new URLSearchParams(window.location.search).get('mobile') === 'true';
+
+  // Render mobile app for mobile subdomain
+  if (isMobileSubdomain) {
+    return (
+      <AppProvider>
+        <MobileApp />
+      </AppProvider>
+    );
+  }
+
   return (
     <AppProvider>
       <UIProvider>
