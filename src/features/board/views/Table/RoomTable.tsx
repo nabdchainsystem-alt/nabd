@@ -77,7 +77,7 @@ import {
 } from '@dnd-kit/sortable';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ColumnMenu } from '../../components/ColumnMenu';
-import { PriorityLevel, comparePriority } from '../../../priorities/priorityUtils';
+import { PriorityLevel, comparePriority, normalizePriority } from '../../../priorities/priorityUtils';
 import { useReminders } from '../../../reminders/reminderStore';
 import { ReminderPanel } from '../../../reminders/ReminderPanel';
 import { ChartBuilderConfig } from '../../components/chart-builder/types';
@@ -858,25 +858,30 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
             // 1. Process Columns from First Row
             const headerRow = jsonData[0];
-            const newColumns: Column[] = headerRow.map((header: string, index: number) => ({
-                id: header.toLowerCase().replace(/\s+/g, '_') || `col_${index}`,
-                label: header || `Column ${index + 1}`,
-                type: 'text', // Default to text, user can change later
-                width: 150,
+
+            // Helper to detect column type from header name
+            const detectColumnType = (headerName: string): string => {
+                const lower = headerName.toLowerCase();
+                if (lower === 'status' || lower.includes('status')) return 'status';
+                if (lower === 'priority' || lower.includes('priority')) return 'priority';
+                if (lower.includes('date') || lower.includes('due') || lower.includes('deadline')) return 'date';
+                if (lower.includes('people') || lower.includes('assignee') || lower.includes('owner') || lower.includes('person')) return 'people';
+                return 'text';
+            };
+
+            const newColumns: Column[] = headerRow.map((header: any, index: number) => {
+                const headerStr = header != null ? String(header).trim() : '';
+                const colType = detectColumnType(headerStr);
+                return {
+                id: headerStr.toLowerCase().replace(/\s+/g, '_') || `col_${index}`,
+                label: headerStr || `Column ${index + 1}`,
+                type: colType,
+                width: colType === 'status' || colType === 'priority' ? 140 : 150,
                 pinned: index === 0,
                 minWidth: 100,
                 resizable: true,
-                // Wait, "first column in the excel as head columns"? 
-                // User said: "read the first column in the excel as head columns and the others below".
-                // This usually means "First ROW is headers". "First COLUMN" effectively means it's a list. 
-                // Standard import is: Row 1 = Headers. 
-                // "read the first column in the excel as head columns" -> This phrasing is odd. 
-                // "read the first column... as head columns". Maybe they mean "First Row"? 
-                // "head columns and the others below" -> implies vertical structure.
-                // Standard convention is Row 1 = Headers. I will assume this.
-                // "first column... as head columns" -> grammatical slip for "first row"?
-                // Let's assume Row 1 = Headers.
-            }));
+            };
+            });
 
             // Ensure we keep 'select' column if it's special
             const hasSelect = newColumns.find(c => c.id === 'select');
@@ -939,11 +944,43 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
                 const dataColumns = newColumns.filter(c => c.id !== 'select'); // These correspond to the file columns in order
 
+                // Helper to normalize status values
+                const normalizeStatus = (value: any): string => {
+                    if (!value) return 'To Do';
+                    const lower = String(value).toLowerCase().trim();
+                    if (lower === 'done' || lower === 'completed' || lower === 'complete') return 'Done';
+                    if (lower === 'in progress' || lower === 'in-progress' || lower === 'inprogress' || lower === 'working' || lower === 'working on it') return 'In Progress';
+                    if (lower === 'stuck' || lower === 'blocked') return 'Stuck';
+                    if (lower === 'rejected' || lower === 'cancelled' || lower === 'canceled') return 'Rejected';
+                    if (lower === 'to do' || lower === 'todo' || lower === 'pending' || lower === 'not started') return 'To Do';
+                    // If no match, capitalize first letter of each word
+                    return String(value).trim();
+                };
+
                 rowArray.forEach((cellValue, idx) => {
                     if (dataColumns[idx]) {
-                        rowData[dataColumns[idx].id] = cellValue;
+                        const col = dataColumns[idx];
+                        let normalizedValue = cellValue;
+
+                        // Normalize based on column type
+                        if (col.type === 'status' || col.id === 'status') {
+                            normalizedValue = normalizeStatus(cellValue);
+                        } else if (col.type === 'priority' || col.id === 'priority') {
+                            normalizedValue = normalizePriority(cellValue != null ? String(cellValue) : null);
+                        } else if (col.type === 'date' && cellValue) {
+                            // Try to parse date values
+                            const dateVal = new Date(cellValue);
+                            normalizedValue = !isNaN(dateVal.getTime()) ? dateVal.toISOString() : cellValue;
+                        }
+
+                        rowData[col.id] = normalizedValue;
                     }
                 });
+
+                // Ensure status has a value if column exists
+                if (!rowData.status && dataColumns.some(c => c.id === 'status' || c.type === 'status')) {
+                    rowData.status = 'To Do';
+                }
 
                 return rowData as Row;
             });
@@ -962,7 +999,13 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             // Warning: This is a destructive operation for existing columns structure.
 
             // Let's REPLACE for now as it maps schema.
-            const newGroups = [{ ...tableGroups[0], rows: newRows }];
+            const baseGroup = tableGroups[0] || {
+                id: 'group-1',
+                name: 'Group 1',
+                isCollapsed: false,
+                color: '#6366f1'
+            };
+            const newGroups = [{ ...baseGroup, rows: newRows }];
             setTableGroups(newGroups);
 
             // Reset filters/sorts

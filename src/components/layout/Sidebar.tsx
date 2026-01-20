@@ -477,7 +477,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         icon: 'Briefcase',
         color: 'from-gray-400 to-gray-500'
     };
-    const workspaceBoards = boards.filter(b => b.workspaceId === activeWorkspaceId);
+    // boards prop is already filtered by activeWorkspaceId in App.tsx, so use it directly
+    const workspaceBoards = boards;
     const favoriteBoards = boards.filter(b => b.isFavorite);
 
     // Close menus on click outside

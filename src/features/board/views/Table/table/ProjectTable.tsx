@@ -65,7 +65,7 @@ const PriorityPicker: React.FC<{
     return (
         <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
+            className="w-48 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
         >
             <div className="px-3 py-2 bg-stone-50 dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
                 <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Priority</span>
@@ -110,7 +110,7 @@ const StatusPicker: React.FC<{
     return (
         <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
+            className="w-56 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
         >
             <div className="px-3 py-2 bg-stone-50 dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
                 <span className="text-[10px] font-sans font-semibold uppercase tracking-wider text-stone-400">Task Status</span>
@@ -504,12 +504,19 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ roomId, viewId }) =>
                                     <span className="text-[11px] text-stone-400">Set Status</span>
                                 )}
                             </button>
-                            {activeCell?.rowId === task.id && activeCell?.colId === 'status' && (
-                                <StatusPicker
-                                    current={task.status}
-                                    onSelect={(s) => handleUpdateTask(task.id, { status: s })}
+                            {activeCell?.rowId === task.id && activeCell?.colId === 'status' && activeCell.element && (
+                                <PortalPopup
+                                    triggerRef={{ current: activeCell.element } as any}
                                     onClose={() => setActiveCell(null)}
-                                />
+                                    side="bottom"
+                                    align="start"
+                                >
+                                    <StatusPicker
+                                        current={task.status}
+                                        onSelect={(s) => handleUpdateTask(task.id, { status: s })}
+                                        onClose={() => setActiveCell(null)}
+                                    />
+                                </PortalPopup>
                             )}
                         </div>
 
@@ -557,12 +564,19 @@ export const ProjectTable: React.FC<ProjectTableProps> = ({ roomId, viewId }) =>
                                     <span className="text-[11px] text-stone-400">Set Priority</span>
                                 )}
                             </button>
-                            {activeCell?.rowId === task.id && activeCell?.colId === 'priority' && (
-                                <PriorityPicker
-                                    current={task.priority}
-                                    onSelect={(p) => handleUpdateTask(task.id, { priority: p })}
+                            {activeCell?.rowId === task.id && activeCell?.colId === 'priority' && activeCell.element && (
+                                <PortalPopup
+                                    triggerRef={{ current: activeCell.element } as any}
                                     onClose={() => setActiveCell(null)}
-                                />
+                                    side="bottom"
+                                    align="start"
+                                >
+                                    <PriorityPicker
+                                        current={task.priority}
+                                        onSelect={(p) => handleUpdateTask(task.id, { priority: p })}
+                                        onClose={() => setActiveCell(null)}
+                                    />
+                                </PortalPopup>
                             )}
                         </div>
 

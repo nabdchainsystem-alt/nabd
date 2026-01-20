@@ -141,29 +141,39 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, boards = [], onCreat
     }
   };
 
-  // Handle viewing an assignment
+  // Handle viewing an assignment - creates "Assigned to me" board on first click
   const handleViewAssignment = async (assignment: Assignment) => {
     try {
       const token = await getToken();
       if (!token) return;
 
-      // Only mark as viewed if it's unread
-      if (!assignment.isViewed) {
-        await assignmentService.markAsViewed(token, assignment.id);
+      let boardIdToNavigate = assignment.copiedBoardId;
 
-        // Update local state - mark as viewed instead of removing
-        setAssignments(prev => prev.map(a =>
-          a.id === assignment.id ? { ...a, isViewed: true, viewedAt: new Date().toISOString() } : a
-        ));
+      // Mark as viewed (this also creates the board and copies the task if not done yet)
+      const updatedAssignment = await assignmentService.markAsViewed(token, assignment.id);
+      boardIdToNavigate = updatedAssignment.copiedBoardId;
+
+      // Update local state with the updated assignment
+      setAssignments(prev => prev.map(a =>
+        a.id === assignment.id ? {
+          ...a,
+          isViewed: true,
+          viewedAt: new Date().toISOString(),
+          copiedBoardId: updatedAssignment.copiedBoardId,
+          copiedRowId: updatedAssignment.copiedRowId
+        } : a
+      ));
+
+      if (!assignment.isViewed) {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
 
       // Close panel and navigate to the "Assigned to me" board
       setIsNotificationOpen(false);
 
-      // Navigate to "Assigned to me" board
-      if (assignment.copiedBoardId) {
-        onNavigate('board', assignment.copiedBoardId);
+      // Navigate to the created/existing "Assigned to me" board
+      if (boardIdToNavigate) {
+        onNavigate('board', boardIdToNavigate);
       }
     } catch (error) {
       console.error('Failed to view assignment:', error);
