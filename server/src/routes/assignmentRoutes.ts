@@ -199,7 +199,7 @@ router.get('/count', requireAuth, async (req, res: Response) => {
 router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
     try {
         const userId = (req as AuthRequest).auth.userId;
-        const { id } = req.params;
+        const id = req.params.id as string;
 
         // Verify assignment belongs to user
         const assignment = await prisma.assignment.findFirst({
