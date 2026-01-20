@@ -1,4 +1,4 @@
-import express, { Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
 
@@ -54,9 +54,9 @@ const DEFAULT_FEATURE_FLAGS = [
 ];
 
 // Middleware to check if user is admin
-const requireAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
+const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = req.auth.userId;
+        const userId = (req as AuthRequest).auth.userId;
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: { role: true }
