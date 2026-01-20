@@ -14,6 +14,7 @@ import docRoutes from './routes/docRoutes';
 import talkRoutes from './routes/talkRoutes';
 import assignmentRoutes from './routes/assignmentRoutes';
 import adminRoutes from './routes/adminRoutes';
+import userRoutes from './routes/userRoutes';
 import { requireAuth } from './middleware/auth';
 import { validateEnv, isProduction, getEnv } from './utils/env';
 import { prisma } from './lib/prisma';
@@ -46,6 +47,7 @@ const allowedOrigins = isProduction
         'https://nabdchain.com',
         'https://www.nabdchain.com',
         'https://app.nabdchain.com',
+        'https://mobile.nabdchain.com',
         'https://nabdchain.vercel.app'
     ]
     : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'];
@@ -177,6 +179,7 @@ app.use('/api/docs', docRoutes);
 app.use('/api/talk', talkRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/user', userRoutes);
 
 // --- Workspace Routes ---
 app.get('/api/workspaces', requireAuth, async (req: any, res) => {

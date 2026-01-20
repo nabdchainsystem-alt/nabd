@@ -6,6 +6,7 @@ import { MobileNotes } from './MobileNotes';
 import { MobileTasks } from './MobileTasks';
 import { MobileSettings } from './MobileSettings';
 import { useClerk } from '@clerk/clerk-react';
+import { useUserPreferences } from '../../hooks/useUserPreferences';
 
 type MobileView = 'notes' | 'tasks' | 'settings';
 type AuthView = 'landing' | 'signin' | 'signup';
@@ -15,6 +16,9 @@ const MobileContent: React.FC = () => {
   const [activeView, setActiveView] = useState<MobileView>('tasks');
   const { user } = useUser();
   const { signOut } = useClerk();
+
+  // Sync user preferences (display name) with server
+  useUserPreferences();
 
   const navItems: { id: MobileView; icon: React.ReactNode; label: string }[] = [
     { id: 'tasks', icon: <CheckSquare size={24} weight="fill" />, label: 'Tasks' },
