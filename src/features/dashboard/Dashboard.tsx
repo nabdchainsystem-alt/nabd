@@ -14,6 +14,7 @@ import { CreateEventModal } from './components/CreateEventModal';
 import { NewEmailModal } from './components/NewEmailModal';
 import { SaveToVaultModal } from './components/SaveToVaultModal';
 import { GlobalSearchDrawer } from './components/GlobalSearchDrawer';
+import { InviteMemberModal } from './components/InviteMemberModal';
 import { boardService } from '../../services/boardService';
 import { useAppContext } from '../../contexts/AppContext';
 import { MOCK_MEMBERS } from '../teams/data';
@@ -53,6 +54,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [urgentTasksPage, setUrgentTasksPage] = useState(1);
   const [activeFilter, setActiveFilter] = useState<'all' | 'high' | 'overdue' | 'person'>('all');
 
@@ -1057,7 +1059,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
                     <ListPlus size={32} weight="light" className="mb-2 text-gray-400 dark:text-monday-dark-text-muted group-hover:text-blue-500 transition-colors" />
                     <span className="text-xs font-medium whitespace-nowrap">{t('new_task')}</span>
                   </button>
-                  <button className="flex flex-col items-center justify-center p-3 border border-gray-100 dark:border-monday-dark-border rounded-xl hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 transition-all group bg-white shadow-sm hover:shadow-md">
+                  <button
+                    onClick={() => setIsInviteModalOpen(true)}
+                    className="flex flex-col items-center justify-center p-3 border border-gray-100 dark:border-monday-dark-border rounded-xl hover:bg-blue-50 hover:border-blue-100 hover:text-blue-600 transition-all group bg-white shadow-sm hover:shadow-md"
+                  >
                     <UserPlus size={32} weight="light" className="mb-2 text-gray-400 dark:text-monday-dark-text-muted group-hover:text-blue-500 transition-colors" />
                     <span className="text-xs font-medium whitespace-nowrap">{t('invite_member')}</span>
                   </button>
@@ -1235,6 +1240,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
         onClose={() => setIsGlobalSearchOpen(false)}
         boards={boards}
         onNavigate={onNavigate}
+      />
+
+      <InviteMemberModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
       />
     </div >
   );

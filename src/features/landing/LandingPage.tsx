@@ -49,7 +49,6 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
                     socialButtons: "hidden",
                     socialButtonsBlockButton: "hidden",
                     dividerRow: "hidden",
-                    footer: "hidden",
                     formButtonPrimary: "bg-black hover:bg-zinc-800 text-white",
                 }
             }
