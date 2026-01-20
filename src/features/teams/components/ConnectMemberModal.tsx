@@ -115,7 +115,7 @@ export const ConnectMemberModal: React.FC<ConnectMemberModalProps> = ({
                         size={18}
                     />
                     <input
-                        type="email"
+                        type="text"
                         placeholder={t('enter_email_to_search') || 'Enter email address...'}
                         value={email}
                         onChange={(e) => {
