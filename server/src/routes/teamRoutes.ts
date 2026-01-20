@@ -56,13 +56,19 @@ router.get('/search', requireAuth, async (req: any, res: Response) => {
 
                 if (clerkUser && clerkUser.id !== userId) {
                     console.log('[TeamSearch] Found user in Clerk:', clerkUser.id);
-                    // Found in Clerk - create in our database
+                    // Found in Clerk - upsert in our database (create or update)
                     const name = clerkUser.firstName
                         ? `${clerkUser.firstName} ${clerkUser.lastName || ''}`.trim()
                         : null;
 
-                    const newUser = await prisma.user.create({
-                        data: {
+                    const upsertedUser = await prisma.user.upsert({
+                        where: { id: clerkUser.id },
+                        update: {
+                            email: searchEmail,
+                            name: name || undefined,
+                            avatarUrl: clerkUser.imageUrl || undefined
+                        },
+                        create: {
                             id: clerkUser.id,
                             email: searchEmail,
                             name,
@@ -71,10 +77,10 @@ router.get('/search', requireAuth, async (req: any, res: Response) => {
                     });
 
                     user = {
-                        id: newUser.id,
-                        email: newUser.email,
-                        name: newUser.name,
-                        avatarUrl: newUser.avatarUrl
+                        id: upsertedUser.id,
+                        email: upsertedUser.email,
+                        name: upsertedUser.name,
+                        avatarUrl: upsertedUser.avatarUrl
                     };
                 }
             } catch (clerkErr) {
