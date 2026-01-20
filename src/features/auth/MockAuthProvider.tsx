@@ -118,24 +118,47 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     const signOut = async () => {
-        // Clear token first
-        localStorage.removeItem('mock_auth_token');
+        // Clear ALL user-related data from localStorage
+        const keysToRemove = [
+            'mock_auth_token',
+            'nabd_dev_mode',
+            'mock_user_name',
+            'app-user-display-name',
+            'app-active-workspace',
+            'app-active-board',
+            'app-active-view',
+            'app-workspaces',
+            'app-boards',
+            'app-recently-visited',
+            'app-page-visibility',
+            'app-deleted-boards',
+            'app-unsynced-boards',
+        ];
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+
+        // Clear any board-specific data (room-table-*, board-*)
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+            if (key.startsWith('room-') || key.startsWith('board-')) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        // Update state
+        setIsSignedIn(false);
+        setUserData(null);
 
         // Redirect on app subdomain
         const hostname = window.location.hostname;
         if (hostname === 'app.nabdchain.com') {
-            // Use href (Safari-compatible) with setTimeout to ensure it runs
             setTimeout(() => {
                 window.location.href = 'https://nabdchain.com';
             }, 0);
-            return;
+        } else {
+            // Localhost - go to home
+            window.history.pushState({}, '', '/');
+            window.dispatchEvent(new PopStateEvent('popstate'));
         }
-
-        // Only for localhost - update state
-        setIsSignedIn(false);
-        setUserData(null);
-        window.history.pushState({}, '', '/');
-        window.dispatchEvent(new PopStateEvent('popstate'));
     };
 
     const getToken = async () => {
