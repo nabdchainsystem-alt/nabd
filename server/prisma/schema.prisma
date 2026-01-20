@@ -319,6 +319,21 @@ model EmailAccount {
   @@index([userId, provider]) // Composite index for fetching user accounts by provider
 }
 
+// Team Connection System
+model TeamConnection {
+  id          String   @id @default(uuid())
+  senderId    String   // User who sent the request
+  receiverId  String   // User who receives the request
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([senderId, receiverId]) // Prevent duplicate requests
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+}
+
 // Vault System
 model VaultItem {
   id         String   @id @default(uuid())

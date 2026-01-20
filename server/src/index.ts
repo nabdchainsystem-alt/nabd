@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/authRoutes';
 import emailRoutes from './routes/emailRoutes';
 import inviteRoutes from './routes/inviteRoutes';
+import teamRoutes from './routes/teamRoutes';
 import boardRoutes from './routes/boardRoutes';
 import vaultRoutes from './routes/vaultRoutes';
 import docRoutes from './routes/docRoutes';
@@ -117,6 +118,7 @@ function handleError(res: express.Response, error: unknown) {
 app.use('/api/auth', authRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/invite', inviteRoutes);
+app.use('/api/team', teamRoutes);
 app.use('/api/boards', boardRoutes);
 app.use('/api/vault', vaultRoutes);
 app.use('/api/docs', docRoutes);

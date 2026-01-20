@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     UserPlus, MagnifyingGlass as Search, Funnel as Filter, DotsThree as MoreHorizontal, Envelope as Mail, MapPin,
     Shield, CheckCircle, Clock, Lightning as Zap, Users, UserCircle as UserCheck, UserMinus as UserX,
-    Chat as MessageSquare, Gear as Settings, ArrowUpRight, Copy, X, CircleNotch as Loader, User
+    Chat as MessageSquare, Gear as Settings, ArrowUpRight, Copy, X, CircleNotch as Loader, User, Link as LinkIcon
 } from 'phosphor-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../auth-adapter';
 import { inviteService } from '../../services/inviteService';
+import { teamService, TeamMember } from '../../services/teamService';
 import { MOCK_MEMBERS } from './data';
 import { TeamRole, TeamStatus } from './types';
 import { TeamMemberProfile } from './TeamMemberProfile';
+import { ConnectMemberModal } from './components/ConnectMemberModal';
+import { PendingRequestsPanel } from './components/PendingRequestsPanel';
 
 // Components
 const StatCard = ({ icon, label, value, trend, color }: any) => (
@@ -36,6 +39,37 @@ export const TeamsPage: React.FC = () => {
     const [inviteLink, setInviteLink] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
 
+    // Connect Modal State
+    const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+
+    // Connected Members State
+    const [connectedMembers, setConnectedMembers] = useState<TeamMember[]>([]);
+    const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    // Fetch connected team members
+    useEffect(() => {
+        const fetchMembers = async () => {
+            try {
+                const token = await getToken();
+                if (!token) return;
+
+                const members = await teamService.getTeamMembers(token);
+                setConnectedMembers(members);
+            } catch (error) {
+                console.error('Failed to fetch team members:', error);
+            } finally {
+                setIsLoadingMembers(false);
+            }
+        };
+
+        fetchMembers();
+    }, [getToken, refreshKey]);
+
+    const handleRefresh = () => {
+        setRefreshKey(prev => prev + 1);
+    };
+
     const handleGenerateInvite = async () => {
         setIsGenerating(true);
         setInviteLink('');
@@ -53,15 +87,34 @@ export const TeamsPage: React.FC = () => {
         }
     }
 
+    // Combine mock members with connected members for display
+    const allMembers = [
+        ...connectedMembers.map(m => ({
+            id: m.id,
+            name: m.name || m.email.split('@')[0],
+            email: m.email,
+            initials: (m.name || m.email).substring(0, 2).toUpperCase(),
+            status: TeamStatus.ACTIVE,
+            role: TeamRole.MEMBER,
+            department: 'Team',
+            location: 'Remote',
+            color: 'bg-gradient-to-br from-blue-500 to-indigo-600',
+            avatarUrl: m.avatarUrl || undefined,
+            showUserIcon: !m.avatarUrl && !m.name,
+            isConnected: true
+        })),
+        ...MOCK_MEMBERS
+    ];
+
     // Stats Logic
     const stats = {
-        total: MOCK_MEMBERS.length,
-        active: MOCK_MEMBERS.filter(m => m.status === TeamStatus.ACTIVE).length,
-        guests: MOCK_MEMBERS.filter(m => m.role === TeamRole.GUEST).length,
+        total: allMembers.length,
+        active: allMembers.filter(m => m.status === TeamStatus.ACTIVE).length,
+        guests: allMembers.filter(m => m.role === TeamRole.GUEST).length,
         pending: MOCK_MEMBERS.filter(m => m.status === TeamStatus.INVITED).length
     };
 
-    const filteredMembers = MOCK_MEMBERS.filter(member => {
+    const filteredMembers = allMembers.filter(member => {
         const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             member.email.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -90,6 +143,12 @@ export const TeamsPage: React.FC = () => {
                             <div className="flex gap-3">
                                 <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-surface text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-monday-dark-hover transition-colors font-medium text-sm">
                                     <Settings size={16} /> {t('settings')}
+                                </button>
+                                <button
+                                    onClick={() => setIsConnectModalOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-surface text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-monday-dark-hover transition-colors font-medium text-sm"
+                                >
+                                    <LinkIcon size={16} /> {t('connect') || 'Connect'}
                                 </button>
                                 <button
                                     onClick={() => { setIsInviteModalOpen(true); handleGenerateInvite(); }}
@@ -125,6 +184,11 @@ export const TeamsPage: React.FC = () => {
                                 icon={<Mail size={20} />}
                                 color="bg-gradient-to-br from-purple-500 to-violet-600"
                             />
+                        </div>
+
+                        {/* Pending Requests Panel */}
+                        <div className="mt-6">
+                            <PendingRequestsPanel onRequestHandled={handleRefresh} />
                         </div>
                     </div>
 
@@ -315,6 +379,13 @@ export const TeamsPage: React.FC = () => {
                                 </div>
                             </div>
                         )}
+
+                        {/* Connect Member Modal */}
+                        <ConnectMemberModal
+                            isOpen={isConnectModalOpen}
+                            onClose={() => setIsConnectModalOpen(false)}
+                            onSuccess={handleRefresh}
+                        />
                     </div>
                 </>
             )}
