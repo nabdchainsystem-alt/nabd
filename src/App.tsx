@@ -50,6 +50,15 @@ const AppContent: React.FC = () => {
   }, [user?.fullName, updateUserDisplayName]);
 
   const [activeView, setActiveView] = useState<ViewState | string>(() => {
+    // Try to restore view from URL first, then localStorage
+    const path = window.location.pathname;
+    if (path.startsWith('/board/')) {
+      return 'board';
+    } else if (path !== '/' && path.length > 1) {
+      // Extract view from path like /dashboard, /teams, /vault etc.
+      const viewFromPath = path.substring(1).split('/')[0];
+      if (viewFromPath) return viewFromPath;
+    }
     const saved = localStorage.getItem('app-active-view');
     return saved || 'dashboard';
   });
@@ -222,7 +231,12 @@ const AppContent: React.FC = () => {
   }, [isSignedIn, getToken, activeWorkspaceId]);
 
   const [activeBoardId, setActiveBoardId] = useState<string | null>(() => {
-    // Check if we have a saved board ID that actually exists in our (potentially loaded) boards
+    // Try to restore board ID from URL first, then localStorage
+    const path = window.location.pathname;
+    if (path.startsWith('/board/')) {
+      const boardIdFromPath = path.split('/board/')[1]?.split('/')[0];
+      if (boardIdFromPath) return boardIdFromPath;
+    }
     const savedId = localStorage.getItem('app-active-board');
     return savedId;
   });

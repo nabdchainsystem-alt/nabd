@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, Check, User } from 'phosphor-react';
+import { Users, Check, User, SpinnerGap } from 'phosphor-react';
+import { useAuth } from '../../../../auth-adapter';
+import { teamService, TeamMember } from '../../../../services/teamService';
 
 interface Person {
     id: string;
@@ -16,13 +18,39 @@ interface PeoplePickerProps {
     triggerRect?: DOMRect;
 }
 
-// Mock Data
-export const MOCK_PEOPLE = [
-    { id: '1', name: 'Mohamed Ali', showUserIcon: true },
-];
-
 export const PeoplePicker: React.FC<PeoplePickerProps> = ({ onSelect, onClose, current, triggerRect }) => {
     const menuRef = useRef<HTMLDivElement>(null);
+    const { getToken } = useAuth();
+    const [teamMembers, setTeamMembers] = useState<Person[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch team members on mount
+    useEffect(() => {
+        const fetchTeamMembers = async () => {
+            try {
+                const token = await getToken();
+                if (!token) {
+                    setIsLoading(false);
+                    return;
+                }
+                const members = await teamService.getTeamMembers(token);
+                // Transform TeamMember to Person format
+                const people: Person[] = members.map((member: TeamMember) => ({
+                    id: member.id,
+                    name: member.name || member.email,
+                    avatar: member.avatarUrl || undefined,
+                    showUserIcon: !member.avatarUrl
+                }));
+                setTeamMembers(people);
+            } catch (error) {
+                console.error('Failed to fetch team members:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchTeamMembers();
+    }, [getToken]);
+
     const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
         if (triggerRect) {
             const menuHeight = 250;
@@ -83,32 +111,43 @@ export const PeoplePicker: React.FC<PeoplePickerProps> = ({ onSelect, onClose, c
                 </div>
 
                 <div className="max-h-60 overflow-y-auto">
-                    {MOCK_PEOPLE.map(person => {
-                        const isSelected = current?.id === person.id;
-                        return (
-                            <button
-                                key={person.id}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    // console.log('PeoplePicker: Clicked person', person.name); 
-                                    onSelect(person);
-                                    onClose();
-                                }}
-                                className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}
-                            >
-                                {person.showUserIcon ? (
-                                    <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
-                                        <User size={14} weight="fill" className="text-white" />
-                                    </div>
-                                ) : (
-                                    <img src={person.avatar} alt={person.name} className="w-6 h-6 rounded-full bg-stone-200 object-cover" />
-                                )}
-                                <span className="flex-1 truncate text-stone-700 dark:text-stone-200">{person.name}</span>
-                                {isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
-                            </button>
-                        )
-                    })}
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-6">
+                            <SpinnerGap size={20} className="text-stone-400 animate-spin" />
+                        </div>
+                    ) : teamMembers.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-6 px-4 text-center">
+                            <Users size={24} className="text-stone-300 dark:text-stone-600 mb-2" />
+                            <p className="text-xs text-stone-500 dark:text-stone-400">No team members</p>
+                            <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">Connect with team members first</p>
+                        </div>
+                    ) : (
+                        teamMembers.map(person => {
+                            const isSelected = current?.id === person.id;
+                            return (
+                                <button
+                                    key={person.id}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onSelect(person);
+                                        onClose();
+                                    }}
+                                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-start rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}
+                                >
+                                    {person.showUserIcon ? (
+                                        <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
+                                            <User size={14} weight="fill" className="text-white" />
+                                        </div>
+                                    ) : (
+                                        <img src={person.avatar} alt={person.name} className="w-6 h-6 rounded-full bg-stone-200 object-cover" />
+                                    )}
+                                    <span className="flex-1 truncate text-stone-700 dark:text-stone-200">{person.name}</span>
+                                    {isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400" />}
+                                </button>
+                            )
+                        })
+                    )}
                 </div>
             </div>
         </>

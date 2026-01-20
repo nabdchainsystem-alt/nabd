@@ -18,20 +18,12 @@ import { useClickOutside } from '../../../../hooks/useClickOutside';
 import { getPriorityClasses, normalizePriority, PRIORITY_LEVELS } from '../../../priorities/priorityUtils';
 import { useReminders, ReminderRecord, ReminderStatus } from '../../../reminders/reminderStore';
 import { ReminderPanel } from '../../../reminders/ReminderPanel';
-import { PeoplePicker, MOCK_PEOPLE } from '../../components/cells/PeoplePicker';
+import { PeoplePicker } from '../../components/cells/PeoplePicker';
 import { MenuItem, TagMenu, PriorityMenu } from './components';
 import { boardLogger } from '../../../../utils/logger';
 import { useAppContext } from '../../../../contexts/AppContext';
-
-// Mock Data (Shared with PeoplePicker) - IMPORTED
-/*
-const MOCK_PEOPLE = [
-    { id: '1', name: 'Max Mustermann', avatar: 'https://i.pravatar.cc/150?u=1' },
-    { id: '2', name: 'Sarah Connor', avatar: 'https://i.pravatar.cc/150?u=2' },
-    { id: '3', name: 'John Doe', avatar: 'https://i.pravatar.cc/150?u=3' },
-    { id: '4', name: 'Jane Smith', avatar: 'https://i.pravatar.cc/150?u=4' },
-];
-*/
+import { useAuth } from '../../../../auth-adapter';
+import { teamService, TeamMember } from '../../../../services/teamService';
 
 // --- Types ---
 
@@ -156,8 +148,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onDragStart, onUpdateTask, on
             ? 'text-amber-500'
             : 'text-stone-300';
 
-    // Lookup assignee
-    const assigneePerson = task.assigneeObj || (task.assignee ? MOCK_PEOPLE.find(p => p.id === task.assignee) : null);
+    // Use assigneeObj directly (populated by parent component)
+    const assigneePerson = task.assigneeObj || null;
 
     return (
         <div
@@ -841,6 +833,32 @@ interface KanbanBoardProps {
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: externalTasks, onUpdateTasks, onDeleteTask }) => {
     const { t } = useAppContext();
+    const { getToken } = useAuth();
+
+    // Team members for assignee filter
+    const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; avatar?: string; showUserIcon?: boolean }[]>([]);
+
+    // Fetch team members on mount
+    useEffect(() => {
+        const fetchTeamMembers = async () => {
+            try {
+                const token = await getToken();
+                if (!token) return;
+                const members = await teamService.getTeamMembers(token);
+                const people = members.map((member: TeamMember) => ({
+                    id: member.id,
+                    name: member.name || member.email,
+                    avatar: member.avatarUrl || undefined,
+                    showUserIcon: !member.avatarUrl
+                }));
+                setTeamMembers(people);
+            } catch (error) {
+                console.error('Failed to fetch team members:', error);
+            }
+        };
+        fetchTeamMembers();
+    }, [getToken]);
+
     // Shared key for statuses
     const statusesKey = `board-statuses-${boardId}`;
 
@@ -976,7 +994,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                 dueDate: t.dueDate || null,
                 priority: t.priority === 'none' ? null : (t.priority.charAt(0).toUpperCase() + t.priority.slice(1)),
                 personId: t.assignee, // Map back to personId
-                people: t.assigneeObj || (t.assignee ? MOCK_PEOPLE.find(p => String(p.id) === String(t.assignee)) : null), // Use passed obj or fallback
+                people: t.assigneeObj || (t.assignee ? teamMembers.find(p => String(p.id) === String(t.assignee)) : null), // Use passed obj or fallback
             };
             return mapped;
         });
@@ -1239,7 +1257,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ boardId, viewId, tasks: exter
                                 ))}
                                 <div className="border-t border-stone-100 dark:border-stone-800 my-1" />
                                 <div className="px-4 py-2 text-xs font-semibold text-stone-400 uppercase tracking-wider">{t('filter_by_assignee')}</div>
-                                {MOCK_PEOPLE.map(person => (
+                                {teamMembers.map(person => (
                                     <button
                                         key={person.id}
                                         onClick={() => setFilterAssignee(filterAssignee === person.id ? null : person.id)}

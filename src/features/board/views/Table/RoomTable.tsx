@@ -14,6 +14,7 @@ import { DocPicker } from '../../components/cells/DocPicker'; // Import DocPicke
 import { SaveToVaultModal } from '../../../dashboard/components/SaveToVaultModal';
 import { vaultService } from '../../../../services/vaultService';
 import { VaultItem } from '../../../vault/types';
+import { useToast } from '../../../marketplace/components/Toast';
 import {
     Plus,
     Flag,
@@ -171,6 +172,7 @@ interface RoomTableProps {
 // --- Main RoomTable Component ---
 const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, tasks: externalTasks, name: initialName, columns: externalColumns, onUpdateTasks, onDeleteTask, renderCustomActions, onRename, onNavigate, onAddGroup, onUpdateGroup, onDeleteGroup, enableImport, hideGroupHeader, showPagination, tasksVersion }) => {
     const { t } = useAppContext();
+    const { showToast } = useToast();
     // Keys for persistence
     const storageKeyColumns = `room-table-columns-v7-${roomId}-${viewId}`;
     const storageKeyRows = `room-table-rows-v7-${roomId}-${viewId}`;
@@ -967,9 +969,12 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
             setSortRules([]);
             setSortConfig(null);
 
+            // Show success feedback
+            showToast(`Successfully imported ${newRows.length} rows`, 'success');
+
         } catch (error) {
             boardLogger.error("Import failed:", error);
-            // Could add toast notification here
+            showToast('Import failed. Please check the file format.', 'error');
         } finally {
             // Reset input
             if (e.target) e.target.value = '';
