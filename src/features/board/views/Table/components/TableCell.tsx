@@ -504,8 +504,8 @@ export const TableCell: React.FC<TableCellProps> = ({
         );
     }
 
-    // File column
-    if (col.type === 'file') {
+    // Files column
+    if (col.type === 'files' || col.type === 'file') {
         const files = Array.isArray(value) ? value : (value ? [value] : []);
 
         return (

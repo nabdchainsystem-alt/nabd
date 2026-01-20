@@ -11,7 +11,9 @@ import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import { PeoplePicker } from '../../components/cells/PeoplePicker';
 import { UrlPicker } from '../../components/cells/UrlPicker'; // Import UrlPicker
 import { DocPicker } from '../../components/cells/DocPicker'; // Import DocPicker
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { SaveToVaultModal } from '../../../dashboard/components/SaveToVaultModal';
+// Force refresh
 import { vaultService } from '../../../../services/vaultService';
 import { VaultItem } from '../../../vault/types';
 import { useToast } from '../../../marketplace/components/Toast';
@@ -488,6 +490,9 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
 
     const searchInputRef = useRef<HTMLInputElement>(null);
 
+    // Clear Data State
+    const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
+
     // Custom Statuses State (Unified with Kanban)
     const [customStatuses, setCustomStatuses] = useState<StatusOption[]>([]);
     const storageKeyStatuses = `board-statuses-${roomId}`; // Changed to match KanbanBoard
@@ -632,7 +637,27 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         XLSX.utils.book_append_sheet(wb, ws, "Board Export");
         const dateStr = new Date().toISOString().slice(0, 10);
         XLSX.writeFile(wb, `Table_Export_${dateStr}.xlsx`);
+        XLSX.writeFile(wb, `Table_Export_${dateStr}.xlsx`);
     }, [tableGroups, columns]);
+
+    // Clear Table Handler
+    const handleClearTable = useCallback(() => {
+        // Clear all rows from all groups
+        setTableGroups(prev => prev.map(g => ({ ...g, rows: [] })));
+
+        // Clear creation rows buffer
+        setCreationRows({});
+
+        // Persist immediately
+        // Note: The persistence effect will trigger automatically due to state change
+
+        showToast('Table cleared successfully', 'success');
+        setIsClearDataModalOpen(false);
+
+        if (onUpdateTasks) {
+            onUpdateTasks([]);
+        }
+    }, [onUpdateTasks, showToast]);
 
     // creationRowInputRef is already defined at line 854
     const tableBodyRef = useRef<HTMLDivElement>(null);
@@ -873,14 +898,14 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                 const headerStr = header != null ? String(header).trim() : '';
                 const colType = detectColumnType(headerStr);
                 return {
-                id: headerStr.toLowerCase().replace(/\s+/g, '_') || `col_${index}`,
-                label: headerStr || `Column ${index + 1}`,
-                type: colType,
-                width: colType === 'status' || colType === 'priority' ? 140 : 150,
-                pinned: index === 0,
-                minWidth: 100,
-                resizable: true,
-            };
+                    id: headerStr.toLowerCase().replace(/\s+/g, '_') || `col_${index}`,
+                    label: headerStr || `Column ${index + 1}`,
+                    type: colType,
+                    width: colType === 'status' || colType === 'priority' ? 140 : 150,
+                    pinned: index === 0,
+                    minWidth: 100,
+                    resizable: true,
+                };
             });
 
             // Ensure we keep 'select' column if it's special
@@ -2625,6 +2650,16 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                             )}
                         </div>
 
+                        {/* Clear Data Button */}
+                        <div
+                            data-toolbar-button
+                            className="flex items-center gap-1.5 cursor-pointer transition-colors group hover:text-red-500"
+                            onClick={() => setIsClearDataModalOpen(true)}
+                        >
+                            <Trash size={16} weight="regular" className="group-hover:scale-110 transition-transform" />
+                            <span className="text-[13px] font-medium">Clear</span>
+                        </div>
+
                         {/* Group by */}
                         <div className="flex items-center gap-1.5 cursor-pointer hover:text-blue-500 transition-colors group">
                             <Stack size={16} weight="regular" className="group-hover:scale-110 transition-transform" />
@@ -3160,6 +3195,16 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                         />
                     )
                 }
+
+                <ConfirmModal
+                    isOpen={isClearDataModalOpen}
+                    onClose={() => setIsClearDataModalOpen(false)}
+                    onConfirm={handleClearTable}
+                    title="Clear all data?"
+                    description="This will permanently delete all rows from this table. This action cannot be undone."
+                    confirmText="Clear Data"
+                    type="danger"
+                />
 
                 <RowDetailPanel
                     isOpen={!!activeRowDetail}

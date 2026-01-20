@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,149 +7,139 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User System (SaaS)
 model User {
-  id           String    @id // Stores Auth Provider ID (e.g. Clerk user_id)
-  email        String    @unique
-  name         String?
-  avatarUrl    String?
-  lastActiveAt DateTime? // Track last activity for online status
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  // Multi-tenancy
-  workspaceId String?
-  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
-
-  // Relations
+  id                       String                    @id
+  email                    String                    @unique
+  name                     String?
+  avatarUrl                String?
+  lastActiveAt             DateTime?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  workspaceId              String?
+  role                     String                    @default("member")
+  activities               Activity[]
+  assignmentsSent          Assignment[]              @relation("AssignmentFrom")
+  assignmentsReceived      Assignment[]              @relation("AssignmentTo")
+  boards                   Board[]
+  conversationParticipants ConversationParticipant[]
+  emailAccounts            EmailAccount[]
+  messages                 Message[]
+  orders                   Order[]
   procurementRequests      ProcurementRequest[]
   rfqs                     RFQ[]
-  orders                   Order[]
-  boards                   Board[]
   rooms                    Room[]
-  emailAccounts            EmailAccount[]
+  workspace                Workspace?                @relation(fields: [workspaceId], references: [id])
   vaultItems               VaultItem[]
-  activities               Activity[]
-  messages                 Message[]
-  conversationParticipants ConversationParticipant[]
-  assignmentsReceived      Assignment[]             @relation("AssignmentTo")
-  assignmentsSent          Assignment[]             @relation("AssignmentFrom")
 
   @@index([workspaceId])
   @@index([lastActiveAt])
 }
 
 model Activity {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   userId      String
   workspaceId String?
   boardId     String?
-  type        String   // e.g., "TASK_CREATED", "BOARD_CREATED", etc.
-  content     String   // Display message
-  metadata    String?  // JSON string for extra data
-  createdAt   DateTime @default(now())
-
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
-  board     Board?     @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  type        String
+  content     String
+  metadata    String?
+  createdAt   DateTime   @default(now())
+  board       Board?     @relation(fields: [boardId], references: [id])
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
 
   @@index([userId])
   @@index([workspaceId])
   @@index([boardId])
   @@index([createdAt])
-  @@index([userId, createdAt]) // Composite index for user activity feed queries
-  @@index([workspaceId, createdAt]) // Composite index for workspace activity queries
+  @@index([userId, createdAt])
+  @@index([workspaceId, createdAt])
 }
 
 model Workspace {
-  id        String   @id @default(uuid())
-  name      String
-  icon      String?
-  color     String?
-  ownerId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users       User[]
-  invitations Invitation[]
-  boards      Board[]
+  id          String       @id @default(uuid())
+  name        String
+  icon        String?
+  color       String?
+  ownerId     String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   activities  Activity[]
+  boards      Board[]
+  invitations Invitation[]
+  users       User[]
 }
 
 model Invitation {
-  id        String   @id @default(uuid())
-  email     String
-  token     String   @unique
-  status    String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED
+  id          String    @id @default(uuid())
+  email       String
+  token       String    @unique
+  status      String    @default("PENDING")
   workspaceId String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  expiresAt DateTime
 }
 
-// Procurement System
 model ProcurementRequest {
-  id             String    @id
+  id             String        @id
   userId         String
   name           String
   date           String
   department     String
   warehouse      String?
   relatedTo      String?
-  status         String    @default("Pending")
-  priority       String    @default("Normal")
-  isUrgent       Boolean   @default(false)
-  approvalStatus String    @default("Pending")
-  rfqSent        Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items RequestItem[]
-  rfqs  RFQ[]
+  status         String        @default("Pending")
+  priority       String        @default("Normal")
+  isUrgent       Boolean       @default(false)
+  approvalStatus String        @default("Pending")
+  rfqSent        Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rfqs           RFQ[]
+  items          RequestItem[]
 
   @@index([userId])
   @@index([status])
 }
 
 model RequestItem {
-  id          String  @id @default(uuid())
+  id          String             @id @default(uuid())
   requestId   String
   itemCode    String
   description String
   quantity    Float
   dueDate     String?
   unitPrice   Float?
-
-  request ProcurementRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  request     ProcurementRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@index([requestId])
 }
 
 model RFQ {
-  id          String   @id
+  id          String              @id
   userId      String
   requestId   String?
   date        String
   department  String
   warehouse   String?
   supplier    String
-  value       Float    @default(0)
+  value       Float               @default(0)
   dueDate     String?
-  status      String   @default("Open")
+  status      String              @default("Open")
   createdDate String
   relatedTo   String?
-  sentToOrder Boolean  @default(false)
+  sentToOrder Boolean             @default(false)
   orderId     String?
   unitPrice   Float?
   quantity    Float?
   vatAmount   Float?
   totalExVat  Float?
-
-  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  request ProcurementRequest? @relation(fields: [requestId], references: [id])
-  items   RFQItem[]
-  orders  Order[]
+  orders      Order[]
+  request     ProcurementRequest? @relation(fields: [requestId], references: [id])
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       RFQItem[]
 
   @@index([userId])
   @@index([requestId])
@@ -167,31 +154,29 @@ model RFQItem {
   quantity    Float
   dueDate     String?
   unitPrice   Float?
-
-  rfq RFQ @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  rfq         RFQ     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
 
   @@index([rfqId])
 }
 
 model Order {
-  id          String   @id
-  userId      String
-  rfqId       String?
-  requestId   String?
-  supplier    String
-  department  String
-  warehouse   String?
-  date        String
-  dueDate     String?
-  totalValue  Float
-  priority    String?
-  status      String   @default("Open")
-  approvals   String?
-  relatedTo   String?
-
-  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rfq   RFQ?        @relation(fields: [rfqId], references: [id])
-  items OrderItem[]
+  id         String      @id
+  userId     String
+  rfqId      String?
+  requestId  String?
+  supplier   String
+  department String
+  warehouse  String?
+  date       String
+  dueDate    String?
+  totalValue Float
+  priority   String?
+  status     String      @default("Open")
+  approvals  String?
+  relatedTo  String?
+  rfq        RFQ?        @relation(fields: [rfqId], references: [id])
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items      OrderItem[]
 
   @@index([userId])
   @@index([rfqId])
@@ -206,17 +191,16 @@ model OrderItem {
   quantity    Float
   dueDate     String?
   unitPrice   Float?
-
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
 }
 
-// Board System
 model Board {
-  id             String   @id @default(uuid())
+  id             String     @id @default(uuid())
   userId         String
   workspaceId    String?
+  parentId       String?    // For sub-board hierarchy
   name           String
   icon           String?
   description    String?
@@ -224,19 +208,21 @@ model Board {
   pinnedViews    String?
   columns        String?
   defaultView    String?
-  tasks          String   @default("[]") // JSON for flexibility
-  type           String   @default("project")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace  Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  cards      Card[]
-  activities Activity[]
+  tasks          String     @default("[]")
+  type           String     @default("project")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  activities     Activity[]
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace      Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  cards          Card[]
+  parent         Board?     @relation("BoardHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Board[]    @relation("BoardHierarchy")
 
   @@index([userId])
   @@index([workspaceId])
-  @@index([workspaceId, createdAt]) // Composite index for workspace board listing
+  @@index([parentId])
+  @@index([workspaceId, createdAt])
 }
 
 model Card {
@@ -245,22 +231,20 @@ model Card {
   title       String
   description String?
   columnId    String?
-
-  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  board       Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
   @@index([boardId])
 }
 
-// Doc/Page System (Notion-like pages)
 model DocPage {
   id         String   @id @default(uuid())
   roomId     String?
   boardId    String?
   title      String   @default("Untitled")
-  content    String?  // JSON/HTML content
+  content    String?
   icon       String?
   coverImage String?
-  parentId   String?  // For nested pages
+  parentId   String?
   order      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -270,18 +254,16 @@ model DocPage {
   @@index([parentId])
 }
 
-// Room/Table System
 model Room {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String
-  type      String   @default("table")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           String        @id @default(uuid())
+  userId       String
+  name         String
+  type         String        @default("table")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  columnStores ColumnStore[]
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   rows         Row[]
-  columnStores ColumnStore[]
 
   @@index([userId])
 }
@@ -289,9 +271,8 @@ model Room {
 model Row {
   id      String @id @default(uuid())
   roomId  String
-  content String @default("{}") // JSON for dynamic row data
-
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  content String @default("{}")
+  room    Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([roomId])
 }
@@ -299,14 +280,12 @@ model Row {
 model ColumnStore {
   id      String @id @default(uuid())
   roomId  String
-  columns String // JSON string of Column[] definitions
-
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  columns String
+  room    Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([roomId])
 }
 
-// Email Integration
 model EmailAccount {
   id           String   @id @default(uuid())
   userId       String
@@ -317,99 +296,90 @@ model EmailAccount {
   tokenExpiry  DateTime
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([email, provider])
   @@index([userId])
-  @@index([userId, provider]) // Composite index for fetching user accounts by provider
+  @@index([userId, provider])
 }
 
-// Team Connection System
 model TeamConnection {
-  id          String   @id @default(uuid())
-  senderId    String   // User who sent the request
-  receiverId  String   // User who receives the request
-  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  @@unique([senderId, receiverId]) // Prevent duplicate requests
+  @@unique([senderId, receiverId])
   @@index([senderId])
   @@index([receiverId])
   @@index([status])
 }
 
-// Task Assignment System
 model Assignment {
   id                 String    @id @default(uuid())
-  sourceBoardId      String    // Original board where task lives
-  sourceRowId        String    // Original row/task ID
-  sourceTaskData     String    // JSON copy of original task data
-  assignedFromUserId String    // User who assigned the task
-  assignedToUserId   String    // User receiving the assignment
+  sourceBoardId      String
+  sourceRowId        String
+  sourceTaskData     String
+  assignedFromUserId String
+  assignedToUserId   String
   isViewed           Boolean   @default(false)
   viewedAt           DateTime?
   createdAt          DateTime  @default(now())
-  copiedBoardId      String?   // "Assigned to me" board ID
-  copiedRowId        String?   // Copied row ID in assigned board
-
-  assignedFromUser User @relation("AssignmentFrom", fields: [assignedFromUserId], references: [id], onDelete: Cascade)
-  assignedToUser   User @relation("AssignmentTo", fields: [assignedToUserId], references: [id], onDelete: Cascade)
+  copiedBoardId      String?
+  copiedRowId        String?
+  assignedFromUser   User      @relation("AssignmentFrom", fields: [assignedFromUserId], references: [id], onDelete: Cascade)
+  assignedToUser     User      @relation("AssignmentTo", fields: [assignedToUserId], references: [id], onDelete: Cascade)
 
   @@index([assignedToUserId])
   @@index([assignedToUserId, isViewed])
   @@index([createdAt])
 }
 
-// Vault System
 model VaultItem {
-  id         String   @id @default(uuid())
+  id         String      @id @default(uuid())
   userId     String
   title      String
-  type       String   // folder, file, note, weblink
+  type       String
   subtitle   String?
-  content    String?  // For notes or text content
-  metadata   String?  // JSON for file size, mimeType, etc.
-  isFavorite Boolean  @default(false)
-  folderId   String?  // Parent folder ID
+  content    String?
+  metadata   String?
+  isFavorite Boolean     @default(false)
+  folderId   String?
   color      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent   VaultItem?  @relation("FolderItems", fields: [folderId], references: [id], onDelete: Cascade)
-  children VaultItem[] @relation("FolderItems")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  parent     VaultItem?  @relation("FolderItems", fields: [folderId], references: [id], onDelete: Cascade)
+  children   VaultItem[] @relation("FolderItems")
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([folderId])
   @@index([type])
 }
 
-// Talk/Messaging System
 model Conversation {
-  id        String   @id @default(uuid())
-  type      String   // "dm" or "channel"
-  name      String?  // For channels
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  messages     Message[]
+  id           String                    @id @default(uuid())
+  type         String
+  name         String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
   participants ConversationParticipant[]
+  messages     Message[]
 
   @@index([type])
   @@index([updatedAt])
 }
 
 model Message {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   conversationId String
   senderId       String
   content        String
-  createdAt      DateTime @default(now())
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([senderId])
@@ -417,16 +387,25 @@ model Message {
 }
 
 model ConversationParticipant {
-  id             String    @id @default(uuid())
+  id             String       @id @default(uuid())
   conversationId String
   userId         String
   lastReadAt     DateTime?
-  joinedAt       DateTime  @default(now())
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
   @@index([conversationId])
   @@index([userId])
+}
+
+model FeatureFlag {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@index([key])
 }

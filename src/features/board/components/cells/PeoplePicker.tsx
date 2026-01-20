@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Users, Check, User, SpinnerGap } from 'phosphor-react';
-import { useAuth } from '../../../../auth-adapter';
+import { useAuth, useUser } from '../../../../auth-adapter';
 import { teamService, TeamMember } from '../../../../services/teamService';
 import { assignmentService } from '../../../../services/assignmentService';
 
@@ -34,6 +34,7 @@ export const PeoplePicker: React.FC<PeoplePickerProps> = ({
 }) => {
     const menuRef = useRef<HTMLDivElement>(null);
     const { getToken } = useAuth();
+    const { user } = useUser();
     const [teamMembers, setTeamMembers] = useState<Person[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAssigning, setIsAssigning] = useState(false);
@@ -83,6 +84,26 @@ export const PeoplePicker: React.FC<PeoplePickerProps> = ({
                     avatar: member.avatarUrl || undefined,
                     showUserIcon: !member.avatarUrl
                 }));
+
+                // Add current user if not present
+                if (user) {
+                    const isUserInList = people.some(p => p.id === user.id);
+                    if (!isUserInList) {
+                        // Handle both Clerk user and Mock user structures
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const u = user as any;
+                        const name = u.fullName || u.firstName || u.name || (u.primaryEmailAddress?.emailAddress) || 'Me';
+                        const avatar = u.imageUrl || u.avatarUrl;
+
+                        people.unshift({
+                            id: u.id,
+                            name: name,
+                            avatar: avatar,
+                            showUserIcon: !avatar
+                        });
+                    }
+                }
+
                 setTeamMembers(people);
             } catch (error) {
                 console.error('Failed to fetch team members:', error);
@@ -91,7 +112,7 @@ export const PeoplePicker: React.FC<PeoplePickerProps> = ({
             }
         };
         fetchTeamMembers();
-    }, [getToken]);
+    }, [getToken, user]);
 
     const [positionStyle, setPositionStyle] = useState<React.CSSProperties>(() => {
         if (triggerRect) {

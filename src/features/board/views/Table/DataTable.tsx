@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import RoomTable, { Row, Column } from './RoomTable';
-import { Upload, Download, ChartBar as BarChart3, Sparkle as Sparkles } from 'phosphor-react';
+import { Upload, Download, ChartBar as BarChart3, Sparkle as Sparkles, Trash } from 'phosphor-react';
 import * as XLSX from 'xlsx';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 interface DataTableProps {
     roomId: string;
@@ -10,6 +11,8 @@ interface DataTableProps {
 const DataTable: React.FC<DataTableProps & { viewId?: string }> = ({ roomId, viewId: propViewId }) => {
     // Unique View ID for DataTable: Use prop if available, otherwise default to 'datatable-v2' to force fresh state
     const viewId = propViewId || 'datatable-v2';
+    const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
+    const setRowsRef = useRef<React.Dispatch<React.SetStateAction<Row[]>> | null>(null);
 
     const defaultColumns = [
         { id: 'select', label: '', type: 'select', width: 48, minWidth: 40, resizable: false, pinned: true },
@@ -132,33 +135,60 @@ const DataTable: React.FC<DataTableProps & { viewId?: string }> = ({ roomId, vie
     // And assuming renderCustomActions gives us access.
 
     return (
-        <RoomTable
-            key={viewId}
-            roomId={roomId}
-            viewId={viewId}
-            defaultColumns={defaultColumns}
-            enableImport={true}
-            hideGroupHeader={true}
-            showPagination={true}
-            renderCustomActions={({ setRows, setColumns, setIsChartModalOpen, setIsAIReportModalOpen }) => (
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setIsChartModalOpen(true)}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors group"
-                    >
-                        <BarChart3 size={15} className="group-hover:scale-110 transition-transform" />
-                        <span>Generate Chart</span>
-                    </button>
-                    <button
-                        onClick={() => setIsAIReportModalOpen(true)}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group"
-                    >
-                        <Sparkles size={15} className="group-hover:scale-110 transition-transform" />
-                        <span>AI Report</span>
-                    </button>
-                </div>
-            )}
-        />
+        <>
+            <RoomTable
+                key={viewId}
+                roomId={roomId}
+                viewId={viewId}
+                defaultColumns={defaultColumns}
+                enableImport={true}
+                hideGroupHeader={true}
+                showPagination={true}
+                renderCustomActions={({ setRows, setColumns, setIsChartModalOpen, setIsAIReportModalOpen }) => (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsChartModalOpen(true)}
+                            className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors group"
+                        >
+                            <BarChart3 size={15} className="group-hover:scale-110 transition-transform" />
+                            <span>Generate Chart</span>
+                        </button>
+                        <button
+                            onClick={() => setIsAIReportModalOpen(true)}
+                            className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group"
+                        >
+                            <Sparkles size={15} className="group-hover:scale-110 transition-transform" />
+                            <span>AI Report</span>
+                        </button>
+                        <div className="w-px h-4 bg-stone-300 dark:bg-stone-600 mx-1" />
+                        <button
+                            onClick={() => {
+                                setRowsRef.current = setRows;
+                                setIsClearDataModalOpen(true);
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors group"
+                        >
+                            <Trash size={15} className="group-hover:scale-110 transition-transform" />
+                            <span>Clear Data</span>
+                        </button>
+                    </div>
+                )}
+            />
+            <ConfirmModal
+                isOpen={isClearDataModalOpen}
+                onClose={() => setIsClearDataModalOpen(false)}
+                onConfirm={() => {
+                    if (setRowsRef.current) {
+                        setRowsRef.current([]);
+                    }
+                    setIsClearDataModalOpen(false);
+                }}
+                title="Clear all data?"
+                description="This will permanently delete all data from this table. This action cannot be undone."
+                confirmText="Clear Data"
+                type="danger"
+            />
+        </>
     );
 };
 

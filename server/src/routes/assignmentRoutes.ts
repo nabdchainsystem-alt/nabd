@@ -27,11 +27,23 @@ async function getOrCreateAssignedBoard(userId: string): Promise<string> {
         return existingBoard.id;
     }
 
+    // Get user's first workspace to attach the board to
+    const userWorkspace = await prisma.workspace.findFirst({
+        where: {
+            OR: [
+                { ownerId: userId },
+                { users: { some: { id: userId } } }
+            ]
+        },
+        orderBy: { createdAt: 'asc' }
+    });
+
     // Create new "Assigned to me" board
     const board = await prisma.board.create({
         data: {
             name: 'Assigned to me',
             userId,
+            workspaceId: userWorkspace?.id, // Attach to user's workspace
             type: 'assigned',
             icon: 'UserCheck',
             defaultView: 'table',
@@ -47,6 +59,8 @@ async function getOrCreateAssignedBoard(userId: string): Promise<string> {
             tasks: '[]'
         }
     });
+
+    console.log(`[Assignment] Created "Assigned to me" board ${board.id} for user ${userId} in workspace ${userWorkspace?.id}`);
 
     return board.id;
 }
@@ -154,6 +168,8 @@ router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
         const userId = (req as AuthRequest).auth.userId;
         const id = req.params.id as string;
 
+        console.log(`[Assignment] PUT /:id/viewed called - assignmentId: ${id}, userId: ${userId}`);
+
         // Verify assignment belongs to user
         const assignment = await prisma.assignment.findFirst({
             where: {
@@ -168,14 +184,19 @@ router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
         });
 
         if (!assignment) {
+            console.log(`[Assignment] Assignment not found for id: ${id}`);
             return res.status(404).json({ error: "Assignment not found" });
         }
+
+        console.log(`[Assignment] Found assignment, copiedBoardId: ${assignment.copiedBoardId}, copiedRowId: ${assignment.copiedRowId}`);
 
         let copiedBoardId = assignment.copiedBoardId;
         let copiedRowId = assignment.copiedRowId;
 
         // Only create board and copy task if not already done
         if (!copiedBoardId || !copiedRowId) {
+            console.log(`[Assignment] Creating board and copying task...`);
+
             // Get source board info
             const sourceBoard = await prisma.board.findUnique({
                 where: { id: assignment.sourceBoardId },
@@ -184,6 +205,7 @@ router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
 
             // Get or create "Assigned to me" board for the user
             copiedBoardId = await getOrCreateAssignedBoard(userId);
+            console.log(`[Assignment] Got/Created board: ${copiedBoardId}`);
 
             // Get current tasks from the assigned board
             const assignedBoard = await prisma.board.findUnique({
@@ -215,6 +237,8 @@ router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
                 where: { id: copiedBoardId },
                 data: { tasks: JSON.stringify(currentTasks) }
             });
+
+            console.log(`[Assignment] Task copied to board. Task count: ${currentTasks.length}`);
         }
 
         // Update assignment with viewed status and board/row IDs
@@ -227,6 +251,8 @@ router.put('/:id/viewed', requireAuth, async (req, res: Response) => {
                 copiedRowId
             }
         });
+
+        console.log(`[Assignment] Assignment updated. Returning copiedBoardId: ${copiedBoardId}`);
 
         res.json({
             ...updated,

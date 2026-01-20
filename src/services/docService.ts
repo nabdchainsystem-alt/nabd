@@ -1,6 +1,7 @@
 import { DocPage } from '../features/board/views/Doc/types';
+import { API_URL as API_BASE } from '../config/api';
 
-const API_URL = '/api/docs';
+const API_URL = `${API_BASE}/docs`;
 
 export const docService = {
     getAll: async (containerId: string, token: string): Promise<DocPage[]> => {

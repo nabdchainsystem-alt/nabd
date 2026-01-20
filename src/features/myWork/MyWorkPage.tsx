@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useUser } from '../../auth-adapter';
 import { useAppContext } from '../../contexts/AppContext';
 import {
     Layout,
@@ -42,6 +43,8 @@ interface MyWorkPageProps {
     onUpdateTasks: (boardId: string, task: Task) => void;
     onAddBoard: (board: Board) => void;
 }
+
+const CURRENT_USER_ID = 'Me';
 
 const PriorityMenu = ({ onSelect, onClose, t }: { onSelect: (p: any) => void, onClose: () => void, t: (key: string) => string }) => (
     <div className="absolute top-full left-0 rtl:left-auto rtl:right-0 mt-1 w-32 bg-white dark:bg-monday-dark-elevated rounded-lg shadow-xl border border-slate-200 dark:border-monday-dark-border py-1 z-50">
@@ -221,8 +224,8 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                 status: 'To Do',
                 priority: newTaskPriority || 'Medium',
                 label: 'General', // Fallback
-                date: newTaskDate || new Date().toISOString().split('T')[0],
-                person: 'Me' // Fallback
+                date: newTaskDate || '', // Empty date for Inbox
+                person: CURRENT_USER_ID
             };
 
             console.log("Adding task to board:", board.name, newTask);
@@ -257,8 +260,24 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
         setActiveMenu(prev => prev === menu ? 'none' : menu);
     };
 
+    const isAssignedToMe = (person: any) => {
+        // Show if assigned to me OR if unassigned (so templates/new tasks show up)
+        if (!person || person === 'Unassigned') return true;
+        if (typeof person === 'string') return person === CURRENT_USER_ID || person === 'Me';
+        return person.name === CURRENT_USER_ID || person.id === CURRENT_USER_ID;
+    };
+
+    const user = useUser();
+    const userName = user.user?.fullName?.split(' ')[0] || t('there');
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return t('good_morning');
+        if (hour < 18) return t('good_afternoon');
+        return t('good_evening');
+    };
+
     // Memoized Data Processing
-    // We scan ALL boards to find tasks assigned to "Me" (mock logic for now assuming all tasks are mine)
     const { inboxTasks, activeProjects, todayTasks } = useMemo(() => {
         const inbox: { task: Task, boardName: string, boardId: string }[] = [];
         const today: { task: Task, boardName: string, boardId: string }[] = [];
@@ -276,27 +295,29 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
             }
 
             board.tasks.forEach(task => {
+                // Filter by User ownership
+                if (!isAssignedToMe(task.person)) return;
+
                 const richTask = { task, boardName: board.name, boardId: board.id };
 
-                // Add to Projects
+                // Add to Projects bucket (all my tasks)
                 projects[board.id].tasks.push(task);
 
-                // Add to Today if matches
+                // Date Logic
                 if (task.date === currentDateString) {
                     today.push(richTask);
-                } else {
-                    // For now, treat everything else as "Inbox" candidates for the purpose of the UI demo
+                } else if (!task.date) {
+                    // No date = Inbox
                     inbox.push(richTask);
                 }
+                // Future/Past tasks are just in projects for now
             });
         });
 
         // Filter Inbox & Projects based on local search/filter
-        // This is a simple client-side filter mock
         return {
             inboxTasks: inbox.filter(item => {
                 const matchesSearch = item.task.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.boardName.toLowerCase().includes(searchQuery.toLowerCase());
-                // Mock filter logic - since we don't have 'type' on tasks, we'll just show all for now or do rudimentary text matching if 'design' or 'dev' was in the name
                 const matchesFilter = filter === 'all' ? true :
                     filter === 'design' ? item.boardName.toLowerCase().includes('design') || item.task.name.toLowerCase().includes('design') :
                         filter === 'dev' ? item.boardName.toLowerCase().includes('dev') || item.task.name.toLowerCase().includes('fix') :
@@ -323,8 +344,29 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
         return p.level || p.name; // Handle object case if it exists in your types
     };
 
+
+
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const formattedDate = currentTime.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric'
+    });
+
+    const formattedTime = currentTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+
     return (
-        <div className="flex flex-col md:flex-row h-full w-full bg-[#f9fafa] dark:bg-monday-dark-elevated text-[#121716] dark:text-[#e2e8f0] font-sans overflow-hidden antialiased transition-colors duration-300 relative" style={{ zoom: '75%' }}>
+        <div className="flex flex-col md:flex-row h-full w-full bg-[#f9fafa] dark:bg-monday-dark-elevated text-[#121716] dark:text-[#e2e8f0] font-sans overflow-hidden antialiased transition-colors duration-300 relative">
 
             <BoardSelectionModal
                 isOpen={isModalOpen}
@@ -340,10 +382,15 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
             <main className="flex-1 flex flex-col h-full overflow-hidden relative border-r border-slate-200 dark:border-monday-dark-border/50">
 
                 {/* Header */}
-                <header className="px-8 py-6 flex justify-between items-end bg-[#f9fafa]/90 dark:bg-monday-dark-elevated/90 backdrop-blur-sm z-10 sticky top-0">
+                <header className="px-8 py-8 flex justify-between items-end bg-[#f9fafa]/90 dark:bg-monday-dark-elevated/90 backdrop-blur-sm z-10 sticky top-0">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Wednesday, Oct 24</h1>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1">{t('daily_agenda')} • {todayTasks.length} {t('tasks_scheduled')}</p>
+                        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                            {getGreeting()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">{userName}</span>
+                        </h1>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mt-1 flex items-center gap-2">
+                            <span className="bg-slate-200 dark:bg-slate-700 h-1 w-1 rounded-full"></span>
+                            {formattedDate} • {todayTasks.length} {t('tasks_scheduled')}
+                        </p>
                     </div>
                     <div className="flex gap-2">
                         <button className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-monday-dark-hover transition-colors text-slate-500">
@@ -359,23 +406,24 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                 {currentTab === 'timeline' ? (
                     <div className="flex-1 overflow-y-auto px-6 pb-20 relative custom-scrollbar animate-in fade-in duration-300">
 
-                        {/* Current Time Indicator */}
-                        <div className="absolute w-[calc(100%-3rem)] left-6 top-[380px] flex items-center z-20 pointer-events-none group">
-                            <div className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10 -ml-2 mb-[1px]">10:42</div>
+                        {/* Current Time Indicator - Position is approximate for demo purposes since we don't have a real time grid yet */}
+                        <div className="absolute w-[calc(100%-3rem)] left-6 top-[180px] flex items-center z-20 pointer-events-none group opacity-60">
+                            <div className="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-10 -ml-2 mb-[1px]">{formattedTime}</div>
                             <div className="h-[2px] w-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.4)]"></div>
                         </div>
 
                         {/* Real Data Rendering */}
                         <div className="flex flex-col gap-2 pt-6">
                             {todayTasks.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center p-10 text-slate-400">
-                                    <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-monday-dark-elevated flex items-center justify-center mb-4">
-                                        <CalendarIcon size={32} />
+                                <div className="flex flex-col items-center justify-center p-12 text-slate-400 bg-white/50 dark:bg-monday-dark-elevated/50 rounded-3xl mx-6 border-2 border-dashed border-slate-200 dark:border-monday-dark-border/50">
+                                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 flex items-center justify-center mb-4 shadow-inner ring-4 ring-white dark:ring-monday-dark-surface">
+                                        <CalendarIcon size={32} className="text-blue-500 dark:text-blue-400 opacity-80" weight="duotone" />
                                     </div>
-                                    <p className="font-medium">{t('no_tasks_scheduled_today')}</p>
+                                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-1">{t('no_urgent_tasks')}</h3>
+                                    <p className="font-medium text-sm text-slate-500 max-w-sm text-center leading-relaxed opacity-80">{t('no_tasks_scheduled_today')}</p>
                                     <button
                                         onClick={() => setIsModalOpen(true)}
-                                        className="mt-4 text-blue-600 hover:text-blue-700 font-bold text-sm"
+                                        className="mt-6 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-sm shadow-lg shadow-blue-600/20 transition-all hover:scale-105 active:scale-95"
                                     >
                                         + {t('add_task')}
                                     </button>
@@ -385,35 +433,38 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                                     <div key={task.id} className="flex group min-h-[140px]">
                                         <div className="w-24 pr-6 text-right pt-4 text-xs font-bold text-slate-400 font-mono flex flex-col items-end relative">
                                             {/* Dot on timeline */}
-                                            <div className="absolute right-[-5px] top-5 w-2.5 h-2.5 rounded-full border-[2px] border-[#f9fafa] dark:border-[#21262c] bg-slate-300 dark:bg-slate-600 z-10 group-hover:bg-blue-500 group-hover:scale-125 transition-all"></div>
-                                            <span>{task.id.slice(-4)}</span>
+                                            <div className="absolute right-[-5px] top-5 w-2.5 h-2.5 rounded-full border-[2px] border-[#f9fafa] dark:border-[#21262c] bg-slate-300 dark:bg-slate-600 z-10 group-hover:bg-blue-500 group-hover:scale-125 transition-all shadow-sm"></div>
+                                            <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">{task.id.slice(-4)}</span>
                                         </div>
                                         <div className="flex-1 border-l-2 border-slate-200 dark:border-monday-dark-border/50 pl-8 pb-8 relative">
                                             <div
                                                 onClick={() => onNavigateToBoard('board', boardId)}
-                                                className={`h-full w-full bg-white dark:bg-monday-dark-elevated rounded-2xl shadow-sm hover:shadow-lg dark:shadow-none border border-slate-200 dark:border-monday-dark-border p-6 flex gap-5 transition-all hover:-translate-y-1 duration-200 cursor-pointer relative overflow-hidden group/card ${task.priority === 'High' ? 'border-l-[4px] border-l-red-500' : task.priority === 'Medium' ? 'border-l-[4px] border-l-orange-500' : 'border-l-[4px] border-l-blue-500'}`}
+                                                className={`h-full w-full bg-white dark:bg-monday-dark-elevated rounded-2xl shadow-sm hover:shadow-xl dark:shadow-none border border-slate-100 dark:border-monday-dark-border p-6 flex gap-5 transition-all duration-300 cursor-pointer relative overflow-hidden group/card ${task.priority === 'High' ? 'hover:border-red-200 dark:hover:border-red-900/50' : 'hover:border-blue-200 dark:hover:border-blue-900/50'}`}
                                             >
-                                                <div className={`absolute inset-0 bg-gradient-to-br from-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none ${task.priority === 'High' ? 'from-red-50/50 dark:from-red-900/5' : 'from-blue-50/50 dark:from-blue-900/5'}`}></div>
+                                                <div className={`absolute inset-0 bg-gradient-to-br from-white to-slate-50 dark:from-monday-dark-elevated dark:to-[#2c333a] opacity-100 transition-opacity`}></div>
+                                                <div className={`absolute left-0 top-0 bottom-0 w-1 ${task.priority === 'High' ? 'bg-red-500' : task.priority === 'Medium' ? 'bg-orange-500' : 'bg-blue-500'}`}></div>
+
                                                 <div className="flex-1 relative z-10 flex flex-col">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold inline-block uppercase tracking-wider ${task.priority === 'High' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-200' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200'}`}>
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-block uppercase tracking-wider border ${task.priority === 'High' ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-300 dark:border-red-900/30' : 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-900/30'}`}>
                                                             {task.priority ? t(task.priority.toLowerCase()) : t('normal')}
                                                         </span>
                                                         <MoreHorizontal className="text-slate-300 hover:text-slate-600 dark:text-slate-600 dark:hover:text-slate-300 transition-colors" size={18} />
                                                     </div>
-                                                    <h3 className="text-slate-800 dark:text-gray-100 font-bold text-xl leading-tight mb-1 group-hover/card:text-blue-600 dark:group-hover/card:text-blue-400 transition-colors">{task.name}</h3>
+                                                    <h3 className="text-slate-800 dark:text-gray-100 font-bold text-xl leading-snug mb-2 group-hover/card:text-blue-700 dark:group-hover/card:text-blue-400 transition-colors">{task.name}</h3>
                                                     <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-lg truncate flex items-center gap-2">
-                                                        <Hash size={12} /> {boardName} {t('board')}
+                                                        <Hash size={13} className="text-slate-400" />
+                                                        <span className="hover:underline">{boardName}</span>
                                                     </p>
-                                                    <div className="mt-auto pt-5 flex items-center justify-between">
+                                                    <div className="mt-auto pt-6 flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
                                                             <div className="flex -space-x-2">
-                                                                <div className="w-6 h-6 rounded-full bg-indigo-500 border-2 border-white dark:border-[#2c333a] flex items-center justify-center text-[8px] text-white font-bold">M</div>
+                                                                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border-2 border-white dark:border-[#2c333a] flex items-center justify-center text-[9px] text-white font-bold shadow-sm">ME</div>
                                                             </div>
                                                             <span className="text-slate-400 text-xs font-medium">{t('due_today')}</span>
                                                         </div>
-                                                        <button className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${task.status === 'Done' ? 'bg-green-100 text-green-600' : 'bg-slate-50 dark:bg-monday-dark-elevated text-slate-400 hover:bg-blue-600 hover:text-white hover:shadow-md hover:scale-110'}`}>
-                                                            <CheckCircle2 size={18} />
+                                                        <button className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 ${task.status === 'Done' ? 'bg-green-100 text-green-600' : 'bg-slate-50 dark:bg-monday-dark-surface text-slate-400 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:scale-105'}`}>
+                                                            <CheckCircle2 size={20} weight={task.status === 'Done' ? 'fill' : 'regular'} />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -462,8 +513,8 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
 
             </main>
 
-            {/* SIDEBAR (TASK BUCKET) */}
-            <aside className="w-full lg:w-[420px] xl:w-[480px] bg-white dark:bg-monday-dark-surface flex flex-col h-full shadow-2xl lg:shadow-none z-20 border-l border-slate-200 dark:border-monday-dark-border/50" style={{ zoom: '1.05' }}>
+            {/* SIDEBAR (TASK BUCKET) - Resized width to account for no zoom */}
+            <aside className="w-full lg:w-[320px] xl:w-[380px] bg-white dark:bg-monday-dark-surface flex flex-col h-full shadow-2xl lg:shadow-none z-20 border-l border-slate-200 dark:border-monday-dark-border/50">
 
                 {/* Search & Filter Header */}
                 <div className="px-6 pt-6 pb-4 bg-white dark:bg-monday-dark-surface">
@@ -555,13 +606,13 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                         <div className="space-y-3">
                             {/* Render Inbox Tasks */}
                             {inboxTasks.slice(0, 5).map(({ task, boardName, boardId }, idx) => (
-                                <div key={task.id} className="group bg-white dark:bg-monday-dark-elevated p-4 rounded-xl shadow-sm hover:shadow-md border border-slate-100 dark:border-monday-dark-border/50 hover:border-blue-600/30 cursor-grab active:cursor-grabbing transition-all flex gap-3 items-start select-none relative">
-                                    <div className="mt-1 cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-blue-600 transition-colors">
-                                        <GripVertical size={20} />
+                                <div key={task.id} className="group bg-white dark:bg-monday-dark-elevated p-3.5 rounded-xl border border-transparent hover:border-blue-200 dark:hover:border-blue-900/30 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 cursor-pointer active:scale-[0.99] transition-all flex gap-3 items-start select-none relative">
+                                    <div className="mt-1 cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100 -ml-2">
+                                        <GripVertical size={16} />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
+                                        <div className="flex justify-between items-start mb-1.5">
+                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border ${getPriorityColor(task.priority).replace('bg-', 'border-').replace('/30', '/20')}`}>
                                                 {task.priority ? t(task.priority.toLowerCase()) : t('normal')}
                                             </span>
                                             {task.date && (
@@ -571,16 +622,16 @@ export const MyWorkPage: React.FC<MyWorkPageProps> = ({ boards, onNavigateToBoar
                                                 </span>
                                             )}
                                         </div>
-                                        <h4 className="font-bold text-slate-800 dark:text-monday-dark-text text-sm leading-snug mb-1 truncate">{task.name}</h4>
+                                        <h4 className="font-bold text-slate-700 dark:text-monday-dark-text text-sm leading-snug mb-1 truncate group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">{task.name}</h4>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-monday-dark-elevated px-1.5 py-0.5 rounded flex items-center gap-1 truncate max-w-[100px]">
+                                            <span className="text-[10px] text-slate-400 flex items-center gap-1 truncate max-w-[120px]">
                                                 <Hash size={10} /> {boardName}
                                             </span>
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2 items-end">
-                                        <button className="text-slate-300 hover:text-green-500 transition-colors bg-slate-50 dark:bg-monday-dark-elevated p-1.5 rounded-full hover:bg-green-50 dark:hover:bg-green-900/20">
-                                            <CheckCircle2 size={16} />
+                                        <button className="text-slate-300 hover:text-green-500 transition-colors p-1 rounded-full hover:bg-green-50 dark:hover:bg-green-900/20">
+                                            <CheckCircle2 size={18} />
                                         </button>
                                     </div>
                                 </div>

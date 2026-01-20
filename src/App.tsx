@@ -21,6 +21,7 @@ import { cleanupBoardStorage, cleanupWorkspaceBoardsStorage } from './utils/stor
 import { appLogger, boardLogger } from './utils/logger';
 import { FeatureErrorBoundary } from './components/common/FeatureErrorBoundary';
 import { API_URL } from './config/api';
+import { adminService, featureFlagsToPageVisibility } from './services/adminService';
 
 // Lazy load feature pages for better initial bundle size
 const Dashboard = lazyWithRetry(() => import('./features/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -42,10 +43,15 @@ const AppContent: React.FC = () => {
   const { isSidebarCollapsed, setIsSidebarCollapsed } = useUI();
   const { updateUserDisplayName } = useAppContext();
 
-  // Sync authenticated user's name to AppContext
+  // Sync authenticated user's name to AppContext ONLY on first login
+  // (when there's no saved display name in localStorage)
   useEffect(() => {
     if (user?.fullName) {
-      updateUserDisplayName(user.fullName);
+      const savedName = localStorage.getItem('app-user-display-name');
+      // Only sync from auth if no custom name has been saved
+      if (!savedName) {
+        updateUserDisplayName(user.fullName);
+      }
     }
   }, [user?.fullName, updateUserDisplayName]);
 
@@ -137,6 +143,64 @@ const AppContent: React.FC = () => {
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
+  // Startup cleanup: Remove deleted boards AND orphaned boards from localStorage
+  useEffect(() => {
+    const savedBoards = localStorage.getItem('app-boards');
+    const savedDeleted = localStorage.getItem('app-deleted-boards');
+    const savedWorkspaces = localStorage.getItem('app-workspaces');
+
+    try {
+      const boardsArray: Board[] = savedBoards ? JSON.parse(savedBoards) : [];
+      const deletedSet = savedDeleted ? new Set(JSON.parse(savedDeleted)) : new Set();
+      const workspacesArray = savedWorkspaces ? JSON.parse(savedWorkspaces) : [];
+      const workspaceIds = new Set(workspacesArray.map((w: Workspace) => w.id));
+
+      // Filter out:
+      // 1. Boards that are in deletedBoardIds
+      // 2. Boards that belong to non-existent workspaces (orphaned)
+      const cleanedBoards = boardsArray.filter(b => {
+        if (deletedSet.has(b.id)) {
+          boardLogger.info('[Startup Cleanup] Removing deleted board:', b.id, b.name);
+          return false;
+        }
+        // If board has a workspaceId but that workspace doesn't exist, it's orphaned
+        if (b.workspaceId && !workspaceIds.has(b.workspaceId)) {
+          boardLogger.info('[Startup Cleanup] Removing orphaned board (workspace deleted):', b.id, b.name, 'workspaceId:', b.workspaceId);
+          cleanupBoardStorage(b.id);
+          return false;
+        }
+        return true;
+      });
+
+      if (cleanedBoards.length !== boardsArray.length) {
+        boardLogger.info('[Startup Cleanup] Cleaned boards:', {
+          before: boardsArray.length,
+          after: cleanedBoards.length,
+          removed: boardsArray.length - cleanedBoards.length
+        });
+        localStorage.setItem('app-boards', JSON.stringify(cleanedBoards));
+        setBoards(cleanedBoards);
+
+        // Clean up board data for removed boards
+        const removedIds = boardsArray
+          .filter(b => deletedSet.has(b.id) || (b.workspaceId && !workspaceIds.has(b.workspaceId)))
+          .map(b => b.id);
+        removedIds.forEach(id => cleanupBoardStorage(id));
+      }
+
+      // Also clear deletedBoardIds for boards that no longer exist
+      if (deletedSet.size > 0) {
+        const existingBoardIds = new Set(cleanedBoards.map(b => b.id));
+        const updatedDeleted = Array.from(deletedSet).filter(id => !existingBoardIds.has(id as string));
+        if (updatedDeleted.length !== deletedSet.size) {
+          localStorage.setItem('app-deleted-boards', JSON.stringify(updatedDeleted));
+        }
+      }
+    } catch (e) {
+      boardLogger.error('[Startup Cleanup] Failed to clean localStorage:', e);
+    }
+  }, []); // Run once on mount
+
   // Persist deleted boards
   useEffect(() => {
     localStorage.setItem('app-deleted-boards', JSON.stringify(Array.from(deletedBoardIds)));
@@ -196,6 +260,7 @@ const AppContent: React.FC = () => {
           // Drop local boards that are NOT on server AND NOT in unsynced list (confirmed deletions)
           setBoards(prev => {
             const boardMap = new Map();
+            const orphanedBoardIds: string[] = [];
 
             // Server truth first, but filter out known deleted ones (use fresh localStorage value)
             fetchedBoards.forEach((b: Board) => {
@@ -214,9 +279,19 @@ const AppContent: React.FC = () => {
                 const isDeleted = currentDeletedIds.has(localBoard.id);
                 if (isUnsynced && !isDeleted) {
                   boardMap.set(localBoard.id, localBoard);
+                } else if (!isUnsynced && !isDeleted) {
+                  // This board is orphaned (not on server, not unsynced, not explicitly deleted)
+                  // Clean up its localStorage data
+                  orphanedBoardIds.push(localBoard.id);
                 }
               }
             });
+
+            // Clean up orphaned boards' localStorage data
+            if (orphanedBoardIds.length > 0) {
+              boardLogger.info('[Boards Merge] Cleaning up orphaned boards:', orphanedBoardIds);
+              orphanedBoardIds.forEach(id => cleanupBoardStorage(id));
+            }
 
             return Array.from(boardMap.values());
           });
@@ -258,6 +333,18 @@ const AppContent: React.FC = () => {
 
   const activeBoard = boards.find(b => b.id === activeBoardId) || boards[0];
 
+  // Sync workspace when viewing a board that belongs to a different workspace
+  useEffect(() => {
+    if (activeView === 'board' && activeBoard?.workspaceId && activeBoard.workspaceId !== activeWorkspaceId) {
+      boardLogger.info('[Workspace Sync] Syncing workspace to match active board:', {
+        boardId: activeBoard.id,
+        boardWorkspaceId: activeBoard.workspaceId,
+        currentWorkspaceId: activeWorkspaceId
+      });
+      setActiveWorkspaceId(activeBoard.workspaceId);
+    }
+  }, [activeView, activeBoard?.id, activeBoard?.workspaceId, activeWorkspaceId]);
+
   // Filter boards by active workspace - this ensures components only see relevant data
   const workspaceBoards = React.useMemo(() => {
     if (!activeWorkspaceId) return boards;
@@ -268,6 +355,56 @@ const AppContent: React.FC = () => {
     const saved = localStorage.getItem('app-page-visibility');
     return saved ? JSON.parse(saved) : {};
   });
+
+  // Admin and Feature Flags state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [serverFeatureFlags, setServerFeatureFlags] = useState<Record<string, boolean>>({});
+
+  // Fetch admin status and feature flags
+  const fetchAdminData = React.useCallback(async () => {
+    if (!isSignedIn) return;
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      // Fetch admin status and feature flags in parallel
+      const [adminStatus, flags] = await Promise.all([
+        adminService.getAdminStatus(token),
+        adminService.getFeatureFlags(token)
+      ]);
+
+      setIsAdmin(adminStatus.isAdmin);
+
+      // Convert feature flags to visibility format
+      const flagsVisibility = featureFlagsToPageVisibility(flags);
+      setServerFeatureFlags(flagsVisibility);
+
+      appLogger.info('[App] Admin status:', adminStatus.isAdmin, 'Feature flags loaded:', Object.keys(flagsVisibility).length);
+    } catch (error) {
+      console.error('Failed to fetch admin data:', error);
+    }
+  }, [isSignedIn, getToken]);
+
+  // Fetch admin data on mount
+  useEffect(() => {
+    fetchAdminData();
+  }, [fetchAdminData]);
+
+  // Combine server feature flags with local visibility (server takes precedence for non-admins)
+  const effectivePageVisibility = React.useMemo(() => {
+    // For admins, show all pages (they can see everything regardless of flags)
+    if (isAdmin) {
+      return { ...pageVisibility, ...serverFeatureFlags };
+    }
+    // For non-admins, server flags take precedence (if a feature is disabled, it's hidden)
+    const combined: Record<string, boolean> = { ...pageVisibility };
+    for (const [key, enabled] of Object.entries(serverFeatureFlags)) {
+      if (!enabled) {
+        combined[key] = false; // Server disabled features override local settings
+      }
+    }
+    return combined;
+  }, [pageVisibility, serverFeatureFlags, isAdmin]);
 
   const [recentlyVisited, setRecentlyVisited] = useState<RecentlyVisitedItem[]>(() => {
     const saved = localStorage.getItem('app-recently-visited');
@@ -290,8 +427,21 @@ const AppContent: React.FC = () => {
     localStorage.setItem('app-workspaces', JSON.stringify(workspaces));
   }, [workspaces]);
 
-  // Boards persistence RESTORED (fallback for offline/refresh) - debounced to reduce JSON.stringify calls
+  // Boards persistence - immediate for deletions, debounced for other changes
+  const prevBoardsLengthRef = React.useRef(boards.length);
   useEffect(() => {
+    const currentLength = boards.length;
+    const prevLength = prevBoardsLengthRef.current;
+    prevBoardsLengthRef.current = currentLength;
+
+    // Immediate update for deletions to prevent resurrection on quick refresh
+    if (currentLength < prevLength) {
+      localStorage.setItem('app-boards', JSON.stringify(boards));
+      boardLogger.info('[Boards Persistence] Immediate save after deletion', { count: currentLength });
+      return;
+    }
+
+    // Debounced update for additions/modifications
     const timeoutId = setTimeout(() => {
       localStorage.setItem('app-boards', JSON.stringify(boards));
     }, 300);
@@ -494,6 +644,10 @@ const AppContent: React.FC = () => {
       setActiveBoardId(boardId);
       const board = boards.find(b => b.id === boardId);
       if (board) {
+        // Sync active workspace if board belongs to a different one
+        if (board.workspaceId && board.workspaceId !== activeWorkspaceId) {
+          setActiveWorkspaceId(board.workspaceId);
+        }
         addToHistory(view, board);
       }
     } else {
@@ -642,7 +796,30 @@ const AppContent: React.FC = () => {
     }
   }, [getToken]);
 
+  const handleRenameWorkspace = React.useCallback(async (id: string, newName: string, newIcon: string, newColor?: string) => {
+    // Optimistic Update
+    setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name: newName, icon: newIcon as any, color: newColor || w.color } : w));
 
+    try {
+      const token = await getToken();
+      if (token) {
+        const response = await fetch(`${API_URL}/workspaces/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name: newName, icon: newIcon, color: newColor })
+        });
+
+        if (!response.ok) {
+          appLogger.error("Failed to rename workspace backend");
+        }
+      }
+    } catch (error) {
+      appLogger.error("Failed to rename workspace", error);
+    }
+  }, [getToken]);
 
   const handleDeleteWorkspace = React.useCallback(async (id: string) => {
     if (workspaces.length <= 1) return; // Prevent deleting last workspace
@@ -650,27 +827,59 @@ const AppContent: React.FC = () => {
     // Get boards to delete for localStorage cleanup
     const boardsToDelete = boards.filter(b => b.workspaceId === id);
     const boardIdsToDelete = boardsToDelete.map(b => b.id);
+    const remainingBoards = boards.filter(b => b.workspaceId !== id);
+
+    boardLogger.info('[Delete Workspace] Deleting workspace and boards:', {
+      workspaceId: id,
+      boardCount: boardIdsToDelete.length,
+      boardIds: boardIdsToDelete
+    });
 
     // Optimistic Update
     const workspaceToDelete = workspaces.find(w => w.id === id);
-    setWorkspaces(prev => {
-      const newWorkspaces = prev.filter(w => w.id !== id);
-      if (activeWorkspaceId === id && newWorkspaces.length > 0) {
-        setActiveWorkspaceId(newWorkspaces[0].id);
-      }
-      return newWorkspaces;
-    });
-    setBoards(prev => prev.filter(b => b.workspaceId !== id));
+    const newWorkspaces = workspaces.filter(w => w.id !== id);
+
+    setWorkspaces(newWorkspaces);
+    if (activeWorkspaceId === id && newWorkspaces.length > 0) {
+      setActiveWorkspaceId(newWorkspaces[0].id);
+    }
+    setBoards(remainingBoards);
+
+    // CRITICAL: Immediately update ALL localStorage to prevent resurrection
+    localStorage.setItem('app-boards', JSON.stringify(remainingBoards));
+    localStorage.setItem('app-workspaces', JSON.stringify(newWorkspaces));
+
+    // Mark boards as deleted and persist immediately
+    const currentDeleted = localStorage.getItem('app-deleted-boards');
+    const deletedSet = currentDeleted ? new Set(JSON.parse(currentDeleted)) : new Set();
+    boardIdsToDelete.forEach(boardId => deletedSet.add(boardId));
+    localStorage.setItem('app-deleted-boards', JSON.stringify(Array.from(deletedSet)));
+
+    // Remove from unsynced
+    const currentUnsynced = localStorage.getItem('app-unsynced-boards');
+    if (currentUnsynced) {
+      const unsyncedSet = new Set(JSON.parse(currentUnsynced));
+      boardIdsToDelete.forEach(boardId => unsyncedSet.delete(boardId));
+      localStorage.setItem('app-unsynced-boards', JSON.stringify(Array.from(unsyncedSet)));
+    }
 
     // Clean up localStorage for all boards in this workspace
     cleanupWorkspaceBoardsStorage(boardIdsToDelete);
 
-    // Also mark these boards as deleted to prevent resurrection
+    // Update state for deleted boards
     setDeletedBoardIds(prev => {
       const next = new Set(prev);
-      boardIdsToDelete.forEach(id => next.add(id));
+      boardIdsToDelete.forEach(boardId => next.add(boardId));
       return next;
     });
+
+    setUnsyncedBoardIds(prev => {
+      const next = new Set(prev);
+      boardIdsToDelete.forEach(boardId => next.delete(boardId));
+      return next;
+    });
+
+    boardLogger.info('[Delete Workspace] localStorage updated immediately');
 
     try {
       const token = await getToken();
@@ -685,14 +894,25 @@ const AppContent: React.FC = () => {
           // Revert optimistic update
           if (workspaceToDelete) {
             setWorkspaces(prev => [...prev, workspaceToDelete]);
+            setBoards(prev => [...prev, ...boardsToDelete]);
+            localStorage.setItem('app-boards', JSON.stringify([...remainingBoards, ...boardsToDelete]));
+            localStorage.setItem('app-workspaces', JSON.stringify([...newWorkspaces, workspaceToDelete]));
           }
         } else {
+          boardLogger.info('[Delete Workspace] Backend delete successful');
           // Backend succeeded, clean up deletedBoardIds
           setDeletedBoardIds(prev => {
             const next = new Set(prev);
-            boardIdsToDelete.forEach(id => next.delete(id));
+            boardIdsToDelete.forEach(boardId => next.delete(boardId));
             return next;
           });
+          // Update localStorage for deleted boards
+          const updatedDeleted = localStorage.getItem('app-deleted-boards');
+          if (updatedDeleted) {
+            const set = new Set(JSON.parse(updatedDeleted));
+            boardIdsToDelete.forEach(boardId => set.delete(boardId));
+            localStorage.setItem('app-deleted-boards', JSON.stringify(Array.from(set)));
+          }
         }
       }
     } catch (error) {
@@ -700,71 +920,111 @@ const AppContent: React.FC = () => {
     }
   }, [workspaces, boards, activeWorkspaceId, getToken]);
 
-  const handleDeleteBoard = React.useCallback(async (boardId: string) => {
+  const handleDeleteBoard = React.useCallback(async (boardId: string, deleteMode: 'single' | 'recursive' = 'single') => {
     const board = boards.find(b => b.id === boardId);
     if (!board) {
       boardLogger.info('[Delete Board] Board not found in local state:', boardId);
       return;
     }
 
-    boardLogger.info('[Delete Board] Attempting to delete:', { boardId, boardName: board.name });
+    boardLogger.info('[Delete Board] Attempting to delete:', { boardId, boardName: board.name, deleteMode });
 
-    // Optimistic update - remove from local state IMMEDIATELY
-    setBoards(prev => prev.filter(b => b.id !== boardId));
+    // Identify all boards involved (recursive finding of descendants)
+    const getDescendants = (id: string, allBoards: Board[]): string[] => {
+      const directChildren = allBoards.filter(b => b.parentId === id);
+      let descendants = directChildren.map(c => c.id);
+      directChildren.forEach(child => {
+        descendants = [...descendants, ...getDescendants(child.id, allBoards)];
+      });
+      return descendants;
+    };
 
-    // CRITICAL FIX: Stop tracking as unsynced so it doesn't resurrect on refresh
+    const descendants = getDescendants(boardId, boards);
+    const boardsToDeleteIds = deleteMode === 'recursive' ? [boardId, ...descendants] : [boardId];
+
+    boardLogger.info('[Delete Board] Strategy:', {
+      mode: deleteMode,
+      targetId: boardId,
+      descendantsFound: descendants.length,
+      totalToDelete: boardsToDeleteIds.length,
+      ids: boardsToDeleteIds
+    });
+
+    // If 'single' mode, sub-boards need reparenting.
+    // We'll move them to the deleted board's parent (or root if null).
+    const newParentId = board.parentId || undefined;
+
+    // Optimistic Update
+    let newBoards = boards.filter(b => !boardsToDeleteIds.includes(b.id));
+
+    if (deleteMode === 'single') {
+      // Reparent direct children
+      newBoards = newBoards.map(b => {
+        if (b.parentId === boardId) {
+          return { ...b, parentId: newParentId };
+        }
+        return b;
+      });
+    }
+
+    setBoards(newBoards);
+
+    // Update LocalStorage Persistence
+    localStorage.setItem('app-boards', JSON.stringify(newBoards));
+
+    // Cleanup Unsynced & Deleted sets
     setUnsyncedBoardIds(prev => {
       const next = new Set(prev);
-      next.delete(boardId);
+      boardsToDeleteIds.forEach(id => next.delete(id));
       return next;
     });
 
-    // Mark as deleted to prevent zombie reappearance (persisted to localStorage)
-    setDeletedBoardIds(prev => new Set(prev).add(boardId));
+    setDeletedBoardIds(prev => {
+      const next = new Set(prev);
+      boardsToDeleteIds.forEach(id => next.add(id));
+      return next;
+    });
 
-    // Also update localStorage immediately to ensure it's persisted before any async operations
-    const currentDeleted = localStorage.getItem('app-deleted-boards');
-    const deletedSet = currentDeleted ? new Set(JSON.parse(currentDeleted)) : new Set();
-    deletedSet.add(boardId);
-    localStorage.setItem('app-deleted-boards', JSON.stringify(Array.from(deletedSet)));
+    const deletedSetArr = [...(JSON.parse(localStorage.getItem('app-deleted-boards') || '[]')), ...boardsToDeleteIds];
+    localStorage.setItem('app-deleted-boards', JSON.stringify([...new Set(deletedSetArr)]));
 
-    // Update unsynced storage too
-    const currentUnsynced = localStorage.getItem('app-unsynced-boards');
-    if (currentUnsynced) {
-      const unsyncedSet = new Set(JSON.parse(currentUnsynced));
-      if (unsyncedSet.has(boardId)) {
-        unsyncedSet.delete(boardId);
-        localStorage.setItem('app-unsynced-boards', JSON.stringify(Array.from(unsyncedSet)));
-      }
-    }
+    // Cleanup local storage for deleted boards
+    boardsToDeleteIds.forEach(id => cleanupBoardStorage(id));
 
-    // Clean up all localStorage data for this board
-    cleanupBoardStorage(boardId);
 
-    if (activeBoardId === boardId) {
+    if (activeBoardId && boardsToDeleteIds.includes(activeBoardId)) {
       setActiveBoardId(null);
       setActiveView('dashboard');
     }
 
-    // Try backend deletion - but don't revert UI on failure (user expects immediate feedback)
+    // Backend Sync
     try {
       const token = await getToken();
       if (token) {
-        boardLogger.info('[Delete Board] Calling backend with token...');
-        await boardService.deleteBoard(token, boardId);
-        boardLogger.info('[Delete Board] Backend delete successful');
-        // On success, we can remove from `deletedBoardIds` since server no longer has it
-        setDeletedBoardIds(prev => {
-          const next = new Set(prev);
-          next.delete(boardId);
-          return next;
-        });
-      } else {
-        boardLogger.error("[Delete Board] No auth token available - keeping local deletion");
+        if (deleteMode === 'recursive') {
+          // If recursive, backend might support recursive delete or we delete one by one.
+          // Assuming backend deletes children automatically or we loop.
+          // Safest to delete all in loop or Promise.all, order matters (children then parent usually, or parent cascades).
+          // If backend has cascade delete on FK, deleting parent is enough.
+          // Let's safe bet: call delete for all.
+          await Promise.all(boardsToDeleteIds.map(id => boardService.deleteBoard(token, id)));
+        } else {
+          // Single delete + Reparenting
+          // 1. Delete target board
+          await boardService.deleteBoard(token, boardId);
+          // 2. Update children (backend should handle this? OR we manually update children first)
+          // If we delete parent first, children might get deleted on cascade or orphaned.
+          // Better execution: Update children to new parent, then delete target.
+          const directChildren = boards.filter(b => b.parentId === boardId);
+          await Promise.all(directChildren.map(child =>
+            boardService.updateBoard(token, child.id, { parentId: newParentId })
+          ));
+        }
       }
     } catch (e) {
-      boardLogger.error("[Delete Board] Backend call failed:", e);
+      boardLogger.error("[Delete Board] Backend sync failed", e);
     }
+
   }, [activeBoardId, getToken, boards]);
 
   const handleToggleFavorite = (id: string) => {
@@ -959,13 +1219,14 @@ const AppContent: React.FC = () => {
           onWorkspaceChange={setActiveWorkspaceId}
           onAddWorkspace={handleAddWorkspace}
           onDeleteWorkspace={handleDeleteWorkspace}
+          onRenameWorkspace={handleRenameWorkspace}
           boards={workspaceBoards}
           onDeleteBoard={handleDeleteBoard}
           onToggleFavorite={handleToggleFavorite}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
           onAddBoard={(name, icon, template, defaultView, parentId) => handleQuickAddBoard(name, icon, template, defaultView as any, parentId)}
-          pageVisibility={pageVisibility}
+          pageVisibility={effectivePageVisibility}
         />
 
         {/* Main Content Area */}
@@ -1081,7 +1342,12 @@ const AppContent: React.FC = () => {
             ) : activeView === 'quick_notes' ? (
               <QuickNotesPage />
             ) : activeView === 'settings' ? (
-              <SettingsPage visibility={pageVisibility} onVisibilityChange={setPageVisibility} />
+              <SettingsPage
+                visibility={pageVisibility}
+                onVisibilityChange={setPageVisibility}
+                isAdmin={isAdmin}
+                onFeatureFlagsChange={fetchAdminData}
+              />
             ) : activeView === 'talk' ? (
               <TalkPage onNavigate={handleNavigate} />
             ) : activeView === 'test' ? (

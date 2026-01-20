@@ -3,6 +3,7 @@ import { useState, useLayoutEffect } from 'react';
 interface UsePopupPositionProps {
     triggerRect?: DOMRect;
     menuHeight?: number;
+    menuWidth?: number;
     offset?: number;
 }
 
@@ -11,6 +12,7 @@ interface PopupPositionStyle {
     top?: number;
     bottom?: number;
     left?: number;
+    right?: number;
     maxHeight?: number;
     display?: string;
 }
@@ -18,18 +20,19 @@ interface PopupPositionStyle {
 export function usePopupPosition({
     triggerRect,
     menuHeight = 250,
+    menuWidth = 256,
     offset = 4
 }: UsePopupPositionProps): PopupPositionStyle {
     const [positionStyle, setPositionStyle] = useState<PopupPositionStyle>(() => {
         if (!triggerRect) return { position: 'fixed', display: 'none' };
-        return calculatePosition(triggerRect, menuHeight, offset);
+        return calculatePosition(triggerRect, menuHeight, menuWidth, offset);
     });
 
     useLayoutEffect(() => {
         if (triggerRect) {
-            setPositionStyle(calculatePosition(triggerRect, menuHeight, offset));
+            setPositionStyle(calculatePosition(triggerRect, menuHeight, menuWidth, offset));
         }
-    }, [triggerRect, menuHeight, offset]);
+    }, [triggerRect, menuHeight, menuWidth, offset]);
 
     return positionStyle;
 }
@@ -37,16 +40,31 @@ export function usePopupPosition({
 function calculatePosition(
     triggerRect: DOMRect,
     menuHeight: number,
+    menuWidth: number,
     offset: number
 ): PopupPositionStyle {
     const spaceBelow = window.innerHeight - triggerRect.bottom;
+    const spaceRight = window.innerWidth - triggerRect.left;
     const openUp = spaceBelow < menuHeight && triggerRect.top > menuHeight;
+    const openLeft = spaceRight < menuWidth + 20;
+
+    // Calculate horizontal position
+    let left: number | undefined;
+    let right: number | undefined;
+
+    if (openLeft) {
+        // Position from the right edge of the trigger, opening leftward
+        right = window.innerWidth - triggerRect.right;
+    } else {
+        left = triggerRect.left;
+    }
 
     if (openUp) {
         return {
             position: 'fixed',
             bottom: window.innerHeight - triggerRect.top + offset,
-            left: triggerRect.left,
+            left,
+            right,
             maxHeight: triggerRect.top - 10
         };
     }
@@ -54,7 +72,8 @@ function calculatePosition(
     return {
         position: 'fixed',
         top: triggerRect.bottom + offset,
-        left: triggerRect.left,
+        left,
+        right,
         maxHeight: window.innerHeight - triggerRect.bottom - 10
     };
 }

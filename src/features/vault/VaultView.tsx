@@ -9,9 +9,11 @@ import { VaultItem } from './types';
 import { CreateFolderModal } from './components/CreateFolderModal';
 import { CreateLinkModal } from './components/CreateLinkModal';
 import { RenameItemModal } from './components/RenameItemModal';
+import { MoveToFolderModal } from './components/MoveToFolderModal';
 import { vaultService } from '../../services/vaultService';
 import { useAuth } from '../../auth-adapter';
 import { useAppContext } from '../../contexts/AppContext';
+import { ConfirmModal } from '../../features/board/components/ConfirmModal';
 
 export const VaultView: React.FC = () => {
     const { t } = useAppContext();
@@ -34,6 +36,14 @@ export const VaultView: React.FC = () => {
     const [sortBy, setSortBy] = useState<'name' | 'date' | 'size' | 'type'>('date');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [groupBy, setGroupBy] = useState<'none' | 'type' | 'date'>('none');
+
+    // Move Modal State
+    const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+    const [itemToMove, setItemToMove] = useState<VaultItem | null>(null);
+
+    // Delete Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<VaultItem | null>(null);
 
     // Initial Fetch & URL Parsing
     useEffect(() => {
@@ -294,20 +304,31 @@ export const VaultView: React.FC = () => {
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-    const handleDeleteItem = async (itemId: string) => {
+    const handleDeleteRequest = (itemId: string) => {
+        const item = items.find(i => i.id === itemId);
+        if (item) {
+            setItemToDelete(item);
+            setIsDeleteModalOpen(true);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!itemToDelete) return;
         try {
             const token = await getToken();
             if (!token) return;
 
-            await vaultService.delete(token, itemId);
+            await vaultService.delete(token, itemToDelete.id);
 
             // Optimistic update
-            setItems(prev => prev.filter(i => i.id !== itemId));
+            setItems(prev => prev.filter(i => i.id !== itemToDelete.id));
 
             // If we deleted the current folder, go up
-            if (itemId === currentFolderId) {
+            if (itemToDelete.id === currentFolderId) {
                 setCurrentFolderId(null);
             }
+            setIsDeleteModalOpen(false);
+            setItemToDelete(null);
         } catch (e) {
             storageLogger.error("Failed to delete item", e);
         }
@@ -348,6 +369,35 @@ export const VaultView: React.FC = () => {
             setItemToRename(null);
         } catch (e) {
             storageLogger.error("Failed to rename item", e);
+        }
+    };
+
+    const handleMoveRequest = (item: VaultItem) => {
+        setItemToMove(item);
+        setIsMoveModalOpen(true);
+    };
+
+    const handleMoveItem = async (folderId: string | null) => {
+        if (!itemToMove) return;
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            // Optimistic update
+            setItems(prev => prev.map(i => i.id === itemToMove.id ? { ...i, folderId: folderId || undefined } : i));
+
+            // Server update
+            await vaultService.update(token, itemToMove.id, {
+                folderId: folderId || undefined
+            });
+
+            // Refresh to be safe (syncs counts etc)
+            await loadItems();
+            setIsMoveModalOpen(false);
+            setItemToMove(null);
+        } catch (e) {
+            storageLogger.error("Failed to move item", e);
+            // Revert on error? For now just log
         }
     };
 
@@ -667,17 +717,19 @@ export const VaultView: React.FC = () => {
                                         <VaultGrid
                                             items={sortedItems}
                                             onNavigate={handleNavigate}
-                                            onDelete={handleDeleteItem}
+                                            onDelete={handleDeleteRequest}
                                             onToggleFavorite={handleToggleFavorite}
                                             onRename={handleRenameRequest}
+                                            onMove={handleMoveRequest}
                                         />
                                     ) : (
                                         <VaultList
                                             items={sortedItems}
                                             onNavigate={handleNavigate}
-                                            onDelete={handleDeleteItem}
+                                            onDelete={handleDeleteRequest}
                                             onToggleFavorite={handleToggleFavorite}
                                             onRename={handleRenameRequest}
+                                            onMove={handleMoveRequest}
                                         />
                                     );
                                 }
@@ -698,9 +750,10 @@ export const VaultView: React.FC = () => {
                                                         <VaultGrid
                                                             items={groupItems}
                                                             onNavigate={handleNavigate}
-                                                            onDelete={handleDeleteItem}
+                                                            onDelete={handleDeleteRequest}
                                                             onToggleFavorite={handleToggleFavorite}
                                                             onRename={handleRenameRequest}
+                                                            onMove={handleMoveRequest}
                                                         />
                                                     </div>
                                                 ) : (
@@ -708,9 +761,10 @@ export const VaultView: React.FC = () => {
                                                         <VaultList
                                                             items={groupItems}
                                                             onNavigate={handleNavigate}
-                                                            onDelete={handleDeleteItem}
+                                                            onDelete={handleDeleteRequest}
                                                             onToggleFavorite={handleToggleFavorite}
                                                             onRename={handleRenameRequest}
+                                                            onMove={handleMoveRequest}
                                                         />
                                                     </div>
                                                 )}
@@ -745,6 +799,24 @@ export const VaultView: React.FC = () => {
                     type={itemToRename.type}
                 />
             )}
+
+            <MoveToFolderModal
+                isOpen={isMoveModalOpen}
+                onClose={() => { setIsMoveModalOpen(false); setItemToMove(null); }}
+                onMove={handleMoveItem}
+                itemToMove={itemToMove}
+                allItems={items}
+            />
+
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => { setIsDeleteModalOpen(false); setItemToDelete(null); }}
+                onConfirm={handleConfirmDelete}
+                title={t('delete_item')}
+                message={t('delete_confirmation_message', { name: itemToDelete?.title || 'this item' })}
+                confirmText={t('delete')}
+                type="danger"
+            />
         </div >
     );
 };

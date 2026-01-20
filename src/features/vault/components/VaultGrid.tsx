@@ -8,10 +8,11 @@ interface Props {
     onDelete: (itemId: string) => void;
     onToggleFavorite: (item: VaultItem) => void;
     onRename: (item: VaultItem) => void;
+    onMove: (item: VaultItem) => void;
     activeDragItem?: VaultItem | null;
 }
 
-export const VaultGrid: React.FC<Props> = ({ items, onNavigate, onDelete, onToggleFavorite, onRename }) => {
+export const VaultGrid: React.FC<Props> = ({ items, onNavigate, onDelete, onToggleFavorite, onRename, onMove }) => {
     const [contextMenu, setContextMenu] = useState<{ id: string, x: number, y: number } | null>(null);
 
     const handleContextMenu = (e: React.MouseEvent, itemId: string) => {
@@ -88,6 +89,16 @@ export const VaultGrid: React.FC<Props> = ({ items, onNavigate, onDelete, onTogg
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
                             >
                                 <Edit2 size={14} /> Rename
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onMove(item);
+                                    setContextMenu(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                            >
+                                <Folder size={14} /> Move to
                             </button>
                             <button
                                 onClick={(e) => {

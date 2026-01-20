@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useUser, useClerk } from '../../auth-adapter';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useUser, useClerk, useAuth } from '../../auth-adapter';
 import { useAppContext } from '../../contexts/AppContext';
 import { COUNTRIES } from '../../config/currency';
 import {
@@ -7,8 +7,10 @@ import {
     House, Sparkle, Activity, SquaresFour, Tray, Users, Lock,
     ShoppingCart, Globe, Package, Truck, UsersThree,
     Wrench, Factory, ShieldCheck, Buildings, Table, Megaphone, Money,
-    Monitor, User, Bell, Eye, Moon, Sun, SignOut
+    Monitor, User, Bell, Eye, Moon, Sun, SignOut, Crown, ToggleLeft, SpinnerGap,
+    Flask
 } from 'phosphor-react';
+import { adminService, FeatureFlag, AdminUser } from '../../services/adminService';
 
 export const ALL_PAGES = {
     // Top Level
@@ -19,6 +21,7 @@ export const ALL_PAGES = {
     'inbox': { label: 'inbox', section: 'main', icon: Tray },
     'teams': { label: 'teams', section: 'main', icon: Users },
     'vault': { label: 'vault', section: 'main', icon: Lock },
+    'test_tools': { label: 'test_tools', section: 'main', icon: Flask },
     'mini_company': { label: 'departments', section: 'main', icon: Buildings },
 
     // Marketplace
@@ -62,18 +65,157 @@ export const INITIAL_VISIBILITY = Object.keys(ALL_PAGES).reduce((acc, key) => {
 interface SettingsPageProps {
     visibility: Record<string, boolean>;
     onVisibilityChange: (newVisibility: Record<string, boolean>) => void;
+    isAdmin?: boolean;
+    onFeatureFlagsChange?: () => void;
 }
 
-type SettingsTab = 'general' | 'views' | 'notifications';
+type SettingsTab = 'general' | 'views' | 'notifications' | 'admin';
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ visibility, onVisibilityChange }) => {
+// Feature categories for admin panel
+const FEATURE_CATEGORIES = {
+    'Core': ['page_dashboard', 'page_my_work', 'page_inbox', 'page_teams', 'page_vault', 'page_talk'],
+    'Tools': ['page_flow_hub', 'page_process_map', 'page_dashboards', 'page_reports', 'page_test_tools'],
+    'Mini Company': ['page_mini_company', 'page_sales', 'page_purchases', 'page_inventory', 'page_expenses', 'page_customers', 'page_suppliers'],
+    'Supply Chain': ['page_supply_chain', 'page_procurement', 'page_warehouse', 'page_fleet', 'page_vendors', 'page_planning'],
+    'Manufacturing': ['page_manufacturing', 'page_maintenance', 'page_production', 'page_quality'],
+    'Business': ['page_business', 'page_sales_listing', 'page_sales_factory'],
+    'Business Support': ['page_business_support', 'page_it_support', 'page_hr', 'page_marketing'],
+    'Marketplace': ['page_marketplace', 'page_local_marketplace', 'page_foreign_marketplace'],
+};
+
+const FEATURE_LABELS: Record<string, string> = {
+    page_dashboard: 'Dashboard',
+    page_my_work: 'My Work',
+    page_inbox: 'Inbox',
+    page_teams: 'Teams',
+    page_vault: 'Vault',
+    page_talk: 'Talk',
+    page_flow_hub: 'Flow Hub',
+    page_process_map: 'Process Map',
+    page_dashboards: 'Dashboards',
+    page_reports: 'Reports',
+    page_test_tools: 'Test Tools',
+    page_mini_company: 'Mini Company (Group)',
+    page_sales: 'Sales',
+    page_purchases: 'Purchases',
+    page_inventory: 'Inventory',
+    page_expenses: 'Expenses',
+    page_customers: 'Customers',
+    page_suppliers: 'Suppliers',
+    page_supply_chain: 'Supply Chain (Group)',
+    page_procurement: 'Procurement',
+    page_warehouse: 'Warehouse',
+    page_fleet: 'Fleet',
+    page_vendors: 'Vendors',
+    page_planning: 'Planning',
+    page_manufacturing: 'Manufacturing (Group)',
+    page_maintenance: 'Maintenance',
+    page_production: 'Production',
+    page_quality: 'Quality',
+    page_business: 'Business (Group)',
+    page_sales_listing: 'Sales Listings',
+    page_sales_factory: 'Sales Factory',
+    page_business_support: 'Business Support (Group)',
+    page_it_support: 'IT Support',
+    page_hr: 'HR',
+    page_marketing: 'Marketing',
+    page_marketplace: 'Marketplace (Group)',
+    page_local_marketplace: 'Local Marketplace',
+    page_foreign_marketplace: 'Foreign Marketplace',
+};
+
+export const SettingsPage: React.FC<SettingsPageProps> = ({ visibility, onVisibilityChange, isAdmin = false, onFeatureFlagsChange }) => {
     const { user } = useUser();
     const { signOut, openUserProfile } = useClerk();
+    const { getToken } = useAuth();
     const { theme, toggleTheme, language, toggleLanguage, t, userDisplayName, updateUserDisplayName, country, updateCountry } = useAppContext();
 
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
     const [isEditingName, setIsEditingName] = useState(false);
     const [newName, setNewName] = useState(userDisplayName);
+
+    // Admin state
+    const [featureFlags, setFeatureFlags] = useState<FeatureFlag[]>([]);
+    const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+    const [isLoadingFeatures, setIsLoadingFeatures] = useState(false);
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+    const [togglingFeature, setTogglingFeature] = useState<string | null>(null);
+    const [changingRole, setChangingRole] = useState<string | null>(null);
+
+    // Fetch admin data when admin tab is selected
+    const fetchAdminData = useCallback(async () => {
+        if (!isAdmin) return;
+
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            setIsLoadingFeatures(true);
+            setIsLoadingUsers(true);
+
+            const [flags, users] = await Promise.all([
+                adminService.getFeatureFlags(token),
+                adminService.getUsers(token)
+            ]);
+
+            setFeatureFlags(flags);
+            setAdminUsers(users);
+        } catch (error) {
+            console.error('Failed to fetch admin data:', error);
+        } finally {
+            setIsLoadingFeatures(false);
+            setIsLoadingUsers(false);
+        }
+    }, [isAdmin, getToken]);
+
+    useEffect(() => {
+        if (activeTab === 'admin' && isAdmin) {
+            fetchAdminData();
+        }
+    }, [activeTab, isAdmin, fetchAdminData]);
+
+    const handleToggleFeature = async (key: string, currentEnabled: boolean) => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            setTogglingFeature(key);
+            await adminService.toggleFeature(token, key, !currentEnabled);
+
+            // Update local state
+            setFeatureFlags(prev => prev.map(f =>
+                f.key === key ? { ...f, enabled: !currentEnabled } : f
+            ));
+
+            // Notify parent to refresh feature flags
+            onFeatureFlagsChange?.();
+        } catch (error) {
+            console.error('Failed to toggle feature:', error);
+            alert('Failed to toggle feature');
+        } finally {
+            setTogglingFeature(null);
+        }
+    };
+
+    const handleChangeUserRole = async (userId: string, newRole: 'admin' | 'member') => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            setChangingRole(userId);
+            await adminService.setUserRole(token, userId, newRole);
+
+            // Update local state
+            setAdminUsers(prev => prev.map(u =>
+                u.id === userId ? { ...u, role: newRole } : u
+            ));
+        } catch (error) {
+            console.error('Failed to change user role:', error);
+            alert(error instanceof Error ? error.message : 'Failed to change user role');
+        } finally {
+            setChangingRole(null);
+        }
+    };
 
     // Keep newName in sync with userDisplayName when not editing
     useEffect(() => {
@@ -82,10 +224,29 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ visibility, onVisibi
         }
     }, [userDisplayName, isEditingName]);
 
-    const handleSaveName = () => {
-        if (newName.trim()) {
-            updateUserDisplayName(newName.trim());
+    const handleSaveName = async () => {
+        const trimmedName = newName.trim();
+        if (trimmedName) {
+            // Update local state (fast)
+            updateUserDisplayName(trimmedName);
             setIsEditingName(false);
+
+            // Sync with Auth Provider (Clerk or Mock)
+            if (user && (user as any).update) {
+                try {
+                    const nameParts = trimmedName.split(' ');
+                    const firstName = nameParts[0];
+                    const lastName = nameParts.slice(1).join(' ');
+
+                    await (user as any).update({
+                        firstName: firstName,
+                        lastName: lastName
+                    });
+                } catch (error) {
+                    console.error('Failed to update user profile:', error);
+                    // Minimal error handling for strictly visual preference
+                }
+            }
         }
     };
 
@@ -512,6 +673,168 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ visibility, onVisibi
         </div>
     );
 
+    const renderAdmin = () => {
+        const getFeatureEnabled = (key: string) => {
+            const flag = featureFlags.find(f => f.key === key);
+            return flag?.enabled ?? true;
+        };
+
+        return (
+            <div className="space-y-6 animate-fadeIn">
+                {/* Feature Control Section */}
+                <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-2xl border border-gray-100 dark:border-monday-dark-border shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                <ToggleLeft size={24} className="text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">Feature Control</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Toggle which pages are visible to all users</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isLoadingFeatures ? (
+                        <div className="flex items-center justify-center py-12">
+                            <SpinnerGap size={32} className="text-blue-500 animate-spin" />
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {Object.entries(FEATURE_CATEGORIES).map(([category, keys]) => (
+                                <div key={category} className="border border-gray-100 dark:border-monday-dark-border rounded-xl overflow-hidden">
+                                    <div className="px-4 py-3 bg-gray-50 dark:bg-monday-dark-hover/50 border-b border-gray-100 dark:border-monday-dark-border">
+                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{category}</span>
+                                    </div>
+                                    <div className="p-2 space-y-1">
+                                        {keys.map(key => {
+                                            const isEnabled = getFeatureEnabled(key);
+                                            const isToggling = togglingFeature === key;
+                                            return (
+                                                <div
+                                                    key={key}
+                                                    className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 dark:hover:bg-monday-dark-hover rounded-lg transition-colors"
+                                                >
+                                                    <span className={`text-sm ${isEnabled ? 'text-gray-700 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                        {FEATURE_LABELS[key] || key}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleToggleFeature(key, isEnabled)}
+                                                        disabled={isToggling}
+                                                        className={`relative w-11 h-6 rounded-full transition-all duration-300 flex-shrink-0 ${isToggling ? 'opacity-50 cursor-wait' : 'cursor-pointer'
+                                                            } ${isEnabled
+                                                                ? 'bg-green-500'
+                                                                : 'bg-gray-300 dark:bg-gray-600'
+                                                            }`}
+                                                    >
+                                                        <span
+                                                            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-300 ${isEnabled ? 'translate-x-5' : 'translate-x-0'
+                                                                }`}
+                                                        />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* User Management Section */}
+                <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-2xl border border-gray-100 dark:border-monday-dark-border shadow-sm">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                            <Users size={24} className="text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">User Management</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Manage user roles and permissions</p>
+                        </div>
+                    </div>
+
+                    {isLoadingUsers ? (
+                        <div className="flex items-center justify-center py-12">
+                            <SpinnerGap size={32} className="text-blue-500 animate-spin" />
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-gray-100 dark:border-monday-dark-border">
+                                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">User</th>
+                                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Role</th>
+                                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {adminUsers.map(adminUser => (
+                                        <tr key={adminUser.id} className="border-b border-gray-50 dark:border-monday-dark-border/50 hover:bg-gray-50 dark:hover:bg-monday-dark-hover/50">
+                                            <td className="py-3 px-4">
+                                                <div className="flex items-center gap-3">
+                                                    {adminUser.avatarUrl ? (
+                                                        <img src={adminUser.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium">
+                                                            {(adminUser.name || adminUser.email).charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                    <span className="font-medium text-gray-800 dark:text-gray-100">
+                                                        {adminUser.name || 'No name'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
+                                                {adminUser.email}
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${adminUser.role === 'admin'
+                                                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                                                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                                                    }`}>
+                                                    {adminUser.role === 'admin' && <Crown size={12} />}
+                                                    {adminUser.role}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                {adminUser.id !== user?.id && (
+                                                    <button
+                                                        onClick={() => handleChangeUserRole(
+                                                            adminUser.id,
+                                                            adminUser.role === 'admin' ? 'member' : 'admin'
+                                                        )}
+                                                        disabled={changingRole === adminUser.id}
+                                                        className={`text-sm px-3 py-1 rounded-lg transition-colors ${changingRole === adminUser.id
+                                                                ? 'bg-gray-100 text-gray-400 cursor-wait'
+                                                                : adminUser.role === 'admin'
+                                                                    ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400'
+                                                                    : 'bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400'
+                                                            }`}
+                                                    >
+                                                        {changingRole === adminUser.id
+                                                            ? 'Saving...'
+                                                            : adminUser.role === 'admin'
+                                                                ? 'Remove Admin'
+                                                                : 'Make Admin'}
+                                                    </button>
+                                                )}
+                                                {adminUser.id === user?.id && (
+                                                    <span className="text-xs text-gray-400">(You)</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="flex h-full bg-[#FCFCFD] dark:bg-monday-dark-bg">
             {/* Left Sidebar for Settings */}
@@ -556,6 +879,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ visibility, onVisibi
                         <Bell size={18} />
                         {t('notifications')}
                     </button>
+
+                    {/* Admin Tab - Only visible to admins */}
+                    {isAdmin && (
+                        <button
+                            onClick={() => setActiveTab('admin')}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === 'admin'
+                                ? 'bg-gradient-to-br from-purple-100 to-purple-200 text-purple-900 shadow-sm border border-purple-200/60 dark:from-purple-900/50 dark:to-purple-800/50 dark:text-purple-100 dark:border-purple-700/30'
+                                : 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                                }`}
+                        >
+                            <Crown size={18} />
+                            Admin Panel
+                        </button>
+                    )}
                 </nav>
             </div>
 
@@ -567,17 +904,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ visibility, onVisibi
                             {activeTab === 'general' && t('general_settings')}
                             {activeTab === 'views' && t('page_visibility')}
                             {activeTab === 'notifications' && t('notifications')}
+                            {activeTab === 'admin' && 'Admin Panel'}
                         </h1>
                         <p className="text-gray-500 dark:text-gray-400">
                             {activeTab === 'general' && t('manage_profile_desc')}
                             {activeTab === 'views' && t('customize_sidebar_desc')}
                             {activeTab === 'notifications' && t('control_notifications_desc')}
+                            {activeTab === 'admin' && 'Control features and manage users across the platform'}
                         </p>
                     </div>
 
                     {activeTab === 'general' && renderGeneral()}
                     {activeTab === 'views' && renderViews()}
                     {activeTab === 'notifications' && renderNotifications()}
+                    {activeTab === 'admin' && isAdmin && renderAdmin()}
                 </div>
             </div>
         </div>

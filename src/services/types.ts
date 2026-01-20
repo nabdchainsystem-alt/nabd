@@ -32,6 +32,7 @@ export interface UpdateBoardData {
     availableViews?: string[];
     icon?: string;
     pinnedViews?: string[];
+    parentId?: string | null;
 }
 
 export interface Card {

@@ -14,6 +14,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { TemplatePicker } from '../../features/board/components/TemplatePicker';
 import { BoardTemplate } from '../../features/board/data/templates';
 import { ConfirmModal } from '../../features/board/components/ConfirmModal';
+import { DeleteBoardModal } from './DeleteBoardModal';
 
 // Icon mapping for dynamic rendering
 const ICON_MAP: Record<string, any> = {
@@ -381,9 +382,10 @@ interface SidebarProps {
     activeWorkspaceId: string;
     onWorkspaceChange: (id: string) => void;
     onAddWorkspace: (name: string, icon: string, color?: string) => void;
+    onRenameWorkspace: (id: string, name: string, icon: string, color?: string) => void;
     onDeleteWorkspace: (id: string) => void;
     boards: Board[];
-    onDeleteBoard: (id: string) => void;
+    onDeleteBoard: (id: string, mode?: 'single' | 'recursive') => void;
     onToggleFavorite: (id: string) => void;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
@@ -393,7 +395,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = React.memo(({
     onNavigate, activeView, activeBoardId, width, onResize,
-    workspaces, activeWorkspaceId, onWorkspaceChange, onAddWorkspace, onDeleteWorkspace,
+    workspaces, activeWorkspaceId, onWorkspaceChange, onAddWorkspace, onRenameWorkspace, onDeleteWorkspace,
     boards, onDeleteBoard, onToggleFavorite,
     isCollapsed, onToggleCollapse, onAddBoard, pageVisibility
 }) => {
@@ -439,11 +441,16 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
     const [newWorkspaceIcon, setNewWorkspaceIcon] = useState('Briefcase');
     const [isWorkspaceIconPickerOpen, setIsWorkspaceIconPickerOpen] = useState(false);
+    const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
 
     // New Board State
     const [isNewBoardModalOpen, setIsNewBoardModalOpen] = useState(false);
     const [newBoardName, setNewBoardName] = useState('');
     const [newBoardIcon, setNewBoardIcon] = useState('Table');
+
+    // Delete Board Modal State
+    const [isDeleteBoardModalOpen, setIsDeleteBoardModalOpen] = useState(false);
+
     const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
     const [creationStep, setCreationStep] = useState<'template' | 'details'>('template');
     const [selectedTemplate, setSelectedTemplate] = useState<BoardTemplate | undefined>(undefined);
@@ -561,10 +568,15 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             ];
             const color = gradients[Math.max(0, iconIndex) % gradients.length];
 
-            onAddWorkspace(newWorkspaceName, newWorkspaceIcon, color);
+            if (editingWorkspaceId) {
+                onRenameWorkspace(editingWorkspaceId, newWorkspaceName, newWorkspaceIcon, color);
+            } else {
+                onAddWorkspace(newWorkspaceName, newWorkspaceIcon, color);
+            }
             setIsAddWorkspaceModalOpen(false);
             setNewWorkspaceName('');
             setNewWorkspaceIcon('Briefcase');
+            setEditingWorkspaceId(null);
         }
     };
 
@@ -572,6 +584,16 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         e.preventDefault();
         if (newBoardName.trim()) {
             onAddBoard(newBoardName, newBoardIcon, selectedTemplate, selectedLayout, parentBoardIdForCreation);
+
+            // Auto-expand the parent board to show the new sub-board
+            if (parentBoardIdForCreation) {
+                setExpandedBoards(prev => {
+                    const next = new Set(prev);
+                    next.add(parentBoardIdForCreation);
+                    return next;
+                });
+            }
+
             setIsNewBoardModalOpen(false);
             setNewBoardName('');
             setNewBoardIcon('Table');
@@ -579,6 +601,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             setIsIconPickerOpen(false);
             setCreationStep('template'); // Reset for next time
             setSelectedTemplate(undefined);
+            setParentBoardIdForCreation(undefined); // Reset parent selection
         }
     };
 
@@ -735,271 +758,274 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('vault')}</span>
                                 </button>
                             )}
-                            <button
-                                onClick={() => onNavigate('test')}
-                                title={t('test_tools')}
-                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300
-                        ${activeView === 'test'
-                                        ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
-                        `}
-                            >
-                                <Flask size={17} weight="light" className="flex-shrink-0" />
-                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('test_tools')}</span>
-                            </button>
+                            {pageVisibility['test_tools'] !== false && (
+                                <button
+                                    onClick={() => onNavigate('test')}
+                                    title={t('test_tools')}
+                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300
+                            ${activeView === 'test'
+                                            ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
+                            `}
+                                >
+                                    <Flask size={17} weight="light" className="flex-shrink-0" />
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('test_tools')}</span>
+                                </button>
+                            )}
                         </div>
 
-
-                        <div className="border-t border-gray-100 dark:border-monday-dark-border my-2 mx-6"></div>
+                        {/* Separator - only show if departments are visible */}
+                        {pageVisibility['mini_company'] !== false && (
+                            <div className="border-t border-gray-100 dark:border-monday-dark-border my-2 mx-6"></div>
+                        )}
 
                         {/* 2. Scrollable Content */}
                         <div className={`flex-1 min-h-0 overflow-y-auto py-2 no-scrollbar pl-5 pr-3 transition-[padding] duration-300`}>
 
-
                             {/* Departments Section */}
                             {pageVisibility['mini_company'] !== false && (
-                            <div className="mb-3">
-                                {!isCollapsed && (
-                                    <div className="flex items-center justify-between mb-2 px-3">
-                                        <span className="text-xs font-semibold text-gray-500 dark:text-monday-dark-text-secondary truncate">{t('departments')}</span>
-                                    </div>
-                                )}
-
-                                <div className="space-y-1">
-                                    {/* Overview */}
-                                    <div className="mb-1">
-                                        <div
-                                            className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
-                                            onClick={() => !isCollapsed && toggleDepartment('mini_overview')}
-                                            title={t('overview')}
-                                        >
-                                            <Layout size={17} weight="light" className="flex-shrink-0" />
-                                            <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('overview')}</span>
-                                            <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_overview') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
-                                        </div>
-                                        {expandedDepartments.has('mini_overview') && !isCollapsed && (
-                                            <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
-                                                <button onClick={() => onNavigate('dashboards')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'dashboards' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                    <Layout size={14} weight="light" /> <span>{t('dashboards')}</span>
-                                                </button>
-                                                <button onClick={() => onNavigate('reports')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'reports' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                    <FileText size={14} weight="light" /> <span>{t('reports')}</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Operations */}
-                                    <div className="mb-1">
-                                        <div
-                                            className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
-                                            onClick={() => !isCollapsed && toggleDepartment('mini_operations')}
-                                            title={t('operations')}
-                                        >
-                                            <Factory size={17} weight="light" className="flex-shrink-0" />
-                                            <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('operations')}</span>
-                                            <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
-                                        </div>
-                                        {expandedDepartments.has('mini_operations') && !isCollapsed && (
-                                            <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
-                                                <button onClick={() => onNavigate('sales')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                    <Megaphone size={14} weight="light" /> <span>{t('sales')}</span>
-                                                </button>
-                                                <button onClick={() => onNavigate('purchases')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'purchases' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                    <ShoppingCart size={14} weight="light" /> <span>{t('purchases')}</span>
-                                                </button>
-                                                <button onClick={() => onNavigate('inventory')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'inventory' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                    <Package size={14} weight="light" /> <span>{t('stock_inventory')}</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Finance */}
-                                    <div className="mb-1">
-                                        <div
-                                            className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
-                                            onClick={() => !isCollapsed && toggleDepartment('mini_finance')}
-                                            title={t('finance')}
-                                        >
-                                            <Money size={17} weight="light" className="flex-shrink-0" />
-                                            <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('finance')}</span>
-                                            <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_finance') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
-                                        </div>
-                                        {expandedDepartments.has('mini_finance') && !isCollapsed && (
-                                            <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
-                                                <button onClick={() => onNavigate('expenses')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'expenses' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                    <Money size={14} weight="light" /> <span>{t('expenses')}</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* People */}
-                                    <div className="mb-1">
-                                        <div
-                                            className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
-                                            onClick={() => !isCollapsed && toggleDepartment('mini_people')}
-                                            title={t('people')}
-                                        >
-                                            <UsersThree size={17} weight="light" className="flex-shrink-0" />
-                                            <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('people')}</span>
-                                            <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_people') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
-                                        </div>
-                                        {expandedDepartments.has('mini_people') && !isCollapsed && (
-                                            <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
-                                                <button onClick={() => onNavigate('customers')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'customers' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                    <Users size={14} weight="light" /> <span>{t('customers')}</span>
-                                                </button>
-                                                <button onClick={() => onNavigate('suppliers')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'suppliers' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                    <Truck size={14} weight="light" /> <span>{t('suppliers')}</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Supply Chain */}
-                                    {pageVisibility['supply_chain'] !== false && (
-                                        <div className="mb-1">
-                                            <div
-                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
-                                                onClick={() => !isCollapsed && toggleDepartment('supply_chain')}
-                                                title={t('supply_chain')}
-                                            >
-                                                <Package size={17} weight="light" className="flex-shrink-0" />
-                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('supply_chain')}</span>
-                                                <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
-                                            </div>
-                                            {expandedDepartments.has('supply_chain') && !isCollapsed && (
-                                                <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
-                                                    {pageVisibility['procurement'] !== false && (
-                                                        <button onClick={() => onNavigate('procurement')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'procurement' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <ShoppingCart size={14} weight="light" /> <span>{t('procurement')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['warehouse'] !== false && (
-                                                        <button onClick={() => onNavigate('warehouse')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'warehouse' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <House size={14} weight="light" /> <span>{t('warehouse')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['fleet'] !== false && (
-                                                        <button onClick={() => onNavigate('fleet')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'fleet' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <Truck size={14} weight="light" /> <span>{t('fleet')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['vendors'] !== false && (
-                                                        <button onClick={() => onNavigate('vendors')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'vendors' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <UsersThree size={14} weight="light" /> <span>{t('vendors')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['planning'] !== false && (
-                                                        <button onClick={() => onNavigate('planning')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'planning' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <Gauge size={14} weight="light" /> <span>{t('planning')}</span>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
+                                <div className="mb-3">
+                                    {!isCollapsed && (
+                                        <div className="flex items-center justify-between mb-2 px-3">
+                                            <span className="text-xs font-semibold text-gray-500 dark:text-monday-dark-text-secondary truncate">{t('departments')}</span>
                                         </div>
                                     )}
 
-                                    {/* Manufacturing (Legacy Operations) */}
-                                    {pageVisibility['operations'] !== false && (
+                                    <div className="space-y-1">
+                                        {/* Overview */}
                                         <div className="mb-1">
                                             <div
                                                 className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
-                                                onClick={() => !isCollapsed && toggleDepartment('operations')}
-                                                title={t('manufacturing')}
+                                                onClick={() => !isCollapsed && toggleDepartment('mini_overview')}
+                                                title={t('overview')}
+                                            >
+                                                <Layout size={17} weight="light" className="flex-shrink-0" />
+                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('overview')}</span>
+                                                <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_overview') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                            </div>
+                                            {expandedDepartments.has('mini_overview') && !isCollapsed && (
+                                                <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                                    <button onClick={() => onNavigate('dashboards')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'dashboards' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                        <Layout size={14} weight="light" /> <span>{t('dashboards')}</span>
+                                                    </button>
+                                                    <button onClick={() => onNavigate('reports')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'reports' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                        <FileText size={14} weight="light" /> <span>{t('reports')}</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Operations */}
+                                        <div className="mb-1">
+                                            <div
+                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                onClick={() => !isCollapsed && toggleDepartment('mini_operations')}
+                                                title={t('operations')}
                                             >
                                                 <Factory size={17} weight="light" className="flex-shrink-0" />
-                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('manufacturing')}</span>
-                                                <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('operations')}</span>
+                                                <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                             </div>
-                                            {expandedDepartments.has('operations') && !isCollapsed && (
+                                            {expandedDepartments.has('mini_operations') && !isCollapsed && (
                                                 <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
-                                                    {pageVisibility['maintenance'] !== false && (
-                                                        <button onClick={() => onNavigate('maintenance')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'maintenance' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <Wrench size={14} /> <span>{t('maintenance')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['production'] !== false && (
-                                                        <button onClick={() => onNavigate('production')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'production' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <Factory size={14} /> <span>{t('production')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['quality'] !== false && (
-                                                        <button onClick={() => onNavigate('quality')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'quality' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <ShieldCheck size={14} weight="light" /> <span>{t('quality')}</span>
-                                                        </button>
-                                                    )}
+                                                    <button onClick={() => onNavigate('sales')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                        <Megaphone size={14} weight="light" /> <span>{t('sales')}</span>
+                                                    </button>
+                                                    <button onClick={() => onNavigate('purchases')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'purchases' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                        <ShoppingCart size={14} weight="light" /> <span>{t('purchases')}</span>
+                                                    </button>
+                                                    <button onClick={() => onNavigate('inventory')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'inventory' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                        <Package size={14} weight="light" /> <span>{t('stock_inventory')}</span>
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
-                                    )}
 
-                                    {/* Business */}
-                                    {pageVisibility['business'] !== false && (
+                                        {/* Finance */}
                                         <div className="mb-1">
                                             <div
                                                 className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
-                                                onClick={() => !isCollapsed && toggleDepartment('business')}
-                                                title={t('business')}
+                                                onClick={() => !isCollapsed && toggleDepartment('mini_finance')}
+                                                title={t('finance')}
                                             >
-                                                <Buildings size={17} weight="light" className="flex-shrink-0" />
-                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('business')}</span>
-                                                <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('business') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                <Money size={17} weight="light" className="flex-shrink-0" />
+                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('finance')}</span>
+                                                <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_finance') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                             </div>
-                                            {expandedDepartments.has('business') && !isCollapsed && (
+                                            {expandedDepartments.has('mini_finance') && !isCollapsed && (
                                                 <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
-                                                    {pageVisibility['sales_listing'] !== false && (
-                                                        <button onClick={() => onNavigate('sales_listing')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales_listing' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <Table size={14} weight="light" /> <span>{t('sales_listings')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['sales_factory'] !== false && (
-                                                        <button onClick={() => onNavigate('sales_factory')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales_factory' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <Factory size={14} /> <span>{t('sales_factory')}</span>
-                                                        </button>
-                                                    )}
+                                                    <button onClick={() => onNavigate('expenses')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'expenses' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                        <Money size={14} weight="light" /> <span>{t('expenses')}</span>
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
-                                    )}
 
-                                    {/* Business Support */}
-                                    {pageVisibility['business_support'] !== false && (
+                                        {/* People */}
                                         <div className="mb-1">
                                             <div
                                                 className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
-                                                onClick={() => !isCollapsed && toggleDepartment('business_support')}
-                                                title={t('business_support')}
+                                                onClick={() => !isCollapsed && toggleDepartment('mini_people')}
+                                                title={t('people')}
                                             >
-                                                <Users size={17} weight="light" className="flex-shrink-0" />
-                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('business_support')}</span>
-                                                <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('business_support') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                <UsersThree size={17} weight="light" className="flex-shrink-0" />
+                                                <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('people')}</span>
+                                                <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_people') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                             </div>
-                                            {expandedDepartments.has('business_support') && !isCollapsed && (
+                                            {expandedDepartments.has('mini_people') && !isCollapsed && (
                                                 <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
-                                                    {pageVisibility['it_support'] !== false && (
-                                                        <button onClick={() => onNavigate('it_support')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'it_support' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <Monitor size={14} /> <span>{t('it')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['hr'] !== false && (
-                                                        <button onClick={() => onNavigate('hr')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'hr' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <UsersThree size={14} weight="light" /> <span>{t('hr')}</span>
-                                                        </button>
-                                                    )}
-                                                    {pageVisibility['marketing'] !== false && (
-                                                        <button onClick={() => onNavigate('marketing')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'marketing' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
-                                                            <Megaphone size={14} /> <span>{t('marketing')}</span>
-                                                        </button>
-                                                    )}
+                                                    <button onClick={() => onNavigate('customers')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'customers' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                        <Users size={14} weight="light" /> <span>{t('customers')}</span>
+                                                    </button>
+                                                    <button onClick={() => onNavigate('suppliers')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'suppliers' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                        <Truck size={14} weight="light" /> <span>{t('suppliers')}</span>
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
-                                    )}
+
+                                        {/* Supply Chain */}
+                                        {pageVisibility['supply_chain'] !== false && (
+                                            <div className="mb-1">
+                                                <div
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                    onClick={() => !isCollapsed && toggleDepartment('supply_chain')}
+                                                    title={t('supply_chain')}
+                                                >
+                                                    <Package size={17} weight="light" className="flex-shrink-0" />
+                                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('supply_chain')}</span>
+                                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                </div>
+                                                {expandedDepartments.has('supply_chain') && !isCollapsed && (
+                                                    <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                                        {pageVisibility['procurement'] !== false && (
+                                                            <button onClick={() => onNavigate('procurement')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'procurement' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <ShoppingCart size={14} weight="light" /> <span>{t('procurement')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['warehouse'] !== false && (
+                                                            <button onClick={() => onNavigate('warehouse')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'warehouse' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <House size={14} weight="light" /> <span>{t('warehouse')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['fleet'] !== false && (
+                                                            <button onClick={() => onNavigate('fleet')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'fleet' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <Truck size={14} weight="light" /> <span>{t('fleet')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['vendors'] !== false && (
+                                                            <button onClick={() => onNavigate('vendors')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'vendors' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <UsersThree size={14} weight="light" /> <span>{t('vendors')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['planning'] !== false && (
+                                                            <button onClick={() => onNavigate('planning')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'planning' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <Gauge size={14} weight="light" /> <span>{t('planning')}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Manufacturing (Legacy Operations) */}
+                                        {pageVisibility['operations'] !== false && (
+                                            <div className="mb-1">
+                                                <div
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                    onClick={() => !isCollapsed && toggleDepartment('operations')}
+                                                    title={t('manufacturing')}
+                                                >
+                                                    <Factory size={17} weight="light" className="flex-shrink-0" />
+                                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('manufacturing')}</span>
+                                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                </div>
+                                                {expandedDepartments.has('operations') && !isCollapsed && (
+                                                    <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                                        {pageVisibility['maintenance'] !== false && (
+                                                            <button onClick={() => onNavigate('maintenance')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'maintenance' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <Wrench size={14} /> <span>{t('maintenance')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['production'] !== false && (
+                                                            <button onClick={() => onNavigate('production')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'production' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <Factory size={14} /> <span>{t('production')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['quality'] !== false && (
+                                                            <button onClick={() => onNavigate('quality')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'quality' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <ShieldCheck size={14} weight="light" /> <span>{t('quality')}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Business */}
+                                        {pageVisibility['business'] !== false && (
+                                            <div className="mb-1">
+                                                <div
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                    onClick={() => !isCollapsed && toggleDepartment('business')}
+                                                    title={t('business')}
+                                                >
+                                                    <Buildings size={17} weight="light" className="flex-shrink-0" />
+                                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('business')}</span>
+                                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('business') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                </div>
+                                                {expandedDepartments.has('business') && !isCollapsed && (
+                                                    <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                                        {pageVisibility['sales_listing'] !== false && (
+                                                            <button onClick={() => onNavigate('sales_listing')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales_listing' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <Table size={14} weight="light" /> <span>{t('sales_listings')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['sales_factory'] !== false && (
+                                                            <button onClick={() => onNavigate('sales_factory')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'sales_factory' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <Factory size={14} /> <span>{t('sales_factory')}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Business Support */}
+                                        {pageVisibility['business_support'] !== false && (
+                                            <div className="mb-1">
+                                                <div
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                    onClick={() => !isCollapsed && toggleDepartment('business_support')}
+                                                    title={t('business_support')}
+                                                >
+                                                    <Users size={17} weight="light" className="flex-shrink-0" />
+                                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('business_support')}</span>
+                                                    <CaretDown size={14} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('business_support') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                </div>
+                                                {expandedDepartments.has('business_support') && !isCollapsed && (
+                                                    <div className="ml-2 pl-3 border-l border-gray-200 dark:border-monday-dark-border mt-1 space-y-0.5">
+                                                        {pageVisibility['it_support'] !== false && (
+                                                            <button onClick={() => onNavigate('it_support')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'it_support' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <Monitor size={14} /> <span>{t('it')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['hr'] !== false && (
+                                                            <button onClick={() => onNavigate('hr')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'hr' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <UsersThree size={14} weight="light" /> <span>{t('hr')}</span>
+                                                            </button>
+                                                        )}
+                                                        {pageVisibility['marketing'] !== false && (
+                                                            <button onClick={() => onNavigate('marketing')} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-sm text-[14px] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover ${activeView === 'marketing' ? ACTIVE_SUB_NAV_STYLE : ''}`}>
+                                                                <Megaphone size={14} /> <span>{t('marketing')}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
                             )}
 
                             {/* Favorites Section */}
@@ -1374,7 +1400,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                         <div
                             className="px-3 py-1.5 flex items-center gap-3 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 cursor-pointer text-[14px]"
                             onClick={() => {
-                                onDeleteBoard(contextMenu.boardId);
+                                setBoardToDelete(contextMenu.boardId);
+                                setIsDeleteBoardModalOpen(true);
                                 setContextMenu(null);
                             }}
                         >
@@ -1383,6 +1410,23 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                     </div>
                 )
                 }
+
+                <DeleteBoardModal
+                    isOpen={isDeleteBoardModalOpen}
+                    onClose={() => {
+                        setIsDeleteBoardModalOpen(false);
+                        setBoardToDelete(null);
+                    }}
+                    onConfirm={(mode) => {
+                        if (boardToDelete) {
+                            onDeleteBoard(boardToDelete, mode);
+                        }
+                        setIsDeleteBoardModalOpen(false);
+                        setBoardToDelete(null);
+                    }}
+                    boardName={boards.find(b => b.id === boardToDelete)?.name || ''}
+                    hasSubBoards={boards.some(b => b.parentId === boardToDelete)}
+                />
 
                 {/* Quick Add Board Menu - Small dropdown from + button */}
                 {quickAddMenu && (
@@ -1396,7 +1440,18 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                 e.preventDefault();
                                 if (newBoardName.trim()) {
                                     const iconMap: Record<string, string> = { table: 'Table', datatable: 'Database', kanban: 'Kanban', gtd: 'CheckSquare' };
-                                    onAddBoard(newBoardName.trim(), iconMap[selectedLayout] || 'Table', undefined, selectedLayout as any, quickAddMenu.parentId);
+                                    const parentId = quickAddMenu.parentId;
+                                    onAddBoard(newBoardName.trim(), iconMap[selectedLayout] || 'Table', undefined, selectedLayout as any, parentId);
+
+                                    // Auto-expand the parent board to show the new sub-board
+                                    if (parentId) {
+                                        setExpandedBoards(prev => {
+                                            const next = new Set(prev);
+                                            next.add(parentId);
+                                            return next;
+                                        });
+                                    }
+
                                     setNewBoardName('');
                                     setSelectedLayout('table');
                                     setQuickAddMenu(null);
@@ -1480,7 +1535,13 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                             <div
                                 className="px-3 py-1.5 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-monday-dark-hover cursor-pointer text-[14px]"
                                 onClick={() => {
-                                    // Edit functionality could go here
+                                    const ws = workspaces.find(w => w.id === workspaceContextMenu.workspaceId);
+                                    if (ws) {
+                                        setEditingWorkspaceId(ws.id);
+                                        setNewWorkspaceName(ws.name);
+                                        setNewWorkspaceIcon(ws.icon);
+                                        setIsAddWorkspaceModalOpen(true);
+                                    }
                                     setWorkspaceContextMenu(null);
                                 }}
                             >
@@ -1512,8 +1573,13 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[70] backdrop-blur-sm">
                             <div className="bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl w-[450px] border border-gray-100 dark:border-monday-dark-border">
                                 <div className="p-5 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center bg-gray-50/50 dark:bg-monday-dark-bg/50 rounded-t-xl">
-                                    <h3 className="font-semibold text-lg text-gray-800 dark:text-monday-dark-text">{t('add_workspace')}</h3>
-                                    <button onClick={() => setIsAddWorkspaceModalOpen(false)} className="hover:bg-gray-200 dark:hover:bg-monday-dark-hover p-1 rounded-md transition-colors">
+                                    <h3 className="font-semibold text-lg text-gray-800 dark:text-monday-dark-text">{editingWorkspaceId ? t('edit_workspace') : t('add_workspace')}</h3>
+                                    <button onClick={() => {
+                                        setIsAddWorkspaceModalOpen(false);
+                                        setEditingWorkspaceId(null);
+                                        setNewWorkspaceName('');
+                                        setNewWorkspaceIcon('Briefcase');
+                                    }} className="hover:bg-gray-200 dark:hover:bg-monday-dark-hover p-1 rounded-md transition-colors">
                                         <CaretDown className="rotate-180 text-gray-500" size={20} weight="light" />
                                     </button>
                                 </div>
@@ -1596,7 +1662,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-monday-dark-border">
                                         <button
                                             type="button"
-                                            onClick={() => setIsAddWorkspaceModalOpen(false)}
+                                            onClick={() => {
+                                                setIsAddWorkspaceModalOpen(false);
+                                                setEditingWorkspaceId(null);
+                                                setNewWorkspaceName('');
+                                                setNewWorkspaceIcon('Briefcase');
+                                            }}
                                             className="px-5 py-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded-sm text-[14px] font-medium transition-colors"
                                         >
                                             {t('cancel')}
@@ -1606,7 +1677,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             disabled={!newWorkspaceName.trim()}
                                             className="px-6 py-2.5 bg-gradient-to-r from-monday-blue to-blue-600 text-white text-[14px] font-medium rounded-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:shadow-none transition-all duration-300"
                                         >
-                                            {t('add_workspace')}
+                                            {editingWorkspaceId ? t('save_changes') : t('create_workspace')}
                                         </button>
                                     </div>
                                 </form>
@@ -1832,19 +1903,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                         </div>
                     )
                 }
-                {/* Delete Confirmation Modal */}
-                <ConfirmModal
-                    isOpen={!!boardToDelete}
-                    onClose={() => setBoardToDelete(null)}
-                    onConfirm={() => {
-                        if (boardToDelete) {
-                            onDeleteBoard(boardToDelete);
-                            setBoardToDelete(null);
-                        }
-                    }}
-                    title={t('delete_board')}
-                    message={t('delete_board_confirm')}
-                />
+
                 {/* Workspace Delete Confirmation Modal */}
                 <ConfirmModal
                     isOpen={!!workspaceToDelete}

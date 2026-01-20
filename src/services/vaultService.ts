@@ -1,6 +1,7 @@
 import { storageLogger } from '../utils/logger';
+import { API_URL as API_BASE } from '../config/api';
 
-const API_URL = '/api/vault';
+const API_URL = `${API_BASE}/vault`;
 
 export interface VaultMetadata {
     // Folder metadata

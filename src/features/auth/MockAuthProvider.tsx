@@ -4,8 +4,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface MockUser {
     id: string;
     fullName: string;
+    firstName?: string;
+    lastName?: string;
     primaryEmailAddress: { emailAddress: string };
     imageUrl: string;
+    update: (params: { firstName?: string; lastName?: string }) => Promise<void>;
 }
 
 interface MockAuthContextType {
@@ -26,7 +29,21 @@ const MockAuthContext = createContext<MockAuthContextType | null>(null);
 
 export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isSignedIn, setIsSignedIn] = useState(false);
-    const [user, setUser] = useState<MockUser | null>(null);
+    // Store data only, method attached effectively in render
+    const [userData, setUserData] = useState<Omit<MockUser, 'update'> | null>(null);
+
+    // Helper to get saved user name from localStorage (persists across refreshes)
+    const getSavedUserName = (): { firstName?: string; lastName?: string; fullName?: string } | null => {
+        const saved = localStorage.getItem('mock_user_name');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('mock_auth_token');
@@ -43,20 +60,30 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const loginAsMaster = () => {
         setIsSignedIn(true);
-        setUser({
+        // Check for saved custom name
+        const savedName = getSavedUserName();
+        const firstName = savedName?.firstName ?? 'Master';
+        const lastName = savedName?.lastName ?? 'Admin';
+        const fullName = savedName?.fullName ?? [firstName, lastName].filter(Boolean).join(' ');
+
+        setUserData({
             id: 'user_master_local_admin',
-            fullName: 'Master Admin',
+            fullName,
+            firstName,
+            lastName,
             primaryEmailAddress: { emailAddress: 'master@nabd.com' },
-            imageUrl: 'https://ui-avatars.com/api/?name=Master+Admin&background=0D8ABC&color=fff'
+            imageUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=0D8ABC&color=fff`
         });
         localStorage.setItem('mock_auth_token', 'master-token');
     };
 
     const loginAsDev = () => {
         setIsSignedIn(true);
-        setUser({
+        setUserData({
             id: 'user_developer_admin',
             fullName: 'Developer Admin',
+            firstName: 'Developer',
+            lastName: 'Admin',
             primaryEmailAddress: { emailAddress: 'master@nabdchain.com' },
             imageUrl: 'https://ui-avatars.com/api/?name=Developer+Admin&background=000&color=fff'
         });
@@ -66,9 +93,11 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const loginAsGoogle = () => {
         setIsSignedIn(true);
         // Simulate a realistic Google user found in the system
-        setUser({
+        setUserData({
             id: 'user_google_simulated',
             fullName: 'Google User',
+            firstName: 'Google',
+            lastName: 'User',
             primaryEmailAddress: { emailAddress: 'user@gmail.com' },
             imageUrl: 'https://ui-avatars.com/api/?name=Google+User&background=4285F4&color=fff'
         });
@@ -77,9 +106,11 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const loginAsSam = () => {
         setIsSignedIn(true);
-        setUser({
+        setUserData({
             id: 'user_sam_master',
             fullName: 'Sam',
+            firstName: 'Sam',
+            lastName: '',
             primaryEmailAddress: { emailAddress: 'sam@nabdchain.com' },
             imageUrl: 'https://ui-avatars.com/api/?name=Sam&background=6366F1&color=fff'
         });
@@ -88,13 +119,37 @@ export const MockAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const signOut = async () => {
         setIsSignedIn(false);
-        setUser(null);
+        setUserData(null);
         localStorage.removeItem('mock_auth_token');
     };
 
     const getToken = async () => {
         return localStorage.getItem('mock_auth_token');
     };
+
+    // Construct user object with update method
+    const user: MockUser | null = userData ? {
+        ...userData,
+        update: async (params: { firstName?: string; lastName?: string }) => {
+            const newFirstName = params.firstName ?? userData.firstName;
+            const newLastName = params.lastName ?? userData.lastName;
+            const newFullName = [newFirstName, newLastName].filter(Boolean).join(' ');
+
+            // Persist name changes to localStorage
+            localStorage.setItem('mock_user_name', JSON.stringify({
+                firstName: newFirstName,
+                lastName: newLastName,
+                fullName: newFullName
+            }));
+
+            setUserData(prev => prev ? ({
+                ...prev,
+                firstName: newFirstName,
+                lastName: newLastName,
+                fullName: newFullName
+            }) : null);
+        }
+    } : null;
 
     const value = {
         isLoaded: true,

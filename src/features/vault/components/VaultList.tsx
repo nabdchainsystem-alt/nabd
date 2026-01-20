@@ -8,6 +8,7 @@ interface VaultListProps {
     onDelete: (itemId: string) => void;
     onToggleFavorite: (item: VaultItem) => void;
     onRename: (item: VaultItem) => void;
+    onMove: (item: VaultItem) => void;
 }
 
 const getItemIcon = (type: string, title: string = '') => {
@@ -27,7 +28,7 @@ const getItemIcon = (type: string, title: string = '') => {
     }
 };
 
-export const VaultList: React.FC<VaultListProps> = ({ items, onNavigate, onDelete, onToggleFavorite, onRename }) => {
+export const VaultList: React.FC<VaultListProps> = ({ items, onNavigate, onDelete, onToggleFavorite, onRename, onMove }) => {
 
     const handleItemClick = (item: VaultItem) => {
         // Placeholder selection
@@ -102,6 +103,13 @@ export const VaultList: React.FC<VaultListProps> = ({ items, onNavigate, onDelet
                                         title="Rename"
                                     >
                                         <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onMove(item); }}
+                                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-500 hover:text-monday-blue"
+                                        title="Move to Folder"
+                                    >
+                                        <Folder size={16} />
                                     </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { PaperPlaneRight, User, CircleNotch } from 'phosphor-react';
+import { PaperPlaneRight, User, CircleNotch, ChatCircle, Phone, VideoCamera, Microphone, UsersThree, DotsThreeVertical } from 'phosphor-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../auth-adapter';
 import { talkService, Conversation, Message } from '../../services/talkService';
 import { teamService, TeamMember } from '../../services/teamService';
-import ProductivitySidebar from '../../components/common/ProductivitySidebar';
+import ConversationSidebar from './components/ConversationSidebar';
 
 interface TalkPageProps {
     onNavigate?: (view: string, boardId?: string) => void;
@@ -333,9 +333,9 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                     <div className="p-4 border-t border-border-light dark:border-border-dark">
                         <button
                             onClick={() => setShowNewDmModal(true)}
-                            className="w-full flex items-center justify-center p-2 rounded-lg bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors"
+                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
-                            <span className="material-icons text-sm mr-2">add</span>
+                            <span className="text-lg">+</span>
                             {t('new_message') || 'New Message'}
                         </button>
                     </div>
@@ -344,25 +344,62 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                 {/* Messages Area */}
                 <div className="flex-1 flex flex-col min-w-0 bg-background-light dark:bg-background-dark relative">
                     {!selectedConversation ? (
-                        <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
-                            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-text-secondary-light dark:text-text-secondary-dark">
-                                <span className="material-icons text-3xl">chat_bubble_outline</span>
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-5">
+                            <div className="w-16 h-16 border-2 border-gray-200 dark:border-gray-700 rounded-full flex items-center justify-center">
+                                <ChatCircle size={32} className="text-gray-400" />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-semibold">{t('select_conversation') || 'Select a conversation'}</h3>
-                                <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                                    {t('select_conversation') || 'Select a conversation'}
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
                                     {t('select_or_start_conversation') || 'Choose a conversation from the sidebar or start a new one'}
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowNewDmModal(true)}
-                                className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                                className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                             >
                                 {t('start_new_conversation') || 'Start New Conversation'}
                             </button>
                         </div>
                     ) : (
                         <>
+                            {/* Call/Video/Meeting Toolbar */}
+                            <div className="px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-end gap-1">
+                                <button
+                                    className="p-2.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    title="Voice Call"
+                                >
+                                    <Phone size={20} />
+                                </button>
+                                <button
+                                    className="p-2.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    title="Video Call"
+                                >
+                                    <VideoCamera size={20} />
+                                </button>
+                                <button
+                                    className="p-2.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    title="Voice Message"
+                                >
+                                    <Microphone size={20} />
+                                </button>
+                                <button
+                                    className="p-2.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    title="Start Meeting"
+                                >
+                                    <UsersThree size={20} />
+                                </button>
+                                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+                                <button
+                                    className="p-2.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                    title="More Options"
+                                >
+                                    <DotsThreeVertical size={20} />
+                                </button>
+                            </div>
+
                             {/* Messages List */}
                             <div className="flex-1 overflow-y-auto p-6 space-y-4 talk-custom-scrollbar">
                                 {messages.length === 0 ? (
@@ -456,8 +493,11 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                     )}
                 </div>
 
-                {/* Right Sidebar */}
-                <ProductivitySidebar onNavigate={onNavigate} />
+                {/* Right Sidebar - Conversation specific */}
+                <ConversationSidebar
+                    conversationId={selectedConversation?.id || null}
+                    onNavigate={onNavigate}
+                />
             </main>
 
             {/* New DM Modal */}

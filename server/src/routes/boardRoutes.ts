@@ -27,6 +27,7 @@ const updateBoardSchema = z.object({
     tasks: z.array(z.any()).optional(),
     defaultView: z.string().max(50).optional(),
     availableViews: z.array(z.string()).optional(),
+    parentId: z.string().uuid().optional().nullable(),
     type: z.string().max(50).optional(),
 });
 
@@ -162,6 +163,7 @@ router.post('/', requireAuth, async (req, res: Response) => {
                 description: data.description,
                 userId,
                 workspaceId: targetWorkspaceId,
+                parentId: data.parentId || null,
                 columns: data.columns ? JSON.stringify(data.columns) : null,
                 tasks: data.tasks ? JSON.stringify(data.tasks) : "[]",
                 defaultView: data.defaultView || 'table',
@@ -223,6 +225,7 @@ router.put('/:id', requireAuth, async (req, res: Response) => {
         if (data.tasks) updateData.tasks = JSON.stringify(data.tasks);
         if (data.columns) updateData.columns = JSON.stringify(data.columns);
         if (data.availableViews) updateData.availableViews = JSON.stringify(data.availableViews);
+        if (data.parentId !== undefined) updateData.parentId = data.parentId;
 
         const board = await prisma.board.update({
             where: { id },
