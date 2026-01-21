@@ -398,7 +398,8 @@ const AppContent: React.FC = () => {
     fetchAdminData();
   }, [fetchAdminData]);
 
-  // Combine server feature flags with local visibility (server takes precedence for non-admins)
+  // Combine server feature flags with local visibility
+  // Logic: Server can DISABLE pages (admin control), but user can also hide pages they don't want
   const effectivePageVisibility = React.useMemo(() => {
     // Wait for permissions to load before showing any pages (prevents flash)
     if (!isPermissionsLoaded && !isAdmin) {
@@ -417,16 +418,26 @@ const AppContent: React.FC = () => {
       normalizedServerFlags[normalizedKey] = Boolean(enabled);
     }
 
-    // For admins, show all pages (they can see everything regardless of flags)
-    if (isAdmin) {
-      return { ...pageVisibility, ...normalizedServerFlags };
+    // Build combined visibility:
+    // - If server disables a page (false), it's hidden (admin control)
+    // - If user disables a page (false), it's hidden (personal preference)
+    // - Page only shows if BOTH server allows AND user wants it
+    const combined: Record<string, boolean> = {};
+
+    // Get all unique keys from both sources
+    const allKeys = new Set([
+      ...Object.keys(pageVisibility),
+      ...Object.keys(normalizedServerFlags)
+    ]);
+
+    for (const key of allKeys) {
+      const serverAllows = normalizedServerFlags[key] !== false; // undefined = allowed
+      const userWants = pageVisibility[key] !== false; // undefined = wants to see
+
+      // Page is visible only if server allows AND user wants it
+      combined[key] = serverAllows && userWants;
     }
-    // For non-admins, server flags take precedence
-    // Start with local settings, then override with server flags
-    const combined: Record<string, boolean> = { ...pageVisibility };
-    for (const [key, enabled] of Object.entries(normalizedServerFlags)) {
-      combined[key] = enabled; // Server flags completely override local settings
-    }
+
     return combined;
   }, [pageVisibility, serverFeatureFlags, isAdmin, isPermissionsLoaded]);
 
