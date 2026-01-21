@@ -353,6 +353,7 @@ const AppContent: React.FC = () => {
   // Admin and Feature Flags state
   const [isAdmin, setIsAdmin] = useState(false);
   const [serverFeatureFlags, setServerFeatureFlags] = useState<Record<string, boolean>>({});
+  const [isPermissionsLoaded, setIsPermissionsLoaded] = useState(false);
 
   // Fetch admin status and user-specific visibility
   const fetchAdminData = React.useCallback(async () => {
@@ -383,10 +384,12 @@ const AppContent: React.FC = () => {
 
       // Server returns merged visibility (global + user-specific overrides)
       setServerFeatureFlags(visibility);
+      setIsPermissionsLoaded(true);
 
       appLogger.info('[App] Admin status:', adminStatus.isAdmin, 'Visibility loaded:', Object.keys(visibility).length);
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
+      setIsPermissionsLoaded(true); // Still mark as loaded to avoid infinite loading
     }
   }, [isSignedIn, getToken]);
 
@@ -397,19 +400,27 @@ const AppContent: React.FC = () => {
 
   // Combine server feature flags with local visibility (server takes precedence for non-admins)
   const effectivePageVisibility = React.useMemo(() => {
+    // Wait for permissions to load before showing any pages (prevents flash)
+    if (!isPermissionsLoaded && !isAdmin) {
+      // Return all pages hidden until permissions load
+      const hidden: Record<string, boolean> = {};
+      for (const key of Object.keys(pageVisibility)) {
+        hidden[key] = false;
+      }
+      return hidden;
+    }
     // For admins, show all pages (they can see everything regardless of flags)
     if (isAdmin) {
       return { ...pageVisibility, ...serverFeatureFlags };
     }
-    // For non-admins, server flags take precedence (if a feature is disabled, it's hidden)
+    // For non-admins, server flags take precedence
+    // Start with server flags as base, fill in missing from pageVisibility
     const combined: Record<string, boolean> = { ...pageVisibility };
     for (const [key, enabled] of Object.entries(serverFeatureFlags)) {
-      if (!enabled) {
-        combined[key] = false; // Server disabled features override local settings
-      }
+      combined[key] = Boolean(enabled); // Server flags completely override local settings
     }
     return combined;
-  }, [pageVisibility, serverFeatureFlags, isAdmin]);
+  }, [pageVisibility, serverFeatureFlags, isAdmin, isPermissionsLoaded]);
 
   const [recentlyVisited, setRecentlyVisited] = useState<RecentlyVisitedItem[]>(() => {
     const saved = localStorage.getItem('app-recently-visited');

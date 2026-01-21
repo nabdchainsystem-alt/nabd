@@ -18,6 +18,7 @@ const DEFAULT_FEATURE_FLAGS = [
     { key: 'page_process_map', enabled: true },
     { key: 'page_dashboards', enabled: true },
     { key: 'page_reports', enabled: true },
+    { key: 'page_test_tools', enabled: true },
     // Mini Company
     { key: 'page_mini_company', enabled: true },
     { key: 'page_sales', enabled: true },
