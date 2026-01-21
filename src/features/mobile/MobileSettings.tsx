@@ -142,7 +142,7 @@ export const MobileSettings: React.FC = () => {
         {/* Sign Out */}
         <div className="bg-white rounded-xl overflow-hidden">
           <button
-            onClick={() => signOut()}
+            onClick={() => signOut(() => window.location.reload())}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-800 hover:bg-gray-50 transition-colors"
           >
             <SignOut size={20} className="text-gray-400" />

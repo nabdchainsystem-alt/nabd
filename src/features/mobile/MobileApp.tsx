@@ -36,7 +36,7 @@ const MobileContent: React.FC = () => {
           <span className="font-semibold text-gray-800">NABD Mobile</span>
         </div>
         <button
-          onClick={() => signOut()}
+          onClick={() => signOut(() => window.location.reload())}
           className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           title="Sign out"
         >
