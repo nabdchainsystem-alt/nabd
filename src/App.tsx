@@ -409,15 +409,23 @@ const AppContent: React.FC = () => {
       }
       return hidden;
     }
+
+    // Convert server flags from "page_xxx" to "xxx" format (Sidebar uses non-prefixed keys)
+    const normalizedServerFlags: Record<string, boolean> = {};
+    for (const [key, enabled] of Object.entries(serverFeatureFlags)) {
+      const normalizedKey = key.startsWith('page_') ? key.replace('page_', '') : key;
+      normalizedServerFlags[normalizedKey] = Boolean(enabled);
+    }
+
     // For admins, show all pages (they can see everything regardless of flags)
     if (isAdmin) {
-      return { ...pageVisibility, ...serverFeatureFlags };
+      return { ...pageVisibility, ...normalizedServerFlags };
     }
     // For non-admins, server flags take precedence
-    // Start with server flags as base, fill in missing from pageVisibility
+    // Start with local settings, then override with server flags
     const combined: Record<string, boolean> = { ...pageVisibility };
-    for (const [key, enabled] of Object.entries(serverFeatureFlags)) {
-      combined[key] = Boolean(enabled); // Server flags completely override local settings
+    for (const [key, enabled] of Object.entries(normalizedServerFlags)) {
+      combined[key] = enabled; // Server flags completely override local settings
     }
     return combined;
   }, [pageVisibility, serverFeatureFlags, isAdmin, isPermissionsLoaded]);
