@@ -660,7 +660,7 @@ export const TableCell: React.FC<TableCellProps> = ({
                         position: { x: e.clientX, y: e.clientY }
                     });
                 }}
-                style={{ ...cellStyle, textAlign: 'left' }}
+                style={{ ...cellStyle, textAlign: col.id === 'name' ? 'left' : 'center' }}
                 className="w-full h-full bg-transparent border-none outline-none px-3 text-sm text-stone-700 dark:text-stone-300 placeholder:text-stone-400 focus:bg-stone-50 dark:focus:bg-stone-800/50 transition-colors"
             />
         </div>

@@ -88,7 +88,7 @@ export const TableHeaderCell: React.FC<TableHeaderCellProps> = ({
             disabled={isRenaming}
             className={`
                 h-full flex items-center text-xs font-sans font-medium text-stone-500 dark:text-stone-400 shrink-0
-                ${col.id === 'select' ? 'justify-center px-0' : col.id === 'name' ? 'px-3' : 'justify-center px-3'}
+                ${col.id === 'select' ? 'justify-center px-0' : col.id === 'name' ? 'justify-start px-3' : 'justify-center px-3'}
                 ${index !== columnsLength - 1 ? 'border-e border-stone-200/50 dark:border-stone-800' : ''}
                 hover:bg-stone-100 dark:hover:bg-stone-800 ${col.id !== 'select' ? 'cursor-pointer' : 'cursor-default'} transition-colors select-none relative group
                 ${col.pinned ? 'z-50 bg-stone-50 dark:bg-stone-900' : 'bg-stone-100 dark:bg-stone-900'}
@@ -148,7 +148,7 @@ export const TableHeaderCell: React.FC<TableHeaderCellProps> = ({
                 </div>
             ) : (
                 <div className={`flex items-center ${col.id === 'name' ? 'justify-between' : 'justify-center'} w-full px-2`}>
-                    <span className="truncate flex-1 text-center select-none" onDoubleClick={(e) => {
+                    <span className={`truncate flex-1 ${col.id === 'name' ? 'text-left' : 'text-center'} select-none`} onDoubleClick={(e) => {
                         e.stopPropagation();
                         if (col.id !== 'select') setRenamingColId(col.id);
                     }}>

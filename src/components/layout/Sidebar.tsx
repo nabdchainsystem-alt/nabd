@@ -75,7 +75,7 @@ const ALL_QUICK_NAV_ITEMS: QuickNavItem[] = [
     { id: 'foreign_marketplace', icon: Globe, label: 'foreign_marketplace', view: 'foreign_marketplace' },
 ];
 
-const ACTIVE_SUB_NAV_STYLE = 'font-almarai bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10';
+const ACTIVE_SUB_NAV_STYLE = 'font-outfit bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10';
 
 const DEFAULT_QUICK_NAV = ['dashboard', 'my_work', 'inbox', 'vault'];
 
@@ -700,7 +700,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                 className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
                         ${activeView === 'dashboard'
                                         ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'} 
+                                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                         `}
                             >
                                 <House size={17} weight="light" className="flex-shrink-0" />
@@ -713,7 +713,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
                             ${activeView === 'flow_hub'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'} 
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                                 >
                                     <Sparkle size={17} weight="light" className="flex-shrink-0" />
@@ -727,7 +727,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
                             ${activeView === 'process_map'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'} 
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                                 >
                                     <Activity size={17} weight="light" className="flex-shrink-0" />
@@ -741,7 +741,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
                             ${activeView === 'my_work'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'} 
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                                 >
                                     <SquaresFour size={17} weight="light" className="flex-shrink-0" />
@@ -757,11 +757,11 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
                             ${activeView === 'inbox'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'} 
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                                 >
                                     <Tray size={17} weight="light" className="flex-shrink-0" />
-                                    <span className={`font-light text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('inbox')}</span>
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('inbox')}</span>
                                 </button>
                             )}
                             {pageVisibility['talk'] !== false && (
@@ -771,11 +771,11 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
                             ${activeView === 'talk'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'} 
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                                 >
                                     <ChatCircleText size={17} weight="light" className="flex-shrink-0" />
-                                    <span className={`font-light text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('talk')}</span>
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('talk')}</span>
                                 </button>
                             )}
 
@@ -786,11 +786,11 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
                             ${activeView === 'teams'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'} 
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                                 >
                                     <Users size={17} weight="light" className="flex-shrink-0" />
-                                    <span className={`font-light text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('teams')}</span>
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('teams')}</span>
                                 </button>
                             )}
                             {pageVisibility['vault'] !== false && (
@@ -800,11 +800,11 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 
                             ${activeView === 'vault'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'} 
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
                             `}
                                 >
                                     <Lock size={17} weight="light" className="flex-shrink-0" />
-                                    <span className={`font-light text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('vault')}</span>
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('vault')}</span>
                                 </button>
                             )}
                             {pageVisibility['test_tools'] !== false && (
@@ -814,11 +814,11 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300
                             ${activeView === 'test'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'}
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
                             `}
                                 >
                                     <Flask size={17} weight="light" className="flex-shrink-0" />
-                                    <span className={`font-light text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('test_tools')}</span>
+                                    <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('test_tools')}</span>
                                 </button>
                             )}
                         </div>
@@ -844,7 +844,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         {/* Overview */}
                                         <div className="mb-1">
                                             <div
-                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90 transition-all duration-300`}
+                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                                 onClick={() => !isCollapsed && toggleDepartment('mini_overview')}
                                                 title={t('overview')}
                                             >
@@ -867,7 +867,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         {/* Operations */}
                                         <div className="mb-1">
                                             <div
-                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90 transition-all duration-300`}
+                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                                 onClick={() => !isCollapsed && toggleDepartment('mini_operations')}
                                                 title={t('operations')}
                                             >
@@ -893,7 +893,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         {/* Finance */}
                                         <div className="mb-1">
                                             <div
-                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90 transition-all duration-300`}
+                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                                 onClick={() => !isCollapsed && toggleDepartment('mini_finance')}
                                                 title={t('finance')}
                                             >
@@ -913,7 +913,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         {/* People */}
                                         <div className="mb-1">
                                             <div
-                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90 transition-all duration-300`}
+                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                                 onClick={() => !isCollapsed && toggleDepartment('mini_people')}
                                                 title={t('people')}
                                             >
@@ -937,7 +937,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         {pageVisibility['supply_chain'] !== false && (
                                             <div className="mb-1">
                                                 <div
-                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90 transition-all duration-300`}
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                                     onClick={() => !isCollapsed && toggleDepartment('supply_chain')}
                                                     title={t('supply_chain')}
                                                 >
@@ -981,7 +981,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         {pageVisibility['operations'] !== false && (
                                             <div className="mb-1">
                                                 <div
-                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90 transition-all duration-300`}
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                                     onClick={() => !isCollapsed && toggleDepartment('operations')}
                                                     title={t('manufacturing')}
                                                 >
@@ -1015,7 +1015,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         {pageVisibility['business'] !== false && (
                                             <div className="mb-1">
                                                 <div
-                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90 transition-all duration-300`}
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                                     onClick={() => !isCollapsed && toggleDepartment('business')}
                                                     title={t('business')}
                                                 >
@@ -1044,7 +1044,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         {pageVisibility['business_support'] !== false && (
                                             <div className="mb-1">
                                                 <div
-                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90 transition-all duration-300`}
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
                                                     onClick={() => !isCollapsed && toggleDepartment('business_support')}
                                                     title={t('business_support')}
                                                 >
@@ -1123,7 +1123,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             e.stopPropagation();
                                             toggleWorkspaceMenu();
                                         }}
-                                        className={`font-almarai relative border border-gray-200 dark:border-monday-dark-border bg-gray-50/50 dark:bg-monday-dark-surface hover:bg-gray-100/80 dark:hover:bg-monday-dark-hover rounded-md py-1.5 flex items-center cursor-pointer transition-all duration-300 ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'}`}
+                                        className={`font-outfit relative border border-gray-200 dark:border-monday-dark-border bg-gray-50/50 dark:bg-monday-dark-surface hover:bg-gray-100/80 dark:hover:bg-monday-dark-hover rounded-md py-1.5 flex items-center cursor-pointer transition-all duration-300 ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'}`}
                                     >
                                         <div className={`w-6 h-6 rounded-md bg-gradient-to-tr ${activeWorkspace.color} text-white flex items-center justify-center text-xs font-bold flex-shrink-0`}>
                                             {(() => {
@@ -1131,7 +1131,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                 return WorkspaceIcon ? <WorkspaceIcon size={13} weight="bold" /> : activeWorkspace.name.charAt(0);
                                             })()}
                                         </div>
-                                        <span className={`font-light text-[14px] text-stone-500/90 dark:text-stone-400/90 truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{activeWorkspace.name}</span>
+                                        <span className={`font-medium text-[14px] text-[#323338] dark:text-[#dcdde2] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{activeWorkspace.name}</span>
 
                                         {!isCollapsed && (
                                             <div className="flex items-center gap-1">
@@ -1320,8 +1320,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         return (
                                             <div key={board.id} className="relative">
                                                 <div
-                                                    className={`font-almarai flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} py-1.5 rounded-sm cursor-pointer group transition-all duration-300 select-none
-                                                ${isActive ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : 'hover:bg-white/40 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'}
+                                                    className={`font-outfit flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} py-1.5 rounded-sm cursor-pointer group transition-all duration-300 select-none
+                                                ${isActive ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : 'hover:bg-white/40 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
                                                 ${isChild ? 'ml-3' : ''}
                                             `}
                                                     onClick={() => onNavigate('board', board.id)}
@@ -1341,7 +1341,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                         size: isChild ? 14 : 17,
                                                         className: `${isActive ? 'text-monday-blue' : ''} flex-shrink-0`
                                                     })}
-                                                    <span className={`font-light text-[13px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{board.name}</span>
+                                                    <span className={`font-normal text-[13px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{board.name}</span>
 
                                                     {/* Action buttons - absolutely positioned on right */}
                                                     {!isCollapsed && (
@@ -1397,7 +1397,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <button
                                             onClick={() => onNavigate('local_marketplace')}
                                             title={t('local_marketplace')}
-                                            className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 ${activeView === 'local_marketplace' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'}`}
+                                            className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 ${activeView === 'local_marketplace' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}`}
                                         >
                                             <ShoppingCart size={17} weight="light" className="flex-shrink-0" />
                                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('local_marketplace')}</span>
@@ -1407,7 +1407,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <button
                                             onClick={() => onNavigate('foreign_marketplace')}
                                             title={t('foreign_marketplace')}
-                                            className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 ${activeView === 'foreign_marketplace' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-stone-500/90 dark:text-stone-400/90'}`}
+                                            className={`flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} w-full py-1.5 rounded-sm transition-all duration-300 ${activeView === 'foreign_marketplace' ? 'bg-white/50 dark:bg-monday-dark-hover text-monday-blue shadow-sm' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}`}
                                         >
                                             <Globe size={17} weight="light" className="flex-shrink-0" />
                                             <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('foreign_marketplace')}</span>
