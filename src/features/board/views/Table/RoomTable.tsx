@@ -2930,10 +2930,10 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                     key={row.id}
                                                                     row={row}
                                                                     className={`
-                                                    group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50 
+                                                    group flex items-center h-10 border-b border-stone-100 dark:border-stone-800/50
                                                     hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors relative min-w-max
                                                     ${activeDragId === row.id ? 'opacity-30' : ''}
-                                                    ${checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}
+                                                    ${isDoneStatus(row.status) ? 'bg-green-50 dark:bg-green-900/20' : checkedRows.has(row.id) ? 'bg-blue-50 dark:bg-blue-900/10' : 'bg-white dark:bg-stone-900'}
                                                 `}
                                                                 >
                                                                     {(dragListeners, isRowDragging) => renderRowContent(row, dragListeners, isRowDragging)}
