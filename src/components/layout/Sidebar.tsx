@@ -754,24 +754,44 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         }
     };
 
-    const displayedWidth = isCollapsed ? 42 : width;
-    // Optimized: Removed heavy transitions for better performance
+    const collapsedWidth = 42;
+    const expandedWidth = width;
+    // Optimized: Using transform for GPU-accelerated smooth animation
     const textBase = 'overflow-hidden whitespace-nowrap';
     const textVisibility = isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100';
 
     return (
         <>
-            {/* Main Sidebar Container */}
+            {/* Main Sidebar Container - Professional transform-based animation */}
             <div
                 key={dir}
-                className={`font-outfit flex flex-col h-full min-h-0 flex-shrink-0 relative group/sidebar select-none bg-transparent ltr:rounded-r-3xl rtl:rounded-l-3xl ltr:shadow-[4px_0_24px_rgba(0,0,0,0.02)] rtl:shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-20 ${isResizing ? '' : 'transition-[width] duration-150 ease-out'}`}
+                className="font-outfit flex flex-col h-full min-h-0 flex-shrink-0 relative group/sidebar select-none bg-transparent ltr:rounded-r-3xl rtl:rounded-l-3xl ltr:shadow-[4px_0_24px_rgba(0,0,0,0.02)] rtl:shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-20"
                 style={{
-                    width: `${displayedWidth}px`
+                    width: isCollapsed ? `${collapsedWidth}px` : `${expandedWidth}px`,
+                    transition: isResizing ? 'none' : 'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'width'
                 }}
             >
-                <div className="h-full min-h-0 flex flex-col">
-                    {/* Content wrapper - hidden when collapsed */}
-                    <div className={`h-full min-h-0 flex flex-col ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                {/* Inner content with clip for clean edges */}
+                <div
+                    className="h-full min-h-0 flex flex-col overflow-hidden"
+                    style={{
+                        width: `${expandedWidth}px`,
+                        minWidth: `${expandedWidth}px`,
+                        transform: isCollapsed ? `translateX(${dir === 'rtl' ? (expandedWidth - collapsedWidth) : -(expandedWidth - collapsedWidth)}px)` : 'translateX(0)',
+                        transition: isResizing ? 'none' : 'transform 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+                        willChange: 'transform'
+                    }}
+                >
+                    {/* Content wrapper - fades when collapsed */}
+                    <div
+                        className="h-full min-h-0 flex flex-col"
+                        style={{
+                            opacity: isCollapsed ? 0 : 1,
+                            transition: 'opacity 150ms ease-out',
+                            pointerEvents: isCollapsed ? 'none' : 'auto'
+                        }}
+                    >
                         {/* 1. Top Navigation */}
                         <div className={`pt-3 pb-3 space-y-0.5 ltr:pl-5 ltr:pr-3 rtl:pr-5 rtl:pl-3 transition-none`}>
                             <SidebarTooltip content={t('home')} enabled={isCollapsed}>
@@ -1651,21 +1671,20 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                             </div>
                         )}
                     </div> {/* End of content wrapper */}
+                </div> {/* End of inner content with transform */}
 
-                    {/* Resize Drag Zone */}
-                    {!isCollapsed && (
-                        <div
-                            className="absolute top-0 right-0 rtl:right-auto rtl:left-0 w-2 h-full cursor-col-resize hover:bg-monday-blue/20 transition-colors z-30"
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                setIsResizing(true);
-                                setInitialMouseX(e.clientX);
-                                setInitialWidth(width);
-                            }}
-                        ></div>
-                    )}
-
-                </div >
+                {/* Resize Drag Zone - outside transform wrapper */}
+                {!isCollapsed && (
+                    <div
+                        className="absolute top-0 right-0 rtl:right-auto rtl:left-0 w-2 h-full cursor-col-resize hover:bg-monday-blue/20 transition-colors z-30"
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            setIsResizing(true);
+                            setInitialMouseX(e.clientX);
+                            setInitialWidth(width);
+                        }}
+                    ></div>
+                )}
 
                 {/* Collapse/Expand Button - OUTSIDE all content wrappers for guaranteed visibility */}
                 < button

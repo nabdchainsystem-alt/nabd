@@ -94,12 +94,46 @@ const PageLoadingFallback = memo(() => (
 ));
 PageLoadingFallback.displayName = 'PageLoadingFallback';
 
+// Sidebar wrapper that isolates collapse state to prevent parent re-renders
+interface SidebarWrapperProps {
+  activeView: ViewState | string;
+  activeBoardId: string | null;
+  onNavigate: (view: string, boardId?: string) => void;
+  width: number;
+  onResize: (width: number) => void;
+  workspaces: Workspace[];
+  activeWorkspaceId: string;
+  onWorkspaceChange: (id: string) => void;
+  onAddWorkspace: (name: string) => void;
+  onDeleteWorkspace: (id: string) => void;
+  onRenameWorkspace: (id: string, name: string) => void;
+  boards: Board[];
+  onDeleteBoard: (id: string) => void;
+  onToggleFavorite: (id: string) => void;
+  onAddBoard: (name: string, icon: string, template: string, defaultView: string, parentId?: string) => void;
+  pageVisibility: Record<string, boolean>;
+}
+
+const SidebarWrapper = memo<SidebarWrapperProps>((props) => {
+  const { isSidebarCollapsed, setIsSidebarCollapsed } = useUI();
+
+  return (
+    <Suspense fallback={<div className="w-[240px] bg-gray-50 dark:bg-gray-900" />}>
+      <Sidebar
+        {...props}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
+      />
+    </Suspense>
+  );
+});
+SidebarWrapper.displayName = 'SidebarWrapper';
+
 const AppContent: React.FC = () => {
   // --- Persistent State Initialization ---
 
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
-  const { isSidebarCollapsed, setIsSidebarCollapsed } = useUI();
   const { updateUserDisplayName } = useAppContext();
 
   // Sync user preferences (display name, etc.) with the server
@@ -1345,28 +1379,24 @@ const AppContent: React.FC = () => {
         <TopBar onNavigate={handleNavigate} boards={workspaceBoards} onCreateTask={handleCreateTaskOnBoard} />
       </Suspense>
       <div className="flex flex-1 min-h-0 relative overflow-hidden">
-        <Suspense fallback={<div className="w-[240px] bg-gray-50 dark:bg-gray-900" />}>
-          <Sidebar
-            activeView={activeView}
-            activeBoardId={activeBoardId}
-            onNavigate={handleNavigate}
-            width={sidebarWidth}
-            onResize={setSidebarWidth}
-            workspaces={workspaces}
-            activeWorkspaceId={activeWorkspaceId}
-            onWorkspaceChange={setActiveWorkspaceId}
-            onAddWorkspace={handleAddWorkspace}
-            onDeleteWorkspace={handleDeleteWorkspace}
-            onRenameWorkspace={handleRenameWorkspace}
-            boards={workspaceBoards}
-            onDeleteBoard={handleDeleteBoard}
-            onToggleFavorite={handleToggleFavorite}
-            isCollapsed={isSidebarCollapsed}
-            onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
-            onAddBoard={(name, icon, template, defaultView, parentId) => handleQuickAddBoard(name, icon, template, defaultView as any, parentId)}
-            pageVisibility={effectivePageVisibility}
-          />
-        </Suspense>
+        <SidebarWrapper
+          activeView={activeView}
+          activeBoardId={activeBoardId}
+          onNavigate={handleNavigate}
+          width={sidebarWidth}
+          onResize={setSidebarWidth}
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+          onWorkspaceChange={setActiveWorkspaceId}
+          onAddWorkspace={handleAddWorkspace}
+          onDeleteWorkspace={handleDeleteWorkspace}
+          onRenameWorkspace={handleRenameWorkspace}
+          boards={workspaceBoards}
+          onDeleteBoard={handleDeleteBoard}
+          onToggleFavorite={handleToggleFavorite}
+          onAddBoard={(name, icon, template, defaultView, parentId) => handleQuickAddBoard(name, icon, template, defaultView as any, parentId)}
+          pageVisibility={effectivePageVisibility}
+        />
 
         {/* Main Content Area */}
         <main className={`flex-1 flex flex-col min-h-0 relative overflow-hidden bg-[#FCFCFD] dark:bg-monday-dark-bg z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.08)] ml-0.5`}>

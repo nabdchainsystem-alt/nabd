@@ -1,24 +1,25 @@
 import React from 'react';
+import { LazyDashboard } from '../components/LazyDashboard';
 
-// Import all dashboards
-import { ExpensesOverviewDashboard } from './ExpensesOverviewDashboard';
-import { CategoryAnalysisDashboard } from './CategoryAnalysisDashboard';
-import { FixedVariableDashboard } from './FixedVariableDashboard';
-import { TrendsAnomaliesDashboard } from './TrendsAnomaliesDashboard';
-import { ApprovalFlowDashboard } from './ApprovalFlowDashboard';
-import { DeptAccountabilityDashboard } from './DeptAccountabilityDashboard';
-import { ForecastOptimizationDashboard } from './ForecastOptimizationDashboard';
+// Lazy load all dashboards - only loaded when visible in viewport
+const ExpensesOverviewDashboard = React.lazy(() => import('./ExpensesOverviewDashboard').then(m => ({ default: m.ExpensesOverviewDashboard })));
+const CategoryAnalysisDashboard = React.lazy(() => import('./CategoryAnalysisDashboard').then(m => ({ default: m.CategoryAnalysisDashboard })));
+const FixedVariableDashboard = React.lazy(() => import('./FixedVariableDashboard').then(m => ({ default: m.FixedVariableDashboard })));
+const TrendsAnomaliesDashboard = React.lazy(() => import('./TrendsAnomaliesDashboard').then(m => ({ default: m.TrendsAnomaliesDashboard })));
+const ApprovalFlowDashboard = React.lazy(() => import('./ApprovalFlowDashboard').then(m => ({ default: m.ApprovalFlowDashboard })));
+const DeptAccountabilityDashboard = React.lazy(() => import('./DeptAccountabilityDashboard').then(m => ({ default: m.DeptAccountabilityDashboard })));
+const ForecastOptimizationDashboard = React.lazy(() => import('./ForecastOptimizationDashboard').then(m => ({ default: m.ForecastOptimizationDashboard })));
 
 const ExpensesInsights: React.FC = () => {
     return (
         <div className="flex-1 h-full overflow-y-auto bg-white dark:bg-monday-dark-surface">
-            <ExpensesOverviewDashboard />
-            <CategoryAnalysisDashboard />
-            <FixedVariableDashboard />
-            <TrendsAnomaliesDashboard />
-            <ApprovalFlowDashboard />
-            <DeptAccountabilityDashboard />
-            <ForecastOptimizationDashboard />
+            <LazyDashboard component={ExpensesOverviewDashboard} />
+            <LazyDashboard component={CategoryAnalysisDashboard} />
+            <LazyDashboard component={FixedVariableDashboard} />
+            <LazyDashboard component={TrendsAnomaliesDashboard} />
+            <LazyDashboard component={ApprovalFlowDashboard} />
+            <LazyDashboard component={DeptAccountabilityDashboard} />
+            <LazyDashboard component={ForecastOptimizationDashboard} />
         </div>
     );
 };

@@ -337,8 +337,32 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
             `}>
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                            <Brain size={22} weight="fill" className="text-white" />
+                        {/* 3D Neumorphic Icon - matches floating button */}
+                        <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center"
+                            style={{
+                                background: isDark
+                                    ? 'linear-gradient(145deg, #505050, #404040)'
+                                    : 'linear-gradient(145deg, #6a6a6a, #505050)',
+                                boxShadow: isDark
+                                    ? '3px 3px 6px #2a2a2a, -2px -2px 4px #606060'
+                                    : '3px 3px 6px rgba(0,0,0,0.2), -2px -2px 4px rgba(120,120,120,0.2)',
+                                padding: '3px',
+                            }}
+                        >
+                            <div
+                                className="w-full h-full rounded-full flex items-center justify-center"
+                                style={{
+                                    background: isDark
+                                        ? 'linear-gradient(145deg, #606060, #4a4a4a)'
+                                        : 'linear-gradient(145deg, #ffffff, #e6e6e6)',
+                                    boxShadow: isDark
+                                        ? 'inset 1px 1px 3px #3a3a3a, inset -1px -1px 3px #707070'
+                                        : 'inset 1px 1px 3px #d0d0d0, inset -1px -1px 3px #ffffff',
+                                }}
+                            >
+                                <Sparkle size={18} weight="fill" className={isDark ? 'text-white' : 'text-gray-700'} />
+                            </div>
                         </div>
                         {/* Online indicator */}
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />

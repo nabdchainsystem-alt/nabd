@@ -52,38 +52,40 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Board, BoardViewType } from '../../types';
-import Lists from './views/List/Lists';
-import RoomTable from './views/Table/RoomTable';
-import KanbanBoard from './views/Kanban/KanbanBoard';
-import { DocView } from './views/Doc/DocView';
 
 import { useRoomBoardData } from './hooks/useRoomBoardData';
-import CalendarView from './views/Calendar/CalendarView';
 import { PortalPopup } from '../../components/ui/PortalPopup';
-
 import { DashboardConfig } from './components/dashboard/DashboardHeader';
-import DataTable from './views/Table/DataTable';
 
-import { PivotTable } from './views/PivotTable/PivotTable';
-import { GanttView } from './views/GanttChart/GanttView';
-import { GTDDashboard } from '../../features/gtd/GTDDashboard';
-import { OverviewView } from './views/Overview/OverviewView';
-import { ProcurementOverview } from './views/Procurement/ProcurementOverview';
-import SalesInsights from '../mini_company/operations/SalesInsights';
-import CornellNotesPage from '../tools/cornell/CornellNotesPage';
-import WhiteboardView from '../tools/WhiteboardView';
-import DashboardsView from '../tools/DashboardsView';
-import AutomationRulesView from '../tools/AutomationRulesView';
-import GoalsOKRsView from '../tools/GoalsOKRsView';
-import WorkloadView from '../tools/WorkloadView';
-import RecurringLogicView from '../tools/RecurringLogicView';
-import SmartSheetView from '../tools/SpreadsheetView';
-import { TimelineView } from './views/Timeline/TimelineView';
-import SupplierInsights from '../mini_company/suppliers/SupplierInsights';
-import CustomerInsights from '../mini_company/customers/CustomerInsights';
-import PurchaseInsights from '../mini_company/operations/PurchaseInsights';
-import InventoryInsights from '../mini_company/operations/InventoryInsights';
-import ExpensesInsights from '../mini_company/finance/ExpensesInsights';
+// ============================================================================
+// LAZY LOADED VIEW COMPONENTS - Only loaded when selected
+// ============================================================================
+const Lists = React.lazy(() => import('./views/List/Lists'));
+const RoomTable = React.lazy(() => import('./views/Table/RoomTable'));
+const KanbanBoard = React.lazy(() => import('./views/Kanban/KanbanBoard'));
+const DocView = React.lazy(() => import('./views/Doc/DocView').then(m => ({ default: m.DocView })));
+const CalendarView = React.lazy(() => import('./views/Calendar/CalendarView'));
+const DataTable = React.lazy(() => import('./views/Table/DataTable'));
+const PivotTable = React.lazy(() => import('./views/PivotTable/PivotTable').then(m => ({ default: m.PivotTable })));
+const GanttView = React.lazy(() => import('./views/GanttChart/GanttView').then(m => ({ default: m.GanttView })));
+const GTDDashboard = React.lazy(() => import('../../features/gtd/GTDDashboard').then(m => ({ default: m.GTDDashboard })));
+const OverviewView = React.lazy(() => import('./views/Overview/OverviewView').then(m => ({ default: m.OverviewView })));
+const ProcurementOverview = React.lazy(() => import('./views/Procurement/ProcurementOverview').then(m => ({ default: m.ProcurementOverview })));
+const SalesInsights = React.lazy(() => import('../mini_company/operations/SalesInsights'));
+const CornellNotesPage = React.lazy(() => import('../tools/cornell/CornellNotesPage'));
+const WhiteboardView = React.lazy(() => import('../tools/WhiteboardView'));
+const DashboardsView = React.lazy(() => import('../tools/DashboardsView'));
+const AutomationRulesView = React.lazy(() => import('../tools/AutomationRulesView'));
+const GoalsOKRsView = React.lazy(() => import('../tools/GoalsOKRsView'));
+const WorkloadView = React.lazy(() => import('../tools/WorkloadView'));
+const RecurringLogicView = React.lazy(() => import('../tools/RecurringLogicView'));
+const SmartSheetView = React.lazy(() => import('../tools/SpreadsheetView'));
+const TimelineView = React.lazy(() => import('./views/Timeline/TimelineView').then(m => ({ default: m.TimelineView })));
+const SupplierInsights = React.lazy(() => import('../mini_company/suppliers/SupplierInsights'));
+const CustomerInsights = React.lazy(() => import('../mini_company/customers/CustomerInsights'));
+const PurchaseInsights = React.lazy(() => import('../mini_company/operations/PurchaseInsights'));
+const InventoryInsights = React.lazy(() => import('../mini_company/operations/InventoryInsights'));
+const ExpensesInsights = React.lazy(() => import('../mini_company/finance/ExpensesInsights'));
 
 
 import { useUI } from '../../contexts/UIContext';
@@ -1397,7 +1399,13 @@ export const BoardView: React.FC<BoardViewProps> = memo(({ board: initialBoard, 
                                     : 'none'
                             }}
                         >
-                            {renderView()}
+                            <React.Suspense fallback={
+                                <div className="flex items-center justify-center h-full w-full">
+                                    <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                </div>
+                            }>
+                                {renderView()}
+                            </React.Suspense>
                         </div>
 
                         {/* Global Exit Full Screen Floating Button */}
