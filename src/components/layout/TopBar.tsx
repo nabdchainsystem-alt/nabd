@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, MagnifyingGlass, Question, SquaresFour, DownloadSimple, Link, Moon, Sun, Play, Pause, ArrowCounterClockwise, X, SignOut, Gear, EyeClosed, User as UserIcon, Kanban, CheckSquare, GameController, Note } from 'phosphor-react';
+import { Bell, MagnifyingGlass, Question, SquaresFour, DownloadSimple, Moon, Sun, Play, Pause, ArrowCounterClockwise, X, SignOut, Gear, EyeClosed, User as UserIcon, Kanban, CheckSquare, GameController, Note } from 'phosphor-react';
 import { useAppContext } from '../../contexts/AppContext';
 // import { useAuth } from '../../contexts/AuthContext';
 import { useUser, useClerk, useAuth } from '../../auth-adapter';
@@ -224,10 +224,12 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, boards = [], onCreat
             className="flex items-center cursor-pointer group"
             onClick={() => onNavigate('dashboard')}
           >
-            <div className="w-8 h-8 bg-[#2b2c33] dark:bg-monday-blue rounded-md flex items-center justify-center me-2 shadow-sm transition-all group-hover:scale-105 group-hover:bg-monday-blue dark:group-hover:bg-monday-blue-hover">
-              <Link size={16} weight="bold" className="text-white transform -rotate-45" />
-            </div>
-            <div className="flex items-baseline gap-1.5 justify-center">
+            <img
+              src="/top-bar-logo.png"
+              alt="NABD Logo"
+              className="h-10 w-auto -me-8 transition-all group-hover:scale-105 object-contain dark:invert dark:brightness-200 mix-blend-multiply dark:mix-blend-screen"
+            />
+            <div className="flex items-center gap-1.5 justify-center">
               <span className="text-lg font-bold tracking-tight text-[#323338] dark:text-monday-dark-text leading-none hidden md:block">
                 NABD
               </span>

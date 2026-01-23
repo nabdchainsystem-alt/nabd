@@ -1,21 +1,15 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, memo } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Sidebar } from "./components/layout/Sidebar";
-import { TopBar } from './components/layout/TopBar';
-import { NabdSmartBar } from './components/ui/NabdSmartBar';
 import { SignedIn, SignedOut, SignIn, useUser, useAuth } from './auth-adapter';
-import { LandingPage } from './features/landing/LandingPage';
-import { AcceptInvitePage } from './features/auth/AcceptInvitePage';
 import { Board, Workspace, ViewState, BoardViewType, BoardColumn, RecentlyVisitedItem, Task } from './types';
-import { BoardTemplate } from './features/board/data/templates';
 import { AppProvider, useAppContext } from './contexts/AppContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { UIProvider, useUI } from './contexts/UIContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { FocusProvider } from './contexts/FocusContext';
 import { lazyWithRetry } from './utils/lazyWithRetry';
-import { ToastProvider } from './features/marketplace/components/Toast';
 import { AIProvider } from './contexts/AIContext';
+import { SocketProvider } from './contexts/SocketContext';
 import { RedirectToSignIn } from './auth-adapter';
 import { boardService } from './services/boardService';
 import { cleanupBoardStorage, cleanupWorkspaceBoardsStorage } from './utils/storage';
@@ -23,13 +17,35 @@ import { appLogger, boardLogger } from './utils/logger';
 import { FeatureErrorBoundary } from './components/common/FeatureErrorBoundary';
 import { API_URL } from './config/api';
 import { adminService } from './services/adminService';
-import { MobileApp } from './features/mobile/MobileApp';
 import { useUserPreferences } from './hooks/useUserPreferences';
-import { SpeedInsights } from '@vercel/speed-insights/react';
 
+// ============================================================================
+// LAZY LOADED COMPONENTS - All heavy components loaded on demand
+// ============================================================================
 
+// Core Layout (lazy but preloaded)
+const Sidebar = lazyWithRetry(() => import('./components/layout/Sidebar').then(m => ({ default: m.Sidebar })));
+const TopBar = lazyWithRetry(() => import('./components/layout/TopBar').then(m => ({ default: m.TopBar })));
+const AIBrainButton = lazyWithRetry(() => import('./components/AIBrainButton').then(m => ({ default: m.AIBrainButton })));
 
-// Lazy load feature pages for better initial bundle size
+// Auth & Landing Pages
+const LandingPage = lazyWithRetry(() => import('./features/landing/LandingPage').then(m => ({ default: m.LandingPage })));
+const AcceptInvitePage = lazyWithRetry(() => import('./features/auth/AcceptInvitePage').then(m => ({ default: m.AcceptInvitePage })));
+const SignUpPage = lazyWithRetry(() => import('./features/auth/SignUpPage').then(m => ({ default: m.SignUpPage })));
+
+// Mobile
+const MobileApp = lazyWithRetry(() => import('./features/mobile/MobileApp').then(m => ({ default: m.MobileApp })));
+
+// Toast Provider (must be regular import - it's a wrapper)
+import { ToastProvider } from './features/marketplace/components/Toast';
+
+// Board Templates - Type import (not a component)
+import type { BoardTemplate } from './features/board/data/templates';
+
+// Speed Insights (lazy - non-critical)
+const SpeedInsights = lazyWithRetry(() => import('@vercel/speed-insights/react').then(m => ({ default: m.SpeedInsights })));
+
+// Core Feature Pages
 const Dashboard = lazyWithRetry(() => import('./features/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const BoardView = lazyWithRetry(() => import('./features/board/BoardView').then(m => ({ default: m.BoardView })));
 const InboxView = lazyWithRetry(() => import('./features/inbox/InboxView').then(m => ({ default: m.InboxView })));
@@ -39,6 +55,44 @@ const TeamsPage = lazyWithRetry(() => import('./features/teams/TeamsPage'));
 const TalkPage = lazyWithRetry(() => import('./features/talk/TalkPage'));
 const TestPage = lazyWithRetry(() => import('./features/tools/TestPage').then(m => ({ default: m.TestPage })));
 const ArcadePage = lazyWithRetry(() => import('./features/arcade/ArcadePage'));
+const LiveSessionPage = lazyWithRetry(() => import('./features/collaboration/LiveSessionPage').then(m => ({ default: m.LiveSessionPage })));
+
+// ============================================================================
+// PRELOAD CRITICAL ROUTES - Load in background after initial render
+// ============================================================================
+const preloadCriticalRoutes = () => {
+  // Preload dashboard and sidebar after initial paint
+  // Use requestIdleCallback if available, otherwise fallback to setTimeout (for Safari)
+  const schedulePreload = (callback: () => void) => {
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(callback, { timeout: 2000 });
+    } else {
+      setTimeout(callback, 100);
+    }
+  };
+
+  schedulePreload(() => {
+    import('./features/dashboard/Dashboard');
+    import('./components/layout/Sidebar');
+    import('./components/layout/TopBar');
+  });
+};
+
+// Minimal loading spinner for Suspense
+const LoadingSpinner = memo(() => (
+  <div className="h-full w-full flex items-center justify-center">
+    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+));
+LoadingSpinner.displayName = 'LoadingSpinner';
+
+// Full page loading state
+const PageLoadingFallback = memo(() => (
+  <div className="h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+));
+PageLoadingFallback.displayName = 'PageLoadingFallback';
 
 const AppContent: React.FC = () => {
   // --- Persistent State Initialization ---
@@ -51,6 +105,11 @@ const AppContent: React.FC = () => {
   // Sync user preferences (display name, etc.) with the server
   // This hook handles fetching from server on login and syncing changes back
   useUserPreferences();
+
+  // Preload critical routes after initial render
+  useEffect(() => {
+    preloadCriticalRoutes();
+  }, []);
 
   const [activeView, setActiveView] = useState<ViewState | string>(() => {
     // Try to restore view from URL first, then localStorage
@@ -1282,28 +1341,32 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full w-full bg-[#FCFCFD] dark:bg-monday-dark-bg font-sans text-[#323338] dark:text-monday-dark-text transition-colors duration-200">
-      <TopBar onNavigate={handleNavigate} boards={workspaceBoards} onCreateTask={handleCreateTaskOnBoard} />
+      <Suspense fallback={<div className="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700" />}>
+        <TopBar onNavigate={handleNavigate} boards={workspaceBoards} onCreateTask={handleCreateTaskOnBoard} />
+      </Suspense>
       <div className="flex flex-1 min-h-0 relative overflow-hidden">
-        <Sidebar
-          activeView={activeView}
-          activeBoardId={activeBoardId}
-          onNavigate={handleNavigate}
-          width={sidebarWidth}
-          onResize={setSidebarWidth}
-          workspaces={workspaces}
-          activeWorkspaceId={activeWorkspaceId}
-          onWorkspaceChange={setActiveWorkspaceId}
-          onAddWorkspace={handleAddWorkspace}
-          onDeleteWorkspace={handleDeleteWorkspace}
-          onRenameWorkspace={handleRenameWorkspace}
-          boards={workspaceBoards}
-          onDeleteBoard={handleDeleteBoard}
-          onToggleFavorite={handleToggleFavorite}
-          isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
-          onAddBoard={(name, icon, template, defaultView, parentId) => handleQuickAddBoard(name, icon, template, defaultView as any, parentId)}
-          pageVisibility={effectivePageVisibility}
-        />
+        <Suspense fallback={<div className="w-[240px] bg-gray-50 dark:bg-gray-900" />}>
+          <Sidebar
+            activeView={activeView}
+            activeBoardId={activeBoardId}
+            onNavigate={handleNavigate}
+            width={sidebarWidth}
+            onResize={setSidebarWidth}
+            workspaces={workspaces}
+            activeWorkspaceId={activeWorkspaceId}
+            onWorkspaceChange={setActiveWorkspaceId}
+            onAddWorkspace={handleAddWorkspace}
+            onDeleteWorkspace={handleDeleteWorkspace}
+            onRenameWorkspace={handleRenameWorkspace}
+            boards={workspaceBoards}
+            onDeleteBoard={handleDeleteBoard}
+            onToggleFavorite={handleToggleFavorite}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
+            onAddBoard={(name, icon, template, defaultView, parentId) => handleQuickAddBoard(name, icon, template, defaultView as any, parentId)}
+            pageVisibility={effectivePageVisibility}
+          />
+        </Suspense>
 
         {/* Main Content Area */}
         <main className={`flex-1 flex flex-col min-h-0 relative overflow-hidden bg-[#FCFCFD] dark:bg-monday-dark-bg z-10 shadow-[-4px_0_24px_rgba(0,0,0,0.08)] ml-0.5`}>
@@ -1428,6 +1491,8 @@ const AppContent: React.FC = () => {
               <TestPage />
             ) : activeView === 'arcade' ? (
               <ArcadePage />
+            ) : activeView === 'live_session' ? (
+              <LiveSessionPage />
             ) : (
               // Unknown view - redirect to dashboard
               <FeatureErrorBoundary featureName="Dashboard">
@@ -1445,14 +1510,14 @@ const AppContent: React.FC = () => {
           </React.Suspense>
         </main>
       </div>
+
+      {/* NABD Brain - Floating AI Assistant */}
+      <Suspense fallback={null}>
+        <AIBrainButton />
+      </Suspense>
     </div>
   );
 };
-
-
-
-
-import { SignUpPage } from './features/auth/SignUpPage';
 
 // Error boundary for the entire app content
 class AppErrorBoundary extends React.Component<
@@ -1717,6 +1782,7 @@ const App: React.FC = () => {
           <NavigationProvider>
             <FocusProvider>
               <ToastProvider>
+                <SocketProvider>
                 <AIProvider>
                   {/* Invitation Route */}
                   <Router>
@@ -1726,7 +1792,25 @@ const App: React.FC = () => {
                         element={
                           <>
                             <SignedIn>
-                              <AcceptInvitePage />
+                              <Suspense fallback={<PageLoadingFallback />}>
+                                <AcceptInvitePage />
+                              </Suspense>
+                            </SignedIn>
+                            <SignedOut>
+                              <RedirectToSignIn />
+                            </SignedOut>
+                          </>
+                        }
+                      />
+                      {/* Live Session Route */}
+                      <Route
+                        path="/live/:roomId?"
+                        element={
+                          <>
+                            <SignedIn>
+                              <React.Suspense fallback={<div className="h-screen w-full flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                                <LiveSessionPage />
+                              </React.Suspense>
                             </SignedIn>
                             <SignedOut>
                               <RedirectToSignIn />
@@ -1738,8 +1822,11 @@ const App: React.FC = () => {
                       <Route path="*" element={<AppRoutes />} />
                     </Routes>
                   </Router>
-                  <SpeedInsights />
+                  <Suspense fallback={null}>
+                    <SpeedInsights />
+                  </Suspense>
                 </AIProvider>
+                </SocketProvider>
               </ToastProvider>
             </FocusProvider>
           </NavigationProvider>

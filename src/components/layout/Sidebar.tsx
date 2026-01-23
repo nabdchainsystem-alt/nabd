@@ -73,6 +73,8 @@ const ALL_QUICK_NAV_ITEMS: QuickNavItem[] = [
     // Marketplace
     { id: 'local_marketplace', icon: Globe, label: 'local_marketplace', view: 'local_marketplace' },
     { id: 'foreign_marketplace', icon: Globe, label: 'foreign_marketplace', view: 'foreign_marketplace' },
+    // Collaboration
+    { id: 'live_session', icon: VideoCamera, label: 'live_session', view: 'live_session' },
 ];
 
 const ACTIVE_SUB_NAV_STYLE = 'font-outfit bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10';
@@ -215,7 +217,7 @@ const QuickNavIcons: React.FC<{
                                 w-7 h-7 rounded-full flex items-center justify-center
                                 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm
                                 shadow-sm hover:shadow-md
-                                transition-all duration-300 ease-out cursor-pointer
+                                transition-colors duration-100 ease-out cursor-pointer
                             `}
                         >
                             <Icon
@@ -243,7 +245,7 @@ const QuickNavIcons: React.FC<{
                                 w-7 h-7 rounded-full flex items-center justify-center
                                 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm
                                 shadow-sm hover:shadow-md
-                                transition-all duration-300 ease-out cursor-pointer
+                                transition-colors duration-100 ease-out cursor-pointer
                             `}
                         >
                             <BoardIcon
@@ -318,7 +320,7 @@ const QuickNavIcons: React.FC<{
                          bg-white/70 dark:bg-gray-800/70
                         hover:bg-white dark:hover:bg-gray-800
                         hover:shadow-sm
-                        transition-all duration-300 ease-out mt-1 cursor-pointer"
+                        transition-colors duration-100 ease-out mt-1 cursor-pointer"
                 >
                     <Gauge size={12} weight="regular" className="text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400" />
                 </button>
@@ -753,28 +755,29 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     };
 
     const displayedWidth = isCollapsed ? 42 : width;
-    const textBase = 'transition-[max-width,opacity] duration-300 ease-in-out overflow-hidden';
-    const textVisibility = isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100';
+    // Optimized: Removed heavy transitions for better performance
+    const textBase = 'overflow-hidden whitespace-nowrap';
+    const textVisibility = isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100';
 
     return (
         <>
             {/* Main Sidebar Container */}
             <div
                 key={dir}
-                className={`font-outfit flex flex-col h-full min-h-0 flex-shrink-0 relative group/sidebar select-none bg-transparent ltr:rounded-r-3xl rtl:rounded-l-3xl ltr:shadow-[4px_0_24px_rgba(0,0,0,0.02)] rtl:shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-20 ${isResizing ? '' : 'transition-[width] duration-300 ease-in-out will-change-[width]'}`}
+                className={`font-outfit flex flex-col h-full min-h-0 flex-shrink-0 relative group/sidebar select-none bg-transparent ltr:rounded-r-3xl rtl:rounded-l-3xl ltr:shadow-[4px_0_24px_rgba(0,0,0,0.02)] rtl:shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-20 ${isResizing ? '' : 'transition-[width] duration-150 ease-out'}`}
                 style={{
                     width: `${displayedWidth}px`
                 }}
             >
                 <div className="h-full min-h-0 flex flex-col">
                     {/* Content wrapper - hidden when collapsed */}
-                    <div className={`h-full min-h-0 flex flex-col transition-opacity duration-300 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    <div className={`h-full min-h-0 flex flex-col ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                         {/* 1. Top Navigation */}
-                        <div className={`pt-3 pb-3 space-y-0.5 ltr:pl-5 ltr:pr-3 rtl:pr-5 rtl:pl-3 transition-[padding] duration-300`}>
+                        <div className={`pt-3 pb-3 space-y-0.5 ltr:pl-5 ltr:pr-3 rtl:pr-5 rtl:pl-3 transition-none`}>
                             <SidebarTooltip content={t('home')} enabled={isCollapsed}>
                                 <button
                                     onClick={() => onNavigate('dashboard')}
-                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300 cursor-pointer
+                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 cursor-pointer
                                     ${activeView === 'dashboard'
                                             ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
                                             : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
@@ -788,7 +791,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                 <SidebarTooltip content={t('my_work')} enabled={isCollapsed}>
                                     <button
                                         onClick={() => onNavigate('my_work')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300 
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 
                                         ${activeView === 'my_work'
                                                 ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
                                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
@@ -805,7 +808,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                 <SidebarTooltip content={t('inbox')} enabled={isCollapsed}>
                                     <button
                                         onClick={() => onNavigate('inbox')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300 
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 
                                         ${activeView === 'inbox'
                                                 ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
                                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
@@ -820,7 +823,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                 <SidebarTooltip content={t('talk')} enabled={isCollapsed}>
                                     <button
                                         onClick={() => onNavigate('talk')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300 
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 
                                         ${activeView === 'talk'
                                                 ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
                                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
@@ -836,7 +839,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                 <SidebarTooltip content={t('teams')} enabled={isCollapsed}>
                                     <button
                                         onClick={() => onNavigate('teams')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300 
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 
                                         ${activeView === 'teams'
                                                 ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
                                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
@@ -851,10 +854,10 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                 <SidebarTooltip content={t('vault')} enabled={isCollapsed}>
                                     <button
                                         onClick={() => onNavigate('vault')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300 
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100
                                         ${activeView === 'vault'
                                                 ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
+                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
                                         `}
                                     >
                                         <Lock size={17} weight="light" className="flex-shrink-0" />
@@ -862,11 +865,26 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     </button>
                                 </SidebarTooltip>
                             )}
+                            {pageVisibility['live_session'] !== false && (
+                                <SidebarTooltip content="Live Session" enabled={isCollapsed}>
+                                    <button
+                                        onClick={() => window.location.href = '/live/general'}
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100
+                                        ${window.location.pathname.startsWith('/live')
+                                                ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
+                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
+                                        `}
+                                    >
+                                        <VideoCamera size={17} weight="light" className="flex-shrink-0" />
+                                        <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>Live Session</span>
+                                    </button>
+                                </SidebarTooltip>
+                            )}
                             {pageVisibility['test_tools'] !== false && (
                                 <SidebarTooltip content={t('test_tools')} enabled={isCollapsed}>
                                     <button
                                         onClick={() => onNavigate('test')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300
+                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100
                                         ${activeView === 'test'
                                                 ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
                                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
@@ -885,7 +903,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                         )}
 
                         {/* 2. Scrollable Content */}
-                        <div className={`flex-1 min-h-0 overflow-y-auto py-2 no-scrollbar pl-5 pr-3 transition-[padding] duration-300`}>
+                        <div className={`flex-1 min-h-0 overflow-y-auto py-2 no-scrollbar pl-5 pr-3 transition-none`}>
 
                             {/* Departments Section */}
                             {pageVisibility['mini_company'] !== false && (
@@ -901,12 +919,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <div className="mb-1">
                                             <SidebarTooltip content={t('overview')} enabled={isCollapsed}>
                                                 <div
-                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-colors duration-100`}
                                                     onClick={() => !isCollapsed && toggleDepartment('mini_overview')}
                                                 >
                                                     <Layout size={17} weight="light" className="flex-shrink-0" />
                                                     <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('overview')}</span>
-                                                    <CaretDown size={13} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_overview') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                    <CaretDown size={13} weight="light" className={`text-gray-400 transition-colors duration-100 flex-shrink-0 ${expandedDepartments.has('mini_overview') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                                 </div>
                                             </SidebarTooltip>
                                             {expandedDepartments.has('mini_overview') && !isCollapsed && (
@@ -925,12 +943,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <div className="mb-1">
                                             <SidebarTooltip content={t('operations')} enabled={isCollapsed}>
                                                 <div
-                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-colors duration-100`}
                                                     onClick={() => !isCollapsed && toggleDepartment('mini_operations')}
                                                 >
                                                     <Factory size={17} weight="light" className="flex-shrink-0" />
                                                     <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('operations')}</span>
-                                                    <CaretDown size={13} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                    <CaretDown size={13} weight="light" className={`text-gray-400 transition-colors duration-100 flex-shrink-0 ${expandedDepartments.has('mini_operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                                 </div>
                                             </SidebarTooltip>
                                             {expandedDepartments.has('mini_operations') && !isCollapsed && (
@@ -952,12 +970,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <div className="mb-1">
                                             <SidebarTooltip content={t('finance')} enabled={isCollapsed}>
                                                 <div
-                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-colors duration-100`}
                                                     onClick={() => !isCollapsed && toggleDepartment('mini_finance')}
                                                 >
                                                     <Money size={17} weight="light" className="flex-shrink-0" />
                                                     <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('finance')}</span>
-                                                    <CaretDown size={13} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_finance') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                    <CaretDown size={13} weight="light" className={`text-gray-400 transition-colors duration-100 flex-shrink-0 ${expandedDepartments.has('mini_finance') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                                 </div>
                                             </SidebarTooltip>
                                             {expandedDepartments.has('mini_finance') && !isCollapsed && (
@@ -973,12 +991,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <div className="mb-1">
                                             <SidebarTooltip content={t('people')} enabled={isCollapsed}>
                                                 <div
-                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                    className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-colors duration-100`}
                                                     onClick={() => !isCollapsed && toggleDepartment('mini_people')}
                                                 >
                                                     <UsersThree size={17} weight="light" className="flex-shrink-0" />
                                                     <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('people')}</span>
-                                                    <CaretDown size={13} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('mini_people') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                    <CaretDown size={13} weight="light" className={`text-gray-400 transition-colors duration-100 flex-shrink-0 ${expandedDepartments.has('mini_people') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                                 </div>
                                             </SidebarTooltip>
                                             {expandedDepartments.has('mini_people') && !isCollapsed && (
@@ -998,12 +1016,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             <div className="mb-1">
                                                 <SidebarTooltip content={t('supply_chain')} enabled={isCollapsed}>
                                                     <div
-                                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-colors duration-100`}
                                                         onClick={() => !isCollapsed && toggleDepartment('supply_chain')}
                                                     >
                                                         <Package size={17} weight="light" className="flex-shrink-0" />
                                                         <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('supply_chain')}</span>
-                                                        <CaretDown size={13} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                        <CaretDown size={13} weight="light" className={`text-gray-400 transition-colors duration-100 flex-shrink-0 ${expandedDepartments.has('supply_chain') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                                     </div>
                                                 </SidebarTooltip>
                                                 {expandedDepartments.has('supply_chain') && !isCollapsed && (
@@ -1043,12 +1061,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             <div className="mb-1">
                                                 <SidebarTooltip content={t('manufacturing')} enabled={isCollapsed}>
                                                     <div
-                                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-colors duration-100`}
                                                         onClick={() => !isCollapsed && toggleDepartment('operations')}
                                                     >
                                                         <Factory size={17} weight="light" className="flex-shrink-0" />
                                                         <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('manufacturing')}</span>
-                                                        <CaretDown size={13} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                        <CaretDown size={13} weight="light" className={`text-gray-400 transition-colors duration-100 flex-shrink-0 ${expandedDepartments.has('operations') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                                     </div>
                                                 </SidebarTooltip>
                                                 {expandedDepartments.has('operations') && !isCollapsed && (
@@ -1078,12 +1096,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             <div className="mb-1">
                                                 <SidebarTooltip content={t('business')} enabled={isCollapsed}>
                                                     <div
-                                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-colors duration-100`}
                                                         onClick={() => !isCollapsed && toggleDepartment('business')}
                                                     >
                                                         <Buildings size={17} weight="light" className="flex-shrink-0" />
                                                         <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('business')}</span>
-                                                        <CaretDown size={13} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('business') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                        <CaretDown size={13} weight="light" className={`text-gray-400 transition-colors duration-100 flex-shrink-0 ${expandedDepartments.has('business') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                                     </div>
                                                 </SidebarTooltip>
                                                 {expandedDepartments.has('business') && !isCollapsed && (
@@ -1108,12 +1126,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             <div className="mb-1">
                                                 <SidebarTooltip content={t('business_support')} enabled={isCollapsed}>
                                                     <div
-                                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-all duration-300`}
+                                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2] transition-colors duration-100`}
                                                         onClick={() => !isCollapsed && toggleDepartment('business_support')}
                                                     >
                                                         <Users size={17} weight="light" className="flex-shrink-0" />
                                                         <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('business_support')}</span>
-                                                        <CaretDown size={13} weight="light" className={`text-gray-400 transition-all duration-300 flex-shrink-0 ${expandedDepartments.has('business_support') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
+                                                        <CaretDown size={13} weight="light" className={`text-gray-400 transition-colors duration-100 flex-shrink-0 ${expandedDepartments.has('business_support') ? 'rotate-180' : ''} ${isCollapsed ? 'max-w-0 opacity-0' : 'max-w-[20px] opacity-100'}`} />
                                                     </div>
                                                 </SidebarTooltip>
                                                 {expandedDepartments.has('business_support') && !isCollapsed && (
@@ -1187,7 +1205,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             e.stopPropagation();
                                             toggleWorkspaceMenu();
                                         }}
-                                        className={`font-outfit relative border border-gray-200 dark:border-monday-dark-border bg-gray-50/50 dark:bg-monday-dark-surface hover:bg-gray-100/80 dark:hover:bg-monday-dark-hover rounded-md py-1.5 flex items-center cursor-pointer transition-all duration-300 ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'}`}
+                                        className={`font-outfit relative border border-gray-200 dark:border-monday-dark-border bg-gray-50/50 dark:bg-monday-dark-surface hover:bg-gray-100/80 dark:hover:bg-monday-dark-hover rounded-md py-1.5 flex items-center cursor-pointer transition-colors duration-100 ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'}`}
                                     >
                                         <div className={`w-6 h-6 rounded-md bg-gradient-to-tr ${activeWorkspace.color} text-white flex items-center justify-center text-xs font-bold flex-shrink-0`}>
                                             {(() => {
@@ -1515,7 +1533,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         return (
                                             <div key={board.id} className="relative">
                                                 <div
-                                                    className={`font-outfit flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} py-1.5 rounded-sm cursor-pointer group transition-all duration-300 select-none
+                                                    className={`font-outfit flex items-center ${!isCollapsed ? 'gap-3 px-3' : 'gap-0 px-3'} py-1.5 rounded-sm cursor-pointer group transition-colors duration-100 select-none
                                                 ${isActive ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : 'hover:bg-white/40 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
                                                 ${isChild ? (dir === 'rtl' ? 'mr-3' : 'ml-3') : ''}
                                             `}
@@ -1611,7 +1629,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <SidebarTooltip content={t('local_marketplace')} enabled={isCollapsed}>
                                             <button
                                                 onClick={() => onNavigate('local_marketplace')}
-                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300 ${activeView === 'local_marketplace' ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}`}
+                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 ${activeView === 'local_marketplace' ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}`}
                                             >
                                                 <ShoppingCart size={17} weight="light" className="flex-shrink-0" />
                                                 <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('local_marketplace')}</span>
@@ -1622,7 +1640,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <SidebarTooltip content={t('foreign_marketplace')} enabled={isCollapsed}>
                                             <button
                                                 onClick={() => onNavigate('foreign_marketplace')}
-                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-all duration-300 ${activeView === 'foreign_marketplace' ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}`}
+                                                className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 ${activeView === 'foreign_marketplace' ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}`}
                                             >
                                                 <Globe size={17} weight="light" className="flex-shrink-0" />
                                                 <span className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('foreign_marketplace')}</span>
@@ -1652,7 +1670,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 {/* Collapse/Expand Button - OUTSIDE all content wrappers for guaranteed visibility */}
                 < button
                     onClick={onToggleCollapse}
-                    className={`absolute top-8 -right-3 rtl:right-auto rtl:-left-3 w-6 h-6 bg-white dark:bg-monday-dark-surface border border-gray-200 dark:border-monday-dark-border rounded-full flex items-center justify-center text-gray-400 hover:text-monday-blue shadow-md z-50 transition-all duration-300 ${isCollapsed ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100'}`
+                    className={`absolute top-8 -right-3 rtl:right-auto rtl:-left-3 w-6 h-6 bg-white dark:bg-monday-dark-surface border border-gray-200 dark:border-monday-dark-border rounded-full flex items-center justify-center text-gray-400 hover:text-monday-blue shadow-md z-50 transition-colors duration-100 ${isCollapsed ? 'opacity-100' : 'opacity-0 group-hover/sidebar:opacity-100'}`
                     }
                 >
                     {(isCollapsed && dir === 'ltr') || (!isCollapsed && dir === 'rtl') ? <CaretRight size={13} weight="light" /> : <CaretLeft size={13} weight="light" />}
@@ -1851,7 +1869,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             autoFocus
                                             value={newWorkspaceName}
                                             onChange={(e) => setNewWorkspaceName(e.target.value)}
-                                            className="w-full border border-gray-300 dark:border-monday-dark-border bg-white dark:bg-monday-dark-bg text-gray-800 dark:text-monday-dark-text rounded-sm p-3 text-[14px] focus:border-monday-blue focus:ring-2 focus:ring-monday-blue/20 outline-none transition-all duration-300 shadow-sm"
+                                            className="w-full border border-gray-300 dark:border-monday-dark-border bg-white dark:bg-monday-dark-bg text-gray-800 dark:text-monday-dark-text rounded-sm p-3 text-[14px] focus:border-monday-blue focus:ring-2 focus:ring-monday-blue/20 outline-none transition-colors duration-100 shadow-sm"
                                             placeholder={t('workspace_name_placeholder')}
                                         />
                                     </div>
@@ -1863,7 +1881,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             <button
                                                 type="button"
                                                 onClick={() => setIsWorkspaceIconPickerOpen(!isWorkspaceIconPickerOpen)}
-                                                className="w-full flex items-center justify-between p-3 rounded-sm border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-bg hover:border-monday-blue dark:hover:border-monday-blue transition-all duration-300 group"
+                                                className="w-full flex items-center justify-between p-3 rounded-sm border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-bg hover:border-monday-blue dark:hover:border-monday-blue transition-colors duration-100 group"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-sm bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300`}>
@@ -1901,7 +1919,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                                         setIsWorkspaceIconPickerOpen(false);
                                                                     }}
                                                                     className={`
-                                                                    aspect-square rounded-sm flex items-center justify-center transition-all duration-300
+                                                                    aspect-square rounded-sm flex items-center justify-center transition-colors duration-100
                                                                     bg-gradient-to-br ${gradient} text-white
                                                                     ${isSelected
                                                                             ? 'shadow-lg scale-110 ring-2 ring-offset-2 ring-blue-500'
@@ -1935,7 +1953,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         <button
                                             type="submit"
                                             disabled={!newWorkspaceName.trim()}
-                                            className="px-6 py-2.5 bg-gradient-to-r from-monday-blue to-blue-600 text-white text-[14px] font-medium rounded-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:shadow-none transition-all duration-300"
+                                            className="px-6 py-2.5 bg-gradient-to-r from-monday-blue to-blue-600 text-white text-[14px] font-medium rounded-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:shadow-none transition-colors duration-100"
                                         >
                                             {editingWorkspaceId ? t('save_changes') : t('create_workspace')}
                                         </button>
@@ -1951,7 +1969,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 {
                     isNewBoardModalOpen && (
                         <div className="fixed inset-0 z-[70] flex items-center justify-center pointer-events-none">
-                            <div className={`pointer-events-auto bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl transition-all duration-300 flex flex-col ${creationStep === 'template' ? 'w-[90vw] max-w-5xl h-[80vh]' : 'w-96 max-h-[90vh]'}`}>
+                            <div className={`pointer-events-auto bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl transition-colors duration-100 flex flex-col ${creationStep === 'template' ? 'w-[90vw] max-w-5xl h-[80vh]' : 'w-96 max-h-[90vh]'}`}>
                                 {/* Header */}
                                 <div className="p-5 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center bg-white dark:bg-monday-dark-surface rounded-t-xl flex-shrink-0">
                                     <div className="flex items-center gap-2">
@@ -2015,7 +2033,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                     autoFocus
                                                     value={newBoardName}
                                                     onChange={(e) => setNewBoardName(e.target.value)}
-                                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-monday-dark-hover border border-gray-200 dark:border-monday-dark-border rounded-xl focus:ring-2 focus:ring-monday-blue/20 focus:border-monday-blue transition-all duration-300 outline-none font-medium text-gray-900 dark:text-white placeholder:text-gray-400"
+                                                    className="w-full px-4 py-3 bg-gray-50 dark:bg-monday-dark-hover border border-gray-200 dark:border-monday-dark-border rounded-xl focus:ring-2 focus:ring-monday-blue/20 focus:border-monday-blue transition-colors duration-100 outline-none font-medium text-gray-900 dark:text-white placeholder:text-gray-400"
                                                     placeholder={t('board_name_placeholder')}
                                                 />
                                             </div>
@@ -2037,7 +2055,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                             type="button"
                                                             onClick={() => setSelectedLayout(tool.id as any)}
                                                             className={`
-                                                        relative flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 transition-all duration-300 group
+                                                        relative flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 transition-colors duration-100 group
                                                         ${selectedLayout === tool.id
                                                                     ? 'border-monday-blue bg-blue-50/50 dark:bg-blue-900/20 shadow-sm'
                                                                     : 'border-transparent bg-gray-50 dark:bg-monday-dark-hover hover:scale-[1.02]'}
@@ -2070,7 +2088,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                     <button
                                                         type="button"
                                                         onClick={() => setIsIconPickerOpen(!isIconPickerOpen)}
-                                                        className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-surface hover:border-gray-300 transition-all duration-300 group"
+                                                        className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-surface hover:border-gray-300 transition-colors duration-100 group"
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             {(() => {
@@ -2117,7 +2135,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                                                 setIsIconPickerOpen(false);
                                                                             }}
                                                                             className={`
-                                                                            aspect-square rounded-sm flex items-center justify-center transition-all duration-300
+                                                                            aspect-square rounded-sm flex items-center justify-center transition-colors duration-100
                                                                             bg-gradient-to-br ${gradient} text-white
                                                                             ${isSelected
                                                                                     ? 'shadow-lg scale-110 ring-2 ring-offset-2 ring-blue-500'
@@ -2146,7 +2164,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                 <button
                                                     type="submit"
                                                     disabled={!newBoardName.trim()}
-                                                    className="px-6 py-2.5 bg-gradient-to-r from-monday-blue to-blue-600 text-white text-[14px] font-medium rounded-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:shadow-none transition-all duration-300"
+                                                    className="px-6 py-2.5 bg-gradient-to-r from-monday-blue to-blue-600 text-white text-[14px] font-medium rounded-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:shadow-none transition-colors duration-100"
                                                 >
                                                     {t('create_board')}
                                                 </button>

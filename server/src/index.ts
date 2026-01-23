@@ -1,5 +1,7 @@
 import 'dotenv/config'; // Must be first
 import express from 'express';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -20,12 +22,16 @@ import aiRoutes from './routes/aiRoutes';
 import { requireAuth } from './middleware/auth';
 import { validateEnv, isProduction, getEnv } from './utils/env';
 import { prisma } from './lib/prisma';
+import { initializeSocket } from './socket/index';
 
 // Validate environment variables at startup
 validateEnv();
 
 const app = express();
 const PORT = parseInt(getEnv('PORT', '3001'), 10);
+
+// Create HTTP server for Socket.io
+const httpServer = createServer(app);
 
 // Security middleware
 app.use(helmet({
@@ -60,12 +66,12 @@ const corsOptions: cors.CorsOptions = {
         if (!origin) {
             return callback(null, true);
         }
-        // Check if origin is in allowed list
-        if (allowedOrigins.some(allowed => origin.includes(allowed.replace('https://', '').replace('http://', '')))) {
+        // In development, allow ALL localhost origins
+        if (!isProduction) {
             return callback(null, true);
         }
-        // In development, also allow localhost
-        if (!isProduction && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+        // Check if origin is in allowed list
+        if (allowedOrigins.some(allowed => origin.includes(allowed.replace('https://', '').replace('http://', '')))) {
             return callback(null, true);
         }
         callback(new Error('Not allowed by CORS'));
@@ -387,7 +393,22 @@ app.post('/api/activities', requireAuth, async (req: any, res) => {
 // Prefixed routes above replace these legacy ones.
 // All board/card/thread/room logic should stay in routes/*.ts files going forward.
 
-app.listen(PORT, () => {
+// Initialize Socket.io with CORS
+const io = new SocketIOServer(httpServer, {
+    cors: {
+        origin: isProduction
+            ? ['https://nabdchain.com', 'https://www.nabdchain.com', 'https://app.nabdchain.com', 'https://mobile.nabdchain.com']
+            : true, // Allow all origins in development
+        methods: ['GET', 'POST'],
+        credentials: true,
+    },
+});
+
+// Initialize socket event handlers
+initializeSocket(io);
+
+httpServer.listen(PORT, () => {
     console.log(`[Server] NABD API running on port ${PORT} (${isProduction ? 'production' : 'development'})`);
+    console.log(`[Socket.io] WebSocket server ready`);
 });
 

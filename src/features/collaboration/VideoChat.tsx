@@ -3,7 +3,29 @@ import React, { useEffect, useRef, useState } from 'react';
 import SimplePeer, { Instance } from 'simple-peer';
 import { useSocket } from '../../contexts/SocketContext';
 import { useUser } from '../../auth-adapter';
-import { Phone, PhoneSlash, Microphone, MicrophoneSlash, VideoCamera, VideoCameraSlash } from 'phosphor-react';
+import { Phone, PhoneSlash, Microphone, MicrophoneSlash, VideoCamera, VideoCameraSlash, Monitor, MonitorPlay } from 'phosphor-react';
+
+// Free STUN/TURN servers for WebRTC connectivity
+const ICE_SERVERS = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        // Free TURN server from Open Relay Project (for NAT traversal)
+        {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject',
+        },
+    ],
+};
 
 interface VideoChatProps {
     roomId: string;
@@ -40,12 +62,26 @@ export const VideoChat: React.FC<VideoChatProps> = ({ roomId }) => {
     const { user } = useUser();
     const [peers, setPeers] = useState<PeerNode[]>([]);
     const [stream, setStream] = useState<MediaStream | null>(null);
+    const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
     const [isJoined, setIsJoined] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
+    const [isJoining, setIsJoining] = useState(false);
 
     const userVideo = useRef<HTMLVideoElement>(null);
     const peersRef = useRef<PeerNode[]>([]); // Keep ref for event callbacks
+
+    // Set video stream when it changes
+    useEffect(() => {
+        if (userVideo.current && stream && !isScreenSharing) {
+            userVideo.current.srcObject = stream;
+            // Ensure video plays (needed for some browsers)
+            userVideo.current.play().catch(err => {
+                console.log('Video autoplay prevented:', err);
+            });
+        }
+    }, [stream, isJoined, isScreenSharing]);
 
     useEffect(() => {
         if (!socket) return;
@@ -55,19 +91,39 @@ export const VideoChat: React.FC<VideoChatProps> = ({ roomId }) => {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+            }
             // Destroy all peers
             peersRef.current.forEach(p => p.peer.destroy());
         };
-    }, []);
+    }, [stream, screenStream]);
 
     const joinCall = async () => {
+        setIsJoining(true);
         try {
+            console.log('[VideoChat] Joining call, socket status:', socket ? 'connected' : 'not connected');
+
+            if (!socket) {
+                alert('Socket not connected. Please refresh the page.');
+                setIsJoining(false);
+                return;
+            }
+
             const currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            console.log('[VideoChat] Got media stream:', currentStream.getTracks().map(t => t.kind));
+
             setStream(currentStream);
             setIsJoined(true);
-            if (userVideo.current) userVideo.current.srcObject = currentStream;
+            setIsJoining(false);
 
-            if (!socket) return;
+            // Use setTimeout to ensure video element is rendered before setting srcObject
+            setTimeout(() => {
+                if (userVideo.current) {
+                    userVideo.current.srcObject = currentStream;
+                    userVideo.current.play().catch(console.log);
+                }
+            }, 100);
 
             // Get all other users in the room to initiate connections
             socket.emit('join-room', {
@@ -142,8 +198,16 @@ export const VideoChat: React.FC<VideoChatProps> = ({ roomId }) => {
                 setPeers(newPeers);
             });
 
-        } catch (err) {
-            console.error("Failed to access media devices", err);
+        } catch (err: any) {
+            console.error("[VideoChat] Failed to join call:", err);
+            setIsJoining(false);
+            if (err.name === 'NotAllowedError') {
+                alert('Camera/microphone access denied. Please allow access and try again.');
+            } else if (err.name === 'NotFoundError') {
+                alert('No camera or microphone found. Please connect a device and try again.');
+            } else {
+                alert('Failed to join: ' + (err.message || 'Unknown error'));
+            }
         }
     };
 
@@ -152,6 +216,7 @@ export const VideoChat: React.FC<VideoChatProps> = ({ roomId }) => {
             initiator: true,
             trickle: false,
             stream,
+            config: ICE_SERVERS,
         });
 
         peer.on('signal', signal => {
@@ -172,6 +237,7 @@ export const VideoChat: React.FC<VideoChatProps> = ({ roomId }) => {
             initiator: false,
             trickle: false,
             stream,
+            config: ICE_SERVERS,
         });
 
         peer.on('signal', signal => {
@@ -197,28 +263,111 @@ export const VideoChat: React.FC<VideoChatProps> = ({ roomId }) => {
         }
     };
 
+    const toggleScreenShare = async () => {
+        if (isScreenSharing) {
+            // Stop screen sharing - revert to camera
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                setScreenStream(null);
+            }
+
+            // Replace video track with camera in all peers
+            if (stream) {
+                const videoTrack = stream.getVideoTracks()[0];
+                if (videoTrack) {
+                    peersRef.current.forEach(({ peer }) => {
+                        const sender = (peer as any)._pc?.getSenders()?.find((s: RTCRtpSender) => s.track?.kind === 'video');
+                        if (sender) {
+                            sender.replaceTrack(videoTrack);
+                        }
+                    });
+                }
+                if (userVideo.current) {
+                    userVideo.current.srcObject = stream;
+                }
+            }
+            setIsScreenSharing(false);
+        } else {
+            // Start screen sharing
+            try {
+                const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: 'always' } as any,
+                    audio: false,
+                });
+
+                setScreenStream(displayStream);
+
+                // Replace video track with screen share in all peers
+                const screenTrack = displayStream.getVideoTracks()[0];
+                peersRef.current.forEach(({ peer }) => {
+                    const sender = (peer as any)._pc?.getSenders()?.find((s: RTCRtpSender) => s.track?.kind === 'video');
+                    if (sender) {
+                        sender.replaceTrack(screenTrack);
+                    }
+                });
+
+                // Show screen share in local preview
+                if (userVideo.current) {
+                    userVideo.current.srcObject = displayStream;
+                }
+
+                // Handle when user stops sharing via browser UI
+                screenTrack.onended = () => {
+                    toggleScreenShare();
+                };
+
+                setIsScreenSharing(true);
+            } catch (err) {
+                console.error('Failed to start screen sharing:', err);
+            }
+        }
+    };
+
     const leaveCall = () => {
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
             setStream(null);
         }
+        if (screenStream) {
+            screenStream.getTracks().forEach(track => track.stop());
+            setScreenStream(null);
+        }
         peersRef.current.forEach(p => p.peer.destroy());
         setPeers([]);
         peersRef.current = [];
         setIsJoined(false);
-        // Also emit leave-room if we want to fully disconnect? 
-        // Or just stop sending video. For now, keep socket connection alive for board.
+        setIsScreenSharing(false);
+        // Emit leave-room to notify other users
+        if (socket) {
+            socket.emit('leave-room', { roomId, userId: user?.id || 'guest' });
+        }
     };
 
     if (!isJoined) {
         return (
-            <button
-                onClick={joinCall}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg transition-colors"
-            >
-                <VideoCamera size={20} />
-                <span>Join Live Session</span>
-            </button>
+            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40">
+                <button
+                    onClick={joinCall}
+                    disabled={isJoining}
+                    className={`flex items-center gap-3 px-8 py-5 text-white text-xl font-semibold rounded-2xl shadow-2xl transition-all border-2 border-blue-400 ${
+                        isJoining
+                            ? 'bg-blue-400 cursor-wait'
+                            : 'bg-blue-600 hover:bg-blue-700 hover:scale-105'
+                    }`}
+                >
+                    {isJoining ? (
+                        <>
+                            <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Connecting...</span>
+                        </>
+                    ) : (
+                        <>
+                            <VideoCamera size={32} weight="fill" />
+                            <span>Join Live Session</span>
+                        </>
+                    )}
+                </button>
+            </div>
         );
     }
 
@@ -240,13 +389,16 @@ export const VideoChat: React.FC<VideoChatProps> = ({ roomId }) => {
             </div>
 
             <div className="flex gap-2 pointer-events-auto bg-white dark:bg-gray-800 p-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-700">
-                <button onClick={toggleMute} className={`p-2 rounded-full ${isMuted ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                <button onClick={toggleMute} className={`p-2 rounded-full ${isMuted ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`} title={isMuted ? 'Unmute' : 'Mute'}>
                     {isMuted ? <MicrophoneSlash size={20} /> : <Microphone size={20} />}
                 </button>
-                <button onClick={toggleVideo} className={`p-2 rounded-full ${isVideoOff ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}>
+                <button onClick={toggleVideo} className={`p-2 rounded-full ${isVideoOff ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`} title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}>
                     {isVideoOff ? <VideoCameraSlash size={20} /> : <VideoCamera size={20} />}
                 </button>
-                <button onClick={leaveCall} className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700">
+                <button onClick={toggleScreenShare} className={`p-2 rounded-full ${isScreenSharing ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`} title={isScreenSharing ? 'Stop sharing' : 'Share screen'}>
+                    {isScreenSharing ? <MonitorPlay size={20} /> : <Monitor size={20} />}
+                </button>
+                <button onClick={leaveCall} className="p-2 rounded-full bg-red-600 text-white hover:bg-red-700" title="Leave call">
                     <PhoneSlash size={20} />
                 </button>
             </div>

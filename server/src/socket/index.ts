@@ -64,6 +64,7 @@ export const initializeSocket = (io: Server) => {
 
         // Board Drawing/Updates
         socket.on('draw-data', ({ roomId, data }: { roomId: string, data: any }) => {
+            console.log(`[Socket] draw-data from ${socket.id} to room ${roomId}:`, data);
             socket.to(roomId).emit('draw-data', data);
         });
 

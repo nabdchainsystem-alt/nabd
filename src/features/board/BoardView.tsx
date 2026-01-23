@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import {
     CaretDown as ChevronDown,
     DotsThree as MoreHorizontal,
@@ -88,6 +88,7 @@ import ExpensesInsights from '../mini_company/finance/ExpensesInsights';
 
 import { useUI } from '../../contexts/UIContext';
 import { useAppContext } from '../../contexts/AppContext';
+import { useAI } from '../../contexts/AIContext';
 import { SortableTab } from './components/SortableTab';
 
 interface BoardViewProps {
@@ -100,7 +101,7 @@ interface BoardViewProps {
     isDepartmentLayout?: boolean;
 }
 
-export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpdateBoard: initialOnUpdateBoard, onUpdateTasks: initialOnUpdateTasks, renderCustomView, dashboardSections, onNavigate, isDepartmentLayout }) => {
+export const BoardView: React.FC<BoardViewProps> = memo(({ board: initialBoard, onUpdateBoard: initialOnUpdateBoard, onUpdateTasks: initialOnUpdateTasks, renderCustomView, dashboardSections, onNavigate, isDepartmentLayout }) => {
     // Assuming useRoomBoardData is a custom hook that provides board data and task management functions
     // and that 'effectiveKey' is defined elsewhere or needs to be passed as a prop.
     // For this change, we'll assume 'effectiveKey' is available or can be derived from initialBoard.id
@@ -125,6 +126,38 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
     // Use the prop 'onUpdateBoard' if it exists, otherwise we might need a local handler if the hook provided one (it doesn't currently).
     // The hook provides 'setBoard'.
     const onUpdateBoard = initialOnUpdateBoard;
+
+    // NABD Brain - Auto-inject board context for AI awareness
+    const { setCurrentBoardContext, setCurrentRoomContext } = useAI();
+
+    React.useEffect(() => {
+        if (board) {
+            // Extract column names from board structure
+            const columns = board.columns?.map((col: any) => col.title || col.name || col.id) || [];
+
+            // Get sample tasks for AI context (limit to 10 for efficiency)
+            const sampleTasks = tasks?.slice(0, 10).map((task: any) => ({
+                id: task.id,
+                name: task.name || task.title,
+                status: task.status,
+                priority: task.priority,
+                dueDate: task.dueDate,
+            })) || [];
+
+            setCurrentBoardContext({
+                id: board.id,
+                name: board.name,
+                columns,
+                taskCount: tasks?.length || 0,
+                sampleTasks,
+            });
+        }
+
+        // Cleanup - clear context when leaving the board
+        return () => {
+            setCurrentBoardContext(null);
+        };
+    }, [board?.id, board?.name, tasks?.length, setCurrentBoardContext]);
 
     const storageKey = `board-active-view-${board.id}`;
 
@@ -1481,4 +1514,6 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
         </div >
     );
-};
+});
+
+BoardView.displayName = 'BoardView';
