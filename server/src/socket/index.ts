@@ -16,7 +16,7 @@ export const initializeSocket = (io: Server) => {
         console.log(`[Socket] Client connected: ${socket.id}`);
 
         // --- Room Management ---
-        socket.on('join-room', ({ roomId, userId, name, avatarUrl }) => {
+        socket.on('join-room', ({ roomId, userId, name, avatarUrl }: { roomId: string, userId: string, name?: string, avatarUrl?: string }) => {
             socket.join(roomId);
 
             if (!rooms[roomId]) rooms[roomId] = [];
@@ -37,7 +37,7 @@ export const initializeSocket = (io: Server) => {
             socket.emit('room-users', rooms[roomId]);
         });
 
-        socket.on('leave-room', ({ roomId, userId }) => {
+        socket.on('leave-room', ({ roomId, userId }: { roomId: string, userId: string }) => {
             handleLeave(socket, roomId);
         });
 
@@ -57,29 +57,29 @@ export const initializeSocket = (io: Server) => {
         // --- Real-time Features ---
 
         // Cursor Movement
-        socket.on('cursor-move', ({ roomId, x, y, userId }) => {
+        socket.on('cursor-move', ({ roomId, x, y, userId }: { roomId: string, x: number, y: number, userId: string }) => {
             // Broadcast to everyone else in the room
             socket.to(roomId).emit('cursor-move', { userId, x, y });
         });
 
         // Board Drawing/Updates
-        socket.on('draw-data', ({ roomId, data }) => {
+        socket.on('draw-data', ({ roomId, data }: { roomId: string, data: any }) => {
             socket.to(roomId).emit('draw-data', data);
         });
 
         // --- WebRTC Signaling (Simple-Peer) ---
         // userToCall is the socketID of the peer we want to connect to
         // signalData is the WebRTC offer/answer/candidate
-        socket.on('call-user', ({ userToCall, signalData, from, name }) => {
+        socket.on('call-user', ({ userToCall, signalData, from, name }: { userToCall: string, signalData: any, from: string, name?: string }) => {
             io.to(userToCall).emit('call-made', { signal: signalData, from, name });
         });
 
-        socket.on('answer-call', ({ to, signal }) => {
+        socket.on('answer-call', ({ to, signal }: { to: string, signal: any }) => {
             io.to(to).emit('call-answered', { signal, to: socket.id }); // 'to' here helps verify source
         });
 
         // Generic signal relay for updates (ICE candidates etc)
-        socket.on('peer-signal', ({ to, signal }) => {
+        socket.on('peer-signal', ({ to, signal }: { to: string, signal: any }) => {
             io.to(to).emit('peer-signal', { signal, from: socket.id });
         });
     });
