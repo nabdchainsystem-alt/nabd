@@ -6,6 +6,7 @@ import {
 } from 'phosphor-react';
 import { PortalPopup } from '../../../../components/ui/PortalPopup';
 import { Priority } from '../../types/boardTypes';
+import { useAppContext } from '../../../../contexts/AppContext';
 
 // DnD Kit Imports
 import {
@@ -161,6 +162,7 @@ p - 0.5 rounded - md
 
 const KPIContent = ({ widget }: { widget: Widget }) => {
     const isPositive = (widget.trend || 0) > 0;
+    const { t } = useAppContext();
 
     return (
         <div className="flex flex-col h-full justify-center gap-1">
@@ -172,18 +174,18 @@ const KPIContent = ({ widget }: { widget: Widget }) => {
                 </div>
                 {/* Mini Sparkline Visualization (Mock) */}
                 <div className="w-16 h-8 opacity-50 mb-0.5">
-                    <svg viewBox="0 0 100 40" className={`w - full h - full stroke - 2 fill - none ${isPositive ? 'stroke-emerald-500' : 'stroke-red-500'} `}>
+                    <svg viewBox="0 0 100 40" className={`w-full h-full stroke-2 fill-none ${isPositive ? 'stroke-emerald-500' : 'stroke-red-500'} `}>
                         <path d="M0 35 Q 25 35 35 20 T 70 20 T 100 5" />
                     </svg>
                 </div>
             </div>
 
             <div className="flex items-center gap-2">
-                <div className={`flex items - center gap - 0.5 text - [10px] font - bold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'} `}>
+                <div className={`flex items-center gap-0.5 text-[10px] font-bold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'} `}>
                     {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                     <span>{Math.abs(widget.trend || 0)}%</span>
                 </div>
-                <span className="text-[10px] text-gray-400">vs last month</span>
+                <span className="text-[10px] text-gray-400">{t('vs_last_month')}</span>
             </div>
         </div>
     );
@@ -228,9 +230,213 @@ const TableContent = ({ widget, boardId }: { widget: Widget, boardId: string }) 
     );
 };
 
+// --- Task Status Bar Chart ---
+const TaskStatusBarChart = ({ tasks, t }: { tasks: any[], t: (key: string) => string }) => {
+    const statusCounts = React.useMemo(() => {
+        const counts: Record<string, number> = {};
+        tasks.forEach(task => {
+            const status = task.status || 'Not Started';
+            counts[status] = (counts[status] || 0) + 1;
+        });
+        return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    }, [tasks]);
+
+    const maxCount = Math.max(...statusCounts.map(([, count]) => count), 1);
+
+    const getStatusColor = (status: string) => {
+        const statusLower = status.toLowerCase();
+        if (statusLower.includes('done') || statusLower.includes('complete')) return 'bg-emerald-500';
+        if (statusLower.includes('progress') || statusLower.includes('working')) return 'bg-blue-500';
+        if (statusLower.includes('review')) return 'bg-purple-500';
+        if (statusLower.includes('blocked') || statusLower.includes('stuck')) return 'bg-red-500';
+        return 'bg-gray-400';
+    };
+
+    return (
+        <div className="bg-white dark:bg-monday-dark-elevated rounded-xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2">
+                <BarChart size={16} className="text-blue-500" />
+                {t('tasks_by_status')}
+            </h3>
+            <div className="space-y-3">
+                {statusCounts.length === 0 ? (
+                    <p className="text-xs text-gray-400">{t('no_tasks')}</p>
+                ) : (
+                    statusCounts.slice(0, 5).map(([status, count]) => (
+                        <div key={status} className="flex items-center gap-3">
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-300 w-24 truncate">{status}</span>
+                            <div className="flex-1 h-6 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full ${getStatusColor(status)} rounded-full transition-all duration-500 flex items-center justify-end pr-2`}
+                                    style={{ width: `${(count / maxCount) * 100}%` }}
+                                >
+                                    <span className="text-[10px] font-bold text-white">{count}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+};
+
+// --- Priority Gauge Widget (Semi-circular) ---
+const PriorityGaugeWidget = ({ tasks, t }: { tasks: any[], t: (key: string) => string }) => {
+    const priorityCounts = React.useMemo(() => {
+        let high = 0, medium = 0, low = 0, none = 0;
+        tasks.forEach(task => {
+            const p = (task.priority || '').toLowerCase();
+            if (p === 'high' || p === 'urgent') high++;
+            else if (p === 'medium') medium++;
+            else if (p === 'low') low++;
+            else none++;
+        });
+        return { high, medium, low, none, total: tasks.length };
+    }, [tasks]);
+
+    const total = priorityCounts.total || 1;
+    const segments = [
+        { label: 'High', count: priorityCounts.high, color: '#ef4444', offset: 0 },
+        { label: 'Medium', count: priorityCounts.medium, color: '#f59e0b', offset: priorityCounts.high / total },
+        { label: 'Low', count: priorityCounts.low, color: '#22c55e', offset: (priorityCounts.high + priorityCounts.medium) / total },
+        { label: 'None', count: priorityCounts.none, color: '#d1d5db', offset: (priorityCounts.high + priorityCounts.medium + priorityCounts.low) / total },
+    ];
+
+    return (
+        <div className="bg-white dark:bg-monday-dark-elevated rounded-xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm flex flex-col items-center">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                <Gauge size={16} className="text-purple-500" />
+                {t('priority_breakdown')}
+            </h3>
+            <div className="text-xs text-gray-400 mb-2">{t('total_score')}</div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">{priorityCounts.total}</div>
+
+            {/* Semi-circular gauge using SVG */}
+            <div className="relative w-48 h-24 mb-2">
+                <svg viewBox="0 0 200 100" className="w-full h-full">
+                    {segments.map((seg, idx) => {
+                        const ratio = seg.count / total;
+                        const startAngle = 180 + (seg.offset * 180);
+                        const endAngle = startAngle + (ratio * 180);
+                        const startRad = (startAngle * Math.PI) / 180;
+                        const endRad = (endAngle * Math.PI) / 180;
+                        const x1 = 100 + 80 * Math.cos(startRad);
+                        const y1 = 100 + 80 * Math.sin(startRad);
+                        const x2 = 100 + 80 * Math.cos(endRad);
+                        const y2 = 100 + 80 * Math.sin(endRad);
+                        const largeArc = ratio > 0.5 ? 1 : 0;
+
+                        if (ratio === 0) return null;
+
+                        return (
+                            <path
+                                key={idx}
+                                d={`M ${x1} ${y1} A 80 80 0 ${largeArc} 1 ${x2} ${y2}`}
+                                fill="none"
+                                stroke={seg.color}
+                                strokeWidth="16"
+                                strokeLinecap="round"
+                            />
+                        );
+                    })}
+                </svg>
+            </div>
+
+            {/* Legend */}
+            <div className="flex flex-wrap gap-3 justify-center text-[10px]">
+                {segments.filter(s => s.count > 0).map((seg, idx) => (
+                    <div key={idx} className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: seg.color }} />
+                        <span className="text-gray-600 dark:text-gray-400">{seg.label}: {seg.count}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// --- Recent Tasks Widget ---
+const RecentTasksWidget = ({ tasks, t }: { tasks: any[], t: (key: string) => string }) => {
+    const recentTasks = React.useMemo(() => {
+        return [...tasks]
+            .filter(t => t.name)
+            .slice(0, 5);
+    }, [tasks]);
+
+    return (
+        <div className="bg-white dark:bg-monday-dark-elevated rounded-xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <Clock size={16} className="text-blue-500" />
+                {t('recent_tasks')}
+            </h3>
+            <div className="space-y-2">
+                {recentTasks.length === 0 ? (
+                    <p className="text-xs text-gray-400">{t('no_tasks')}</p>
+                ) : (
+                    recentTasks.map((task, idx) => (
+                        <div key={task.id || idx} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <div className={`w-2 h-2 rounded-full ${task.status?.toLowerCase().includes('done') ? 'bg-emerald-500' :
+                                    task.status?.toLowerCase().includes('progress') ? 'bg-blue-500' : 'bg-gray-300'
+                                }`} />
+                            <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">{task.name}</span>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+};
+
+// --- Upcoming Deadlines Widget ---
+const UpcomingDeadlinesWidget = ({ tasks, t }: { tasks: any[], t: (key: string) => string }) => {
+    const upcomingTasks = React.useMemo(() => {
+        const now = new Date();
+        return [...tasks]
+            .filter(task => {
+                if (!task.dueDate || task.status === 'Done') return false;
+                try {
+                    const dueDate = new Date(task.dueDate);
+                    return !isNaN(dueDate.getTime()) && dueDate >= now;
+                } catch { return false; }
+            })
+            .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+            .slice(0, 5);
+    }, [tasks]);
+
+    const formatDate = (dateStr: string) => {
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        } catch { return dateStr; }
+    };
+
+    return (
+        <div className="bg-white dark:bg-monday-dark-elevated rounded-xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <AlertCircle size={16} className="text-amber-500" />
+                {t('upcoming_deadlines')}
+            </h3>
+            <div className="space-y-2">
+                {upcomingTasks.length === 0 ? (
+                    <p className="text-xs text-gray-400">{t('no_tasks')}</p>
+                ) : (
+                    upcomingTasks.map((task, idx) => (
+                        <div key={task.id || idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">{task.name}</span>
+                            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 ml-2">{formatDate(task.dueDate)}</span>
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+};
+
 // --- Main Component ---
 export const OverviewView: React.FC<OverviewViewProps> = ({ boardId, tasks = [] }) => {
     const storageKey = `overview-widgets-${boardId}`;
+    const { t } = useAppContext();
 
     const [widgets, setWidgets] = useState<Widget[]>(() => {
         try {
@@ -243,10 +449,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ boardId, tasks = [] 
 
         // Default workspace
         return [
-            { id: 'kpi-total', type: 'kpi', title: 'Total Tasks', value: String(tasks.length), trend: 0, colSpan: 3 },
-            { id: 'kpi-urgent', type: 'kpi', title: 'Urgent Tasks', value: '0', trend: 0, colSpan: 3 },
-            { id: 'kpi-overdue', type: 'kpi', title: 'Overdue', value: '0', trend: 0, colSpan: 3 },
-            { id: 'reminders', type: 'kpi', title: 'Notifications', value: 'Board active', colSpan: 3 },
+            { id: 'kpi-total', type: 'kpi', title: t('total_tasks_kpi'), value: String(tasks.length), trend: 0, colSpan: 3 },
+            { id: 'kpi-urgent', type: 'kpi', title: t('urgent_tasks_kpi'), value: '0', trend: 0, colSpan: 3 },
+            { id: 'kpi-overdue', type: 'kpi', title: t('overdue_kpi'), value: '0', trend: 0, colSpan: 3 },
+            { id: 'reminders', type: 'kpi', title: t('notifications_kpi'), value: 'Board active', colSpan: 3 },
         ];
     });
 
@@ -361,30 +567,37 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ boardId, tasks = [] 
                         <div className="grid grid-cols-12 gap-6">
                             {widgets.map((widget) => {
                                 let content;
+                                // Create a display widget for rendering to ensure reactive titles
+                                const displayWidget = { ...widget };
+
                                 if (widget.id === 'kpi-total') {
-                                    content = <KPIContent widget={{ ...widget, value: String(tasks.length) }} />;
+                                    displayWidget.title = t('total_tasks_kpi');
+                                    content = <KPIContent widget={{ ...displayWidget, value: String(tasks.length) }} />;
                                 } else if (widget.id === 'kpi-urgent') {
-                                    content = <KPIContent widget={{ ...widget, title: 'Urgent Tasks', value: String(urgentCount) }} />;
+                                    displayWidget.title = t('urgent_tasks_kpi');
+                                    content = <KPIContent widget={{ ...displayWidget, value: String(urgentCount) }} />;
                                 } else if (widget.id === 'kpi-overdue') {
-                                    content = <KPIContent widget={{ ...widget, title: 'Overdue', value: String(overdueCount) }} />;
+                                    displayWidget.title = t('overdue_kpi');
+                                    content = <KPIContent widget={{ ...displayWidget, value: String(overdueCount) }} />;
                                 } else if (widget.id === 'reminders') {
+                                    displayWidget.title = t('notifications_kpi');
                                     content = (
                                         <div className="flex flex-col gap-2">
                                             {urgentCount > 0 ? (
                                                 <div className="flex items-center gap-2 text-rose-500 text-[11px] font-medium animate-pulse">
                                                     <AlertCircle size={14} />
-                                                    <span>{urgentCount} urgent items require attention</span>
+                                                    <span>{t('urgent_items_attention').replace('{count}', String(urgentCount))}</span>
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-2 text-emerald-500 text-[11px] font-medium">
                                                     <Bell size={14} />
-                                                    <span>All items are on track</span>
+                                                    <span>{t('all_items_on_track')}</span>
                                                 </div>
                                             )}
                                             {overdueCount > 0 && (
                                                 <div className="flex items-center gap-2 text-amber-500 text-[11px] font-medium">
                                                     <Clock size={14} />
-                                                    <span>{overdueCount} items are past their deadline</span>
+                                                    <span>{t('items_past_deadline').replace('{count}', String(overdueCount))}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -402,7 +615,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ boardId, tasks = [] 
                                 return (
                                     <SortableWidget
                                         key={widget.id}
-                                        widget={widget}
+                                        widget={displayWidget}
                                         onResize={handleResize}
                                         onDelete={handleDelete}
                                     >

@@ -75,6 +75,8 @@ export interface VaultMetadata {
     mimeType?: string;
     dimensions?: string;
     uploadedBy?: string;
+    icon?: string;
+    isGroup?: boolean;
 }
 
 export interface VaultItem {

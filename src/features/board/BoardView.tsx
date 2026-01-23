@@ -580,10 +580,8 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
 
     const handleContextMenu = (e: React.MouseEvent, viewId: BoardViewType) => {
         e.preventDefault();
-        // Disable context menu for all tabs in department layouts (dashboards shouldn't be deletable)
-        if (isDepartmentLayout) {
-            return;
-        }
+        // Allow context menu even in department layouts, users might want to pin/rename/duplicate
+        const rect = e.currentTarget.getBoundingClientRect();
         setContextMenu({
             x: e.clientX,
             y: e.clientY,
@@ -633,7 +631,6 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
         if (!contextMenu || !onUpdateBoard) return;
 
         const viewToDelete = contextMenu.viewId;
-        if ((viewToDelete as any) === 'overview') return; // Cannot delete overview
         const currentViews = board.availableViews || [];
 
         // Find index to remove only ONE instance if multiple exist
@@ -1262,7 +1259,7 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                                                 <div className="px-4 pb-3 border-b border-gray-100 dark:border-gray-800">
                                                     <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t('add_view')}</h3>
                                                 </div>
-                                                <div className="max-h-[450px] overflow-y-auto">
+                                                <div className="max-h-[450px] overflow-y-auto no-scrollbar">
                                                     {/* Simple Tools */}
                                                     <div className="px-4 pt-3 pb-1">
                                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t('simple_tools')}</span>
@@ -1389,79 +1386,94 @@ export const BoardView: React.FC<BoardViewProps> = ({ board: initialBoard, onUpd
                 contextMenu && (
                     <div
                         className="fixed inset-0 z-[9999]"
-                        style={{ pointerEvents: 'none' }}
+                        onClick={() => setContextMenu(null)}
+                        onContextMenu={(e) => {
+                            e.preventDefault();
+                            setContextMenu(null);
+                        }}
                     >
-                        {/* Transparent overlay for click-outside handled by global listener, but this ensures z-index stacking is correct */}
                         <div
                             ref={contextMenuRef}
-                            className="absolute bg-white/90 dark:bg-monday-dark-surface/90 backdrop-blur-xl border border-gray-200/50 dark:border-gray-800/50 rounded-xl shadow-2xl py-2 w-64 pointer-events-auto border border-blue-500/20"
-                            style={{ top: contextMenu.y, left: contextMenu.x }}
+                            className="absolute bg-white dark:bg-monday-dark-surface border border-gray-200 dark:border-gray-700 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1.5 w-56 animate-in fade-in zoom-in-95 duration-150"
+                            style={{
+                                top: contextMenu.y + 8,
+                                ...(document.dir === 'rtl' || document.documentElement.dir === 'rtl'
+                                    ? { right: window.innerWidth - contextMenu.x }
+                                    : { left: contextMenu.x }),
+                                pointerEvents: 'auto'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800 mb-1">
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('tab_options')}</span>
-                            </div>
-                            <div
-                                className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer text-gray-700 dark:text-gray-200 transition-colors"
-                                onClick={handlePinView}
-                            >
-                                <Pin size={16} />
-                                <span className="text-[13px] font-medium">
-                                    {(board.pinnedViews || []).includes(contextMenu.viewId) ? t('unpin_view') : t('pin_view')}
-                                </span>
-                            </div>
-                            <div className="my-1 border-t border-gray-100/50 dark:border-gray-800/50 mx-2"></div>
-
-                            <div
-                                className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer text-gray-700 dark:text-gray-200 transition-colors"
-                                onClick={handleRenameView}
-                            >
-                                <Pencil size={16} />
-                                <span className="text-[13px] font-medium">{t('rename_view')}</span>
-                            </div>
-                            <div
-                                className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer text-gray-700 dark:text-gray-200 transition-colors"
-                                onClick={handleDuplicateView}
-                            >
-                                <Copy size={16} />
-                                <span className="text-[13px] font-medium">{t('duplicate_view')}</span>
-                            </div>
-                            <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer text-gray-700 dark:text-gray-200 transition-colors" onClick={() => { navigator.clipboard.writeText(window.location.href); setContextMenu(null); }}>
-                                <Share2 size={16} />
-                                <span className="text-[13px] font-medium">{t('share_view')}</span>
-                            </div>
-                            <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer text-gray-700 dark:text-gray-200 transition-colors" onClick={() => setContextMenu(null)}>
-                                <Unlock size={16} />
-                                <span className="text-[13px] font-medium">{t('unlock_view')}</span>
+                            <div className="px-3.5 py-1.5 border-b border-gray-100/50 dark:border-gray-800/50 mb-1">
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{t('tab_options')}</span>
                             </div>
 
-                            <div className="my-1 border-t border-gray-100/50 dark:border-gray-800/50 mx-2"></div>
-
-                            <div className="flex items-center justify-between px-4 py-2.5 gap-2">
+                            <div className="px-1.5 space-y-0.5">
                                 <button
-                                    className="flex-1 flex items-center justify-center gap-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-xs font-semibold text-gray-600 dark:text-gray-400"
+                                    className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer text-slate-700 dark:text-slate-200 transition-all group"
+                                    onClick={handlePinView}
+                                >
+                                    <Pin size={16} weight={(board.pinnedViews || []).includes(contextMenu.viewId) ? "fill" : "regular"} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                    <span className="text-[13px] font-medium">
+                                        {(board.pinnedViews || []).includes(contextMenu.viewId) ? t('unpin_view') : t('pin_view')}
+                                    </span>
+                                </button>
+
+                                <button
+                                    className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer text-slate-700 dark:text-slate-200 transition-all group"
+                                    onClick={handleRenameView}
+                                >
+                                    <Pencil size={16} className="text-slate-400 group-hover:text-amber-500 transition-colors" />
+                                    <span className="text-[13px] font-medium">{t('rename_view')}</span>
+                                </button>
+
+                                <button
+                                    className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer text-slate-700 dark:text-slate-200 transition-all group"
+                                    onClick={handleDuplicateView}
+                                >
+                                    <Copy size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                    <span className="text-[13px] font-medium">{t('duplicate_view')}</span>
+                                </button>
+
+                                <button
+                                    className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer text-slate-700 dark:text-slate-200 transition-all group"
+                                    onClick={() => { navigator.clipboard.writeText(window.location.href); setContextMenu(null); }}
+                                >
+                                    <Share2 size={16} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                                    <span className="text-[13px] font-medium">{t('share_view')}</span>
+                                </button>
+                            </div>
+
+                            <div className="my-1 border-t border-gray-100/50 dark:border-gray-800/50 mx-2"></div>
+
+                            <div className="px-1.5 flex gap-1 items-center pb-1">
+                                <button
+                                    className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 rounded-lg text-[12px] font-semibold text-slate-500 dark:text-slate-400 transition-colors group"
                                     onClick={() => handleMoveView('left')}
                                 >
-                                    <ArrowLeftToLine size={14} /> {t('move_left')}
+                                    <ArrowLeftToLine size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+                                    <span>{t('left')}</span>
                                 </button>
                                 <button
-                                    className="flex-1 flex items-center justify-center gap-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md text-xs font-semibold text-gray-600 dark:text-gray-400"
+                                    className="flex-1 flex items-center justify-center gap-2 py-2 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 rounded-lg text-[12px] font-semibold text-slate-500 dark:text-slate-400 transition-colors group"
                                     onClick={() => handleMoveView('right')}
                                 >
-                                    {t('move_right')} <ArrowLeftToLine size={14} className="rotate-180" />
+                                    <span>{t('right')}</span>
+                                    <ArrowLeftToLine size={14} className="rotate-180 group-hover:translate-x-0.5 transition-transform" />
                                 </button>
                             </div>
 
                             <div className="my-1 border-t border-gray-100/50 dark:border-gray-800/50 mx-2"></div>
 
-                            {contextMenu.viewId !== 'overview' as any && (
-                                <div
-                                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 cursor-pointer text-gray-700 dark:text-gray-200 hover:text-rose-600 dark:hover:text-rose-400 transition-all font-medium"
+                            <div className="px-1.5 space-y-0.5">
+                                <button
+                                    className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-lg cursor-pointer text-slate-700 dark:text-slate-200 hover:text-rose-600 dark:hover:text-rose-400 transition-all group"
                                     onClick={handleDeleteView}
                                 >
-                                    <Trash2 size={16} />
-                                    <span className="text-[13px]">{t('delete_view')}</span>
-                                </div>
-                            )}
+                                    <Trash2 size={16} className="text-slate-400 group-hover:text-rose-500 transition-colors" />
+                                    <span className="text-[13px] font-medium">{t('delete_view')}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )

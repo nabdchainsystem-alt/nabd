@@ -25,6 +25,8 @@ export interface Conversation {
     lastMessage: Message | null;
     unreadCount: number;
     updatedAt: string;
+    status: 'active' | 'closed' | 'deleted';
+    creatorId?: string;
 }
 
 export const talkService = {
@@ -212,5 +214,23 @@ export const talkService = {
         });
         if (!response.ok) throw new Error('Failed to create file');
         return response.json();
+    },
+
+    async updateConversationStatus(token: string, conversationId: string, status: string): Promise<any> {
+        const response = await fetch(`${API_URL}/talk/conversations/${conversationId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ status })
+        });
+        if (!response.ok) throw new Error('Failed to update status');
+        return response.json();
+    },
+
+    async deleteConversation(token: string, conversationId: string): Promise<void> {
+        const response = await fetch(`${API_URL}/talk/conversations/${conversationId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to delete conversation');
     }
 };

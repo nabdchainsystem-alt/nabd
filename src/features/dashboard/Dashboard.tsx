@@ -737,7 +737,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
             {recentlyVisited.length > 0 ? (
               recentlyVisited
                 .map(item => {
-                  const imageUrl = getCardTheme(item.title, item.type);
+                  // Look up current board name to show updated name if board was renamed
+                  const currentBoard = item.boardId ? boards.find(b => b.id === item.boardId) : null;
+                  const displayTitle = currentBoard ? currentBoard.name : item.title;
+                  const imageUrl = getCardTheme(displayTitle, item.type);
                   const stats = getCardStats(item.boardId);
 
                   return (
@@ -752,7 +755,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
                       >
                         <img
                           src={imageUrl}
-                          alt={item.title}
+                          alt={displayTitle}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-60"></div>
@@ -780,7 +783,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
                       <div className="p-4 cursor-pointer flex-1 flex flex-col justify-between" onClick={() => onNavigate(item.type, item.boardId)}>
                         <div>
                           <h3 className="font-bold text-gray-900 mb-1 truncate text-base group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors">
-                            {item.boardId ? item.title : t(item.title.toLowerCase().replace(/ /g, '_'))}
+                            {item.boardId ? displayTitle : t(item.title.toLowerCase().replace(/ /g, '_'))}
                           </h3>
                           <p className="text-xs text-gray-500 dark:text-monday-dark-text-secondary mb-2 truncate">
                             {item.boardId ? t('project_board') : t('application_module')}
@@ -1264,8 +1267,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
               </section>
             </div>
 
-            {/* Quick Notes (Row 1, Col 3) */}
-            <section className="bg-white dark:bg-monday-dark-surface rounded-xl shadow-sm border border-gray-200 dark:border-monday-dark-border dark:border-monday-dark-border p-6 lg:col-span-1">
+            {/* Quick Notes - Spans 2 Rows to match Recent Activity */}
+            <section className="bg-white dark:bg-monday-dark-surface rounded-xl shadow-sm border border-gray-200 dark:border-monday-dark-border dark:border-monday-dark-border p-6 lg:col-span-1 lg:row-span-2 h-full flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-bold text-gray-800 dark:text-monday-dark-text flex items-center gap-2">
                   <NotePencil size={24} weight="light" className="text-yellow-500" />
@@ -1285,32 +1288,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onBoardCreated, recentlyVi
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">{t('use_quick_notes_hint')}</p>
               <textarea
-                className="w-full h-32 p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-sm text-gray-800 dark:text-monday-dark-text placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-yellow-300 resize-none"
+                className="w-full flex-1 min-h-[280px] p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-sm text-gray-800 dark:text-monday-dark-text placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-yellow-300 resize-none"
                 placeholder={t('jot_down')}
                 value={quickNote}
                 onChange={(e) => setQuickNote(e.target.value)}
               />
-            </section>
-
-            {/* Reminders (Row 2, Col 3) */}
-            <section className="bg-white dark:bg-monday-dark-surface rounded-xl shadow-sm border border-gray-200 dark:border-monday-dark-border dark:border-monday-dark-border p-6 lg:col-span-1">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-gray-800 dark:text-monday-dark-text flex items-center gap-2">
-                  <Bell size={24} weight="light" className="text-purple-500" />
-                  {t('reminders')}
-                </h2>
-                <button className="text-blue-600 hover:text-blue-700 text-xs font-medium">{t('clear')}</button>
-              </div>
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <input className="mt-1 h-3.5 w-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" type="checkbox" />
-                  <span className="text-sm text-gray-600 dark:text-monday-dark-text-secondary group-hover:text-gray-900">{t('email_update_to_client')}</span>
-                </label>
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <input className="mt-1 h-3.5 w-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500" type="checkbox" />
-                  <span className="text-sm text-gray-600 dark:text-monday-dark-text-secondary group-hover:text-gray-900">{t('check_in_with_design')}</span>
-                </label>
-              </div>
             </section>
 
 

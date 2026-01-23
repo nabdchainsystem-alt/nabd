@@ -235,6 +235,13 @@ const translations: Translations = {
   syncing_emails: { en: 'Syncing emails...', ar: 'جاري مزامنة البريد...' },
   no_emails_found: { en: 'No emails found', ar: 'لم يتم العثور على رسائل' },
   select_item_to_read: { en: 'Select an item to read', ar: 'اختر عنصراً للقراءة' },
+  connect_inbox_title: { en: 'Connect your Inbox', ar: 'ربط بريدك الوارد' },
+  connect_inbox_desc: { en: 'Sync your work email to manage everything in one place. We support Gmail and Outlook.', ar: 'قم بمزامنة بريد العمل الخاص بك لإدارة كل شيء في مكان واحد. نحن ندعم Gmail و Outlook.' },
+  connect_with_google: { en: 'Connect with Google', ar: 'الاتصال بـ Google' },
+  connect_with_outlook: { en: 'Connect with Outlook', ar: 'الاتصال بـ Outlook' },
+  connect_terms: { en: 'By connecting, you agree to grant read/write access to your emails.', ar: 'من خلال الاتصال، فإنك توافق على منح حق الوصول للقراءة/الكتابة لرسائل بريدك الإلكتروني.' },
+  must_be_logged_in: { en: 'You must be logged in to connect an account.', ar: 'يجب عليك تسجيل الدخول لربط حساب.' },
+  failed_init_connection: { en: 'Failed to initialize connection', ar: 'فشل بدء الاتصال' },
   activity: { en: 'Activity', ar: 'النشاط' },
   task: { en: 'Task', ar: 'مهمة' },
   ai: { en: 'AI', ar: 'ذكاء اصطناعي' },
@@ -315,6 +322,28 @@ const translations: Translations = {
   recurring_desc: { en: 'Repeat work patterns', ar: 'تكرار أنماط العمل' },
   timeline_desc: { en: 'Visual project timeline', ar: 'جدول زمني مرئي للمشروع' },
   whiteboard_desc: { en: 'Collaborative mind map', ar: 'خريطة ذهنية تعاونية' },
+  everything_in_one_place: { en: 'Everything in one place', ar: 'كل شيء في مكان واحد' },
+
+  // Overview Tab Metrics & Messages
+  total_tasks_kpi: { en: 'Total Tasks', ar: 'إجمالي المهام' },
+  urgent_tasks_kpi: { en: 'Urgent Tasks', ar: 'المهام العاجلة' },
+  overdue_kpi: { en: 'Overdue', ar: 'متأخرة' },
+  notifications_kpi: { en: 'Notifications', ar: 'الإشعارات' },
+  vs_last_month: { en: 'vs last month', ar: 'مقارنة بالشهر الماضي' },
+  all_items_on_track: { en: 'All items are on track', ar: 'جميع المهام في المسار الصحيح' },
+  urgent_items_attention: { en: '{count} urgent items require attention', ar: '{count} مهمة عاجلة تحتاج انتباه' },
+  items_past_deadline: { en: '{count} items are past their deadline', ar: '{count} مهمة تجاوزت الموعد النهائي' },
+  board_active: { en: 'Board active', ar: 'اللوحة نشطة' },
+  dashboards_page_title: { en: 'Dashboards', ar: 'لوحات المعلومات' },
+  dashboards_page_desc: { en: 'Centralized view of all department dashboards', ar: 'عرض مركزي لجميع لوحات معلومات الأقسام' },
+
+  // Overview Charts
+  tasks_by_status: { en: 'Tasks by Status', ar: 'المهام حسب الحالة' },
+  priority_breakdown: { en: 'Priority Breakdown', ar: 'توزيع الأولويات' },
+  total_score: { en: 'Total Score', ar: 'النتيجة الإجمالية' },
+  recent_tasks: { en: 'Recent Tasks', ar: 'المهام الأخيرة' },
+  upcoming_deadlines: { en: 'Upcoming Deadlines', ar: 'المواعيد النهائية القادمة' },
+  no_tasks: { en: 'No tasks', ar: 'لا توجد مهام' },
 
   // Board Settings & Context Menu
   board_settings: { en: 'Board Settings', ar: 'إعدادات اللوحة' },
@@ -502,6 +531,13 @@ const translations: Translations = {
   upload_to_chat: { en: 'Upload to Chat', ar: 'رفع إلى الدردشة' },
   file_details: { en: 'File Details', ar: 'تفاصيل الملف' },
   view_file: { en: 'View File', ar: 'عرض الملف' },
+  close_chat: { en: 'Close Chat', ar: 'إغلاق المحادثة' },
+  delete_chat: { en: 'Delete Chat', ar: 'حذف المحادثة' },
+  chat_closed_owner: { en: 'You have closed this chat.', ar: 'لقد قمت بإغلاق هذه المحادثة.' },
+  chat_closed_participant: { en: 'The team member who created this chat has closed it. You can\'t send messages anymore.', ar: 'قام العضو الذي أنشأ هذه المحادثة بإغلاقها. لا يمكنك إرسال رسائل بعد الآن.' },
+  chat_deleted_participant: { en: 'This chat has been deleted by the owner.', ar: 'تم حذف هذه المحادثة من قبل المالك.' },
+  confirm_close_chat: { en: 'Are you sure you want to close this chat? Participants will no longer be able to send messages.', ar: 'هل أنت متأكد أنك تريد إغلاق هذه المحادثة؟ لن يتمكن المشاركون من إرسال رسائل بعد الآن.' },
+  confirm_delete_chat: { en: 'Are you sure you want to delete this chat? This action cannot be undone.', ar: 'هل أنت متأكد أنك تريد حذف هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.' },
 
   // Vault Page (unique entries only)
   no_folders_yet: { en: 'No folders yet', ar: 'لا توجد مجلدات بعد' },
@@ -682,6 +718,9 @@ const translations: Translations = {
   date: { en: 'Date', ar: 'التاريخ' },
   size: { en: 'Size', ar: 'الحجم' },
   sort_type: { en: 'Type', ar: 'النوع' },
+  create_new_group: { en: 'Create New Group', ar: 'إنشاء مجموعة جديدة' },
+  files: { en: 'Files', ar: 'الملفات' },
+  trash: { en: 'Trash', ar: 'المحذوفات' },
 
   // Supply Chain - General
   warehouse_dashboards: { en: 'Warehouse Dashboards', ar: 'لوحات المستودع' },

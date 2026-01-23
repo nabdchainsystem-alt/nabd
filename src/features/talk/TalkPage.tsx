@@ -130,10 +130,48 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
             const message = await talkService.sendMessage(token, selectedConversation.id, newMessage.trim());
             setMessages(prev => [...prev, message]);
             setNewMessage('');
+            await loadConversations(); // Refresh last message in sidebar
         } catch (error) {
             console.error('Failed to send message:', error);
         } finally {
             setIsSending(false);
+        }
+    };
+
+    // Close/Delete Chat
+    const handleCloseChat = async () => {
+        if (!selectedConversation) return;
+        if (!window.confirm(t('confirm_close_chat'))) return;
+
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            await talkService.updateConversationStatus(token, selectedConversation.id, 'closed');
+            await loadConversations();
+            // Refresh selected conversation to get updated status
+            const updatedConvs = await talkService.getConversations(token);
+            const updated = updatedConvs.find(c => c.id === selectedConversation.id);
+            if (updated) setSelectedConversation(updated);
+        } catch (error) {
+            console.error('Failed to close chat:', error);
+        }
+    };
+
+    const handleDeleteChat = async () => {
+        if (!selectedConversation) return;
+        if (!window.confirm(t('confirm_delete_chat'))) return;
+
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            await talkService.deleteConversation(token, selectedConversation.id);
+            setSelectedConversation(null);
+            setMessages([]);
+            await loadConversations();
+        } catch (error) {
+            console.error('Failed to delete chat:', error);
         }
     };
 
@@ -286,6 +324,33 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                             }`}>
                             {isUserOnline(selectedConversation.participants[0].lastActiveAt) ? t('online') : t('offline')}
                         </span>
+                    )}
+                    {selectedConversation?.status !== 'active' && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 uppercase tracking-wider">
+                            {selectedConversation?.status === 'closed' ? t('closed') : t('deleted')}
+                        </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    {selectedConversation && selectedConversation.creatorId === user?.id && selectedConversation.status === 'active' && (
+                        <>
+                            <button
+                                onClick={handleCloseChat}
+                                className="px-3 py-1.5 text-xs font-bold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors border border-amber-200 dark:border-amber-800 flex items-center gap-1.5"
+                                title={t('close_chat')}
+                            >
+                                <ChatCircle size={14} weight="bold" />
+                                {t('close_chat')}
+                            </button>
+                            <button
+                                onClick={handleDeleteChat}
+                                className="px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-800 flex items-center gap-1.5"
+                                title={t('delete_chat')}
+                            >
+                                <span className="material-icons text-[14px]">delete</span>
+                                {t('delete_chat')}
+                            </button>
+                        </>
                     )}
                 </div>
             </header>
@@ -497,6 +562,30 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                             {/* Messages */}
                                             {group.messages.map((msg) => {
                                                 const isOwnMessage = msg.senderId === user?.id;
+                                                const isSystemMessage = msg.content.startsWith('SYSTEM_ALERT:');
+
+                                                if (isSystemMessage) {
+                                                    const alertType = msg.content.split(':')[1];
+                                                    let alertText = '';
+                                                    if (alertType === 'status_closed') {
+                                                        alertText = selectedConversation?.creatorId === user?.id
+                                                            ? t('chat_closed_owner')
+                                                            : t('chat_closed_participant');
+                                                    } else if (alertType === 'status_deleted') {
+                                                        alertText = t('chat_deleted_participant');
+                                                    }
+
+                                                    return (
+                                                        <div key={msg.id} className="flex justify-center my-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 px-6 py-3 rounded-2xl flex items-center gap-3 text-amber-800 dark:text-amber-400 max-w-md shadow-sm">
+                                                                <span className="material-icons text-amber-500">info</span>
+                                                                <p className="text-xs font-medium text-center leading-relaxed">
+                                                                    {alertText || msg.content}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
 
                                                 return (
                                                     <div
@@ -538,26 +627,32 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
 
                             {/* Input Area */}
                             <form onSubmit={handleSendMessage} className="p-4 bg-background-light dark:bg-background-dark border-t border-border-light dark:border-border-dark">
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="text"
-                                        value={newMessage}
-                                        onChange={(e) => setNewMessage(e.target.value)}
-                                        placeholder={`${t('message')} ${getConversationName(selectedConversation)}...`}
-                                        className="flex-1 px-4 py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={!newMessage.trim() || isSending}
-                                        className="p-3 bg-primary text-white rounded-xl hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        {isSending ? (
-                                            <CircleNotch size={20} className="animate-spin" />
-                                        ) : (
-                                            <PaperPlaneRight size={20} weight="fill" />
-                                        )}
-                                    </button>
-                                </div>
+                                {selectedConversation?.status === 'active' ? (
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="text"
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            placeholder={`${t('message')} ${getConversationName(selectedConversation)}...`}
+                                            className="flex-1 px-4 py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!newMessage.trim() || isSending}
+                                            className="p-3 bg-primary text-white rounded-xl hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {isSending ? (
+                                                <CircleNotch size={20} className="animate-spin" />
+                                            ) : (
+                                                <PaperPlaneRight size={20} weight="fill" />
+                                            )}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 text-gray-500 text-sm italic">
+                                        {selectedConversation?.status === 'closed' ? t('chat_closed_participant') : t('chat_deleted_participant')}
+                                    </div>
+                                )}
                             </form>
                         </>
                     )}
@@ -578,10 +673,8 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold">
                                 {newConvStep === 1
-                                    ? (language === 'ar' ? 'بدء محادثة جديدة' : 'Start New Conversation')
-                                    : (newConvType === 'dm'
-                                        ? (language === 'ar' ? 'محادثة خاصة' : 'Private Talk')
-                                        : (language === 'ar' ? 'مجموعة محادثة' : 'Talk Group'))
+                                    ? t('start_new_conversation')
+                                    : (newConvType === 'dm' ? t('private_talk') : t('talk_group'))
                                 }
                             </h3>
                             <button
@@ -606,10 +699,10 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                     </div>
                                     <div className="space-y-1">
                                         <div className="font-bold text-gray-900 dark:text-gray-100">
-                                            {language === 'ar' ? 'محادثة خاصة' : 'Private Talk'}
+                                            {t('private_talk')}
                                         </div>
                                         <div className="text-xs text-gray-500">
-                                            {language === 'ar' ? 'تحدث مع أحد أعضاء الفريق' : 'Chat with a team member'}
+                                            {t('chat_with_member')}
                                         </div>
                                     </div>
                                 </button>
@@ -626,10 +719,10 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                     </div>
                                     <div className="space-y-1">
                                         <div className="font-bold text-gray-900 dark:text-gray-100">
-                                            {language === 'ar' ? 'مجموعة محادثة' : 'Talk Group'}
+                                            {t('talk_group')}
                                         </div>
                                         <div className="text-xs text-gray-500">
-                                            {language === 'ar' ? 'دردشة جماعية للمشاريع' : 'Group chat for projects'}
+                                            {t('group_chat_projects')}
                                         </div>
                                     </div>
                                 </button>
@@ -637,12 +730,12 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                         ) : newConvType === 'dm' ? (
                             <>
                                 <p className="text-sm text-gray-500 mb-4 text-start">
-                                    {language === 'ar' ? 'اختر عضواً لبدء محادثة' : 'Select a team member to start a conversation'}
+                                    {t('select_member_to_start')}
                                 </p>
                                 <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                                     {teamMembers.length === 0 ? (
                                         <p className="text-center text-gray-500 py-4">
-                                            {language === 'ar' ? 'لا يوجد أعضاء بعد.' : 'No team members yet.'}
+                                            {t('no_members_yet')}
                                         </p>
                                     ) : (
                                         teamMembers.map((member) => (
@@ -673,7 +766,7 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                         onClick={() => setNewConvStep(1)}
                                         className="w-full py-2.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm font-medium"
                                     >
-                                        {language === 'ar' ? 'رجوع' : 'Back'}
+                                        {t('back')}
                                     </button>
                                 </div>
                             </>
@@ -681,13 +774,13 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block text-start">
-                                        {language === 'ar' ? 'اسم المجموعة' : 'Group Name'}
+                                        {t('group_name_label')}
                                     </label>
                                     <input
                                         type="text"
                                         value={newChannelName}
                                         onChange={(e) => setNewChannelName(e.target.value)}
-                                        placeholder={language === 'ar' ? 'أدخل اسم المجموعة...' : 'Enter group name...'}
+                                        placeholder={t('group_name_placeholder')}
                                         className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                                         autoFocus
                                         onKeyDown={(e) => e.key === 'Enter' && handleCreateChannel()}
@@ -698,14 +791,14 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                         onClick={() => setNewConvStep(1)}
                                         className="flex-1 py-2.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm font-medium"
                                     >
-                                        {language === 'ar' ? 'رجوع' : 'Back'}
+                                        {t('back')}
                                     </button>
                                     <button
                                         disabled={!newChannelName.trim() || isCreating}
                                         onClick={handleCreateChannel}
                                         className="flex-1 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors text-sm font-bold flex items-center justify-center gap-2"
                                     >
-                                        {isCreating ? <CircleNotch size={16} className="animate-spin" /> : (language === 'ar' ? 'إنشاء' : 'Create')}
+                                        {isCreating ? <CircleNotch size={16} className="animate-spin" /> : t('create')}
                                     </button>
                                 </div>
                             </div>

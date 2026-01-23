@@ -55,22 +55,24 @@ router.get('/conversations', requireAuth, async (req: any, res: Response) => {
         });
 
         // Format response
-        const conversations = participations.map(p => {
+        const conversations = participations.map((p: any) => {
             const conv = p.conversation;
-            const otherParticipants = conv.participants
-                .filter(part => part.userId !== userId)
-                .map(part => part.user);
+            const otherParticipants = (conv.participants || [])
+                .filter((part: any) => part.userId !== userId)
+                .map((part: any) => part.user);
 
             // Count unread messages
             const lastReadAt = p.lastReadAt;
             const unreadCount = lastReadAt
-                ? conv.messages.filter(m => new Date(m.createdAt) > new Date(lastReadAt)).length
-                : conv.messages.length;
+                ? (conv.messages || []).filter((m: any) => new Date(m.createdAt) > new Date(lastReadAt)).length
+                : (conv.messages || []).length;
 
             return {
                 id: conv.id,
                 type: conv.type,
                 name: conv.type === 'channel' ? conv.name : null,
+                status: (conv as any).status || 'active',
+                creatorId: (conv as any).creatorId,
                 participants: otherParticipants,
                 lastMessage: conv.messages[0] || null,
                 unreadCount,
@@ -82,6 +84,64 @@ router.get('/conversations', requireAuth, async (req: any, res: Response) => {
     } catch (error) {
         console.error('Get conversations error:', error);
         res.status(500).json({ error: 'Failed to get conversations' });
+    }
+});
+
+// Update conversation status (Close/Delete)
+router.patch('/conversations/:id/status', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+        const { status } = z.object({ status: z.enum(['active', 'closed', 'deleted']) }).parse(req.body);
+
+        const conv = await (prisma.conversation as any).findUnique({ where: { id } });
+        if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+
+        // Only creator can change status
+        if (conv.creatorId && conv.creatorId !== userId) {
+            return res.status(403).json({ error: 'Only the creator can manage this chat' });
+        }
+
+        const updated = await (prisma.conversation as any).update({
+            where: { id },
+            data: { status }
+        });
+
+        // If closed or deleted, add a system message
+        const statusText = status === 'closed' ? 'closed' : 'deleted';
+        await prisma.message.create({
+            data: {
+                conversationId: id,
+                senderId: userId, // Creator is the sender of the system alert for now
+                content: `SYSTEM_ALERT:status_${statusText}`
+            }
+        });
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Update status error:', error);
+        res.status(500).json({ error: 'Failed to update conversation status' });
+    }
+});
+
+// Delete a conversation (hard delete for creator)
+router.delete('/conversations/:id', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+
+        const conv = await (prisma.conversation as any).findUnique({ where: { id } });
+        if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+
+        if (conv.creatorId && conv.creatorId !== userId) {
+            return res.status(403).json({ error: 'Only the creator can delete this chat' });
+        }
+
+        await (prisma.conversation as any).delete({ where: { id } });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Delete conversation error:', error);
+        res.status(500).json({ error: 'Failed to delete conversation' });
     }
 });
 
@@ -131,23 +191,24 @@ router.post('/conversations/dm', requireAuth, async (req: any, res: Response) =>
         });
 
         if (existingConversation) {
-            const otherParticipants = existingConversation.participants
-                .filter(p => p.userId !== userId)
-                .map(p => p.user);
+            const existingOtherParticipants = (existingConversation as any).participants
+                .filter((p: any) => p.userId !== userId)
+                .map((p: any) => p.user);
 
             return res.json({
                 id: existingConversation.id,
                 type: existingConversation.type,
                 name: null,
-                participants: otherParticipants,
+                participants: existingOtherParticipants,
                 isNew: false
             });
         }
 
         // Create new DM conversation
-        const newConversation = await prisma.conversation.create({
+        const newDMConversation = await prisma.conversation.create({
             data: {
                 type: 'dm',
+                creatorId: userId, // Track creator
                 participants: {
                     create: [
                         { userId },
@@ -172,15 +233,15 @@ router.post('/conversations/dm', requireAuth, async (req: any, res: Response) =>
             }
         });
 
-        const otherParticipants = newConversation.participants
-            .filter(p => p.userId !== userId)
-            .map(p => p.user);
+        const newDMOtherParticipants = (newDMConversation as any).participants
+            .filter((p: any) => p.userId !== userId)
+            .map((p: any) => p.user);
 
         res.json({
-            id: newConversation.id,
-            type: newConversation.type,
+            id: newDMConversation.id,
+            type: newDMConversation.type,
             name: null,
-            participants: otherParticipants,
+            participants: newDMOtherParticipants,
             isNew: true
         });
     } catch (error) {
@@ -199,10 +260,11 @@ router.post('/conversations/channel', requireAuth, async (req: any, res: Respons
         const { name } = z.object({ name: z.string().min(1) }).parse(req.body);
 
         // Create new channel conversation
-        const newConversation = await prisma.conversation.create({
+        const newChannelConversation = await prisma.conversation.create({
             data: {
                 type: 'channel',
                 name,
+                creatorId: userId, // Track creator
                 participants: {
                     create: [
                         { userId }
@@ -226,17 +288,17 @@ router.post('/conversations/channel', requireAuth, async (req: any, res: Respons
             }
         });
 
-        const otherParticipants = newConversation.participants
-            .filter(p => p.userId !== userId)
-            .map(p => p.user);
+        const newChannelOtherParticipants = (newChannelConversation as any).participants
+            .filter((p: any) => p.userId !== userId)
+            .map((p: any) => p.user);
 
         res.json({
-            id: newConversation.id,
-            type: newConversation.type,
-            name: newConversation.name,
-            participants: otherParticipants,
+            id: (newChannelConversation as any).id,
+            type: (newChannelConversation as any).type,
+            name: (newChannelConversation as any).name,
+            participants: newChannelOtherParticipants,
             unreadCount: 0,
-            updatedAt: newConversation.updatedAt
+            updatedAt: (newChannelConversation as any).updatedAt
         });
     } catch (error) {
         if (error instanceof z.ZodError) {

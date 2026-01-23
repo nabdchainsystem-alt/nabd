@@ -5,9 +5,10 @@ import { VaultSidebar } from './components/VaultSidebar';
 import { VaultGrid } from './components/VaultGrid';
 import { VaultList } from './components/VaultList';
 import { VaultEmptyState } from './components/VaultEmptyState';
-import { VaultItem } from './types';
+import { VaultItem, FolderMetadata } from './types';
 import { CreateFolderModal } from './components/CreateFolderModal';
 import { CreateLinkModal } from './components/CreateLinkModal';
+import { CreateGroupModal } from './components/CreateGroupModal';
 import { RenameItemModal } from './components/RenameItemModal';
 import { MoveToFolderModal } from './components/MoveToFolderModal';
 import { vaultService } from '../../services/vaultService';
@@ -28,6 +29,7 @@ export const VaultView: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
     const [isCreateLinkModalOpen, setIsCreateLinkModalOpen] = useState(false);
+    const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
@@ -216,6 +218,7 @@ export const VaultView: React.FC = () => {
     const handleItemClick = (item: VaultItem) => {
         if (item.type === 'folder') {
             setCurrentFolderId(item.id);
+            setActiveCategory('all'); // Go to all items within folder
             setSearchQuery(''); // Clear search on navigation
         } else {
             storageLogger.info('Clicked item:', item);
@@ -299,6 +302,29 @@ export const VaultView: React.FC = () => {
             setIsCreateLinkModalOpen(false);
         } catch (e) {
             storageLogger.error("Failed to create link", e);
+        }
+    };
+
+    const handleCreateGroup = async (data: { name: string; icon: string; color: string }) => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            await vaultService.create(token, {
+                title: data.name,
+                type: 'folder',
+                userId: userId || "user-1",
+                folderId: undefined, // Always at root
+                color: data.color,
+                metadata: {
+                    icon: data.icon,
+                    isGroup: true
+                }
+            });
+            await loadItems();
+            setIsCreateGroupModalOpen(false);
+        } catch (e) {
+            storageLogger.error("Failed to create group", e);
         }
     };
 
@@ -445,6 +471,10 @@ export const VaultView: React.FC = () => {
     const isEmpty = !isLoading && filteredItems.length === 0;
     const isInsideFolder = !!currentFolderId;
 
+    const rootFolders = useMemo(() => {
+        return items.filter(i => i.type === 'folder' && !i.folderId);
+    }, [items]);
+
     return (
         <div className="flex h-full bg-white dark:bg-monday-dark-surface">
             <input
@@ -453,7 +483,23 @@ export const VaultView: React.FC = () => {
                 onChange={handleFileChange}
                 className="hidden"
             />
-            <VaultSidebar activeCategory={activeCategory} onSelectCategory={setActiveCategory} />
+            <VaultSidebar
+                activeCategory={activeCategory}
+                onSelectCategory={setActiveCategory}
+                onCreateItem={(type) => {
+                    if (type === 'folder') setIsCreateFolderModalOpen(true);
+                    else if (type === 'weblink') setIsCreateLinkModalOpen(true);
+                    else if (type === 'note') handleCreateNote();
+                }}
+                onCreateGroup={() => setIsCreateGroupModalOpen(true)}
+                onUploadClick={handleUploadClick}
+                folders={rootFolders}
+                currentFolderId={currentFolderId}
+                onSelectFolder={(id) => {
+                    setCurrentFolderId(id);
+                    setActiveCategory('all');
+                }}
+            />
 
             {/* Main Content */}
             <div className="flex flex-col h-full flex-1 min-w-0">
@@ -797,6 +843,12 @@ export const VaultView: React.FC = () => {
                 isOpen={isCreateLinkModalOpen}
                 onClose={() => setIsCreateLinkModalOpen(false)}
                 onCreate={handleCreateLink}
+            />
+
+            <CreateGroupModal
+                isOpen={isCreateGroupModalOpen}
+                onClose={() => setIsCreateGroupModalOpen(false)}
+                onCreate={handleCreateGroup}
             />
 
             {itemToRename && (

@@ -1600,7 +1600,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
 
                         {/* Marketplace Section */}
                         {(pageVisibility['local_marketplace'] !== false || pageVisibility['foreign_marketplace'] !== false) && (
-                            <div className="mt-6 pl-5 pr-3">
+                            <div className="mt-6 pl-5 pr-3 pt-4 border-t border-gray-200 dark:border-monday-dark-border">
                                 {!isCollapsed && (
                                     <div className="flex items-center mb-2 px-3">
                                         <span className="text-xs font-semibold text-gray-500 dark:text-monday-dark-text-secondary truncate">{t('marketplace').toUpperCase()}</span>

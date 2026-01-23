@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { BoardView } from '../../board/BoardView';
 import { Board } from '../../../types';
 
+import { useAppContext } from '../../../contexts/AppContext';
+
 const INITIAL_BOARD: Board = {
     id: 'dept-dashboards',
     name: 'Dashboards',
@@ -18,6 +20,7 @@ const INITIAL_BOARD: Board = {
 };
 
 const DashboardsPage: React.FC = () => {
+    const { t } = useAppContext();
     const [board, setBoard] = useState<Board>(() => {
         const saved = localStorage.getItem('dept-dashboards-data');
         return saved ? JSON.parse(saved) : INITIAL_BOARD;
@@ -39,9 +42,16 @@ const DashboardsPage: React.FC = () => {
         });
     };
 
+    // Create a localized board object for display
+    const localizedBoard = {
+        ...board,
+        name: t('dashboards_page_title'),
+        description: t('dashboards_page_desc')
+    };
+
     return (
         <BoardView
-            board={board}
+            board={localizedBoard}
             onUpdateBoard={handleUpdateBoard}
             onUpdateTasks={handleUpdateTasks}
             isDepartmentLayout={true}

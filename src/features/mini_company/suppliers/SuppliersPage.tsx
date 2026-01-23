@@ -9,6 +9,7 @@ import { SupplierQualityComplianceDashboard } from './SupplierQualityComplianceD
 import { SupplierLeadTimeResponsivenessDashboard } from './SupplierLeadTimeResponsivenessDashboard';
 import { SupplierRiskDependencyDashboard } from './SupplierRiskDependencyDashboard';
 import { SupplierStrategicValueGrowthDashboard } from './SupplierStrategicValueGrowthDashboard';
+import { useAppContext } from '../../../contexts/AppContext';
 
 const INITIAL_BOARD: Board = {
     id: 'supplier-data',
@@ -35,6 +36,7 @@ const INITIAL_BOARD: Board = {
 };
 
 export const SuppliersPage = () => {
+    const { t } = useAppContext();
     const [board, setBoard] = useState<Board>(() => {
         const saved = localStorage.getItem('mini_company_suppliers_board');
         if (saved) {
@@ -78,7 +80,7 @@ export const SuppliersPage = () => {
             options: [
                 {
                     id: 'supplier_overview',
-                    label: 'Overview',
+                    label: t('overview'),
                     icon: Factory,
                     description: 'Supplier base & Spend'
                 },

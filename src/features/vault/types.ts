@@ -10,6 +10,8 @@ export interface FolderMetadata {
     retentionPolicy?: 'none' | '1-year' | '5-years' | 'forever';
     notes?: string;
     sharedWith?: string[]; // New: list of user IDs or emails
+    icon?: string;
+    isGroup?: boolean;
 }
 
 export interface LinkMetadata {
