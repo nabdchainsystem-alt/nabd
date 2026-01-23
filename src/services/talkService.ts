@@ -60,6 +60,25 @@ export const talkService = {
         return response.json();
     },
 
+    // Create a new channel (public group talk)
+    async createChannel(token: string, name: string): Promise<Conversation> {
+        const response = await fetch(`${API_URL}/talk/conversations/channel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ name })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to create channel');
+        }
+
+        return response.json();
+    },
+
     // Get messages for a conversation (paginated)
     async getMessages(token: string, conversationId: string, limit?: number, before?: string): Promise<Message[]> {
         const params = new URLSearchParams();

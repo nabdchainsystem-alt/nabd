@@ -192,6 +192,61 @@ router.post('/conversations/dm', requireAuth, async (req: any, res: Response) =>
     }
 });
 
+// Create a new channel (public group talk)
+router.post('/conversations/channel', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { name } = z.object({ name: z.string().min(1) }).parse(req.body);
+
+        // Create new channel conversation
+        const newConversation = await prisma.conversation.create({
+            data: {
+                type: 'channel',
+                name,
+                participants: {
+                    create: [
+                        { userId }
+                    ]
+                }
+            },
+            include: {
+                participants: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                email: true,
+                                name: true,
+                                avatarUrl: true,
+                                lastActiveAt: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const otherParticipants = newConversation.participants
+            .filter(p => p.userId !== userId)
+            .map(p => p.user);
+
+        res.json({
+            id: newConversation.id,
+            type: newConversation.type,
+            name: newConversation.name,
+            participants: otherParticipants,
+            unreadCount: 0,
+            updatedAt: newConversation.updatedAt
+        });
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({ error: 'Invalid input', details: error.issues });
+        }
+        console.error('Create channel error:', error);
+        res.status(500).json({ error: 'Failed to create channel' });
+    }
+});
+
 // Get messages for a conversation (paginated)
 router.get('/conversations/:id/messages', requireAuth, async (req: any, res: Response) => {
     try {

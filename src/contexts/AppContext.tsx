@@ -478,7 +478,6 @@ const translations: Translations = {
   start_new_discussion_desc: { en: 'Select a channel or start a new discussion to begin talking.', ar: 'اختر قناة أو ابدأ مناقشة جديدة.' },
   mentions_and_files: { en: 'Mentions & Files', ar: 'الإشارات والملفات' },
   no_active_tasks: { en: 'No active tasks', ar: 'لا توجد مهام نشطة' },
-  no_active_tasks: { en: 'No active tasks', ar: 'لا توجد مهام نشطة' },
   no_recent_files: { en: 'No recent files', ar: 'لا توجد ملفات حديثة' },
   pro_tip: { en: 'Pro Tip:', ar: 'نصيحة:' },
   type: { en: 'Type', ar: 'اكتب' },
@@ -498,6 +497,11 @@ const translations: Translations = {
   no_boards_available: { en: 'No boards available', ar: 'لا توجد لوحات متاحة' },
   online: { en: 'Online', ar: 'متصل' },
   offline: { en: 'Offline', ar: 'غير متصل' },
+  save_to_vault_optional: { en: 'Save to Vault?', ar: 'حفظ في الخزنة؟' },
+  save_to_vault_desc: { en: 'Keep a copy in your secure vault', ar: 'احتفظ بنسخة في خزنتك الآمنة' },
+  upload_to_chat: { en: 'Upload to Chat', ar: 'رفع إلى الدردشة' },
+  file_details: { en: 'File Details', ar: 'تفاصيل الملف' },
+  view_file: { en: 'View File', ar: 'عرض الملف' },
 
   // Vault Page (unique entries only)
   no_folders_yet: { en: 'No folders yet', ar: 'لا توجد مجلدات بعد' },

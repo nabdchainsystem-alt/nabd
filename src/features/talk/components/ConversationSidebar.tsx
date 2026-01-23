@@ -15,8 +15,11 @@ import {
     X,
     Clock,
     Check,
-    Upload
+    Upload,
+    Eye
 } from 'phosphor-react';
+import { TalkFileUploadModal } from './TalkFileUploadModal';
+import { vaultService } from '../../../services/vaultService';
 
 interface ConversationTask {
     id: string;
@@ -41,6 +44,7 @@ interface ConversationFile {
     id: string;
     name: string;
     type: string;
+    size: number;
     url?: string;
     taskId?: string;
     createdAt: string;
@@ -87,6 +91,8 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     // File Upload / Assign
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [assigningTaskId, setAssigningTaskId] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [showFileUploadModal, setShowFileUploadModal] = useState(false);
 
     // Load conversation data from backend
     const loadConversationData = useCallback(async () => {
@@ -263,7 +269,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             };
 
             await boardService.updateBoard(token, selectedBoardId, {
-                tasks: JSON.stringify([...existingTasks, newBoardTask])
+                tasks: JSON.stringify([...existingTasks, newBoardTask]) as any
             });
 
             // Update on backend
@@ -284,27 +290,83 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     };
 
     // File Upload
-    const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>, taskId?: string) => {
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file || !conversationId) return;
+        if (file) {
+            setSelectedFile(file);
+            setShowFileUploadModal(true);
+        }
+    };
+
+    const handleFileUploadConfirm = async (data: { name: string; saveToVault: boolean; folderId?: string }) => {
+        if (!selectedFile || !conversationId) return;
 
         try {
             const token = await getToken();
             if (!token) return;
 
-            // In a real app, we'd upload to S3/Cloudinary first.
-            // For now, we simulate by creating a file record.
-            const newFile = await talkService.createFile(token, conversationId, {
-                name: file.name,
-                type: file.type,
-                size: file.size,
-                taskId: taskId || assigningTaskId || undefined
-            });
+            let fileUrl = '';
 
-            setFiles(prev => [...prev, newFile]);
-            setAssigningTaskId(null);
+            // 1. Read file as base64 for preview and upload
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const base64Content = reader.result as string;
+
+                // 2. Optional: Save to Vault
+                if (data.saveToVault) {
+                    try {
+                        const vaultItem = await vaultService.create(token, {
+                            title: data.name,
+                            type: selectedFile.type.startsWith('image/') ? 'image' : 'document',
+                            userId: 'current-user', // Service handles this usually but good to be explicit if needed
+                            folderId: data.folderId,
+                            content: base64Content,
+                            previewUrl: selectedFile.type.startsWith('image/') ? base64Content : undefined,
+                            metadata: {
+                                size: selectedFile.size,
+                                mimeType: selectedFile.type
+                            }
+                        });
+                        fileUrl = vaultItem.previewUrl || ''; // Use vault preview URL if available
+                    } catch (vaultError) {
+                        console.error('Failed to save to vault:', vaultError);
+                    }
+                }
+
+                // 3. Create file record in Talk (accessible to all participants)
+                // We send the base64 content or a placeholder URL so others can see it
+                const newFile = await talkService.createFile(token, conversationId, {
+                    name: data.name,
+                    type: selectedFile.type,
+                    size: selectedFile.size,
+                    url: base64Content, // For demo/mock, we pass base64 as the URL so all users can see it
+                    taskId: assigningTaskId || undefined
+                });
+
+                setFiles(prev => [...prev, newFile]);
+                setAssigningTaskId(null);
+                setSelectedFile(null);
+            };
+
+            reader.readAsDataURL(selectedFile);
         } catch (error) {
             console.error('Failed to upload file:', error);
+        }
+    };
+
+    const handleFilePreview = (file: ConversationFile) => {
+        if (!file.url) return;
+
+        // Simple quick display: open in new tab or modal
+        if (file.type.startsWith('image/')) {
+            const win = window.open();
+            win?.document.write(`<img src="${file.url}" style="max-width:100%; height:auto;" />`);
+        } else if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.type === 'application/vnd.ms-excel') {
+            // For Excel, we'd ideally use a library, but for "quick display" we can try to download or show Info
+            alert(`Quick Display: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB\nType: Excel Document`);
+        } else {
+            const win = window.open();
+            win?.document.write(`<iframe src="${file.url}" style="width:100%; height:100vh;" frameborder="0"></iframe>`);
         }
     };
 
@@ -411,9 +473,16 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                     </div>
                                     {/* Related Files */}
                                     {files.filter(f => f.taskId === task.id).map(file => (
-                                        <div key={file.id} className="ms-6 mt-1 flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800/80 px-2 py-1 rounded">
-                                            <File size={10} />
-                                            <span className="truncate">{file.name}</span>
+                                        <div
+                                            key={file.id}
+                                            className="ms-6 mt-1 flex items-center justify-between gap-1.5 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800/80 px-2 py-1 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 group/file"
+                                            onClick={() => handleFilePreview(file)}
+                                        >
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                <File size={10} />
+                                                <span className="truncate">{file.name}</span>
+                                            </div>
+                                            <Eye size={10} className="opacity-0 group-hover/file:opacity-100" />
                                         </div>
                                     ))}
                                 </div>
@@ -506,7 +575,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                 type="file"
                                 ref={fileInputRef}
                                 className="hidden"
-                                onChange={handleFileImport}
+                                onChange={handleFileSelect}
                             />
                         </div>
                     </div>
@@ -518,15 +587,33 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                             </div>
                         ) : (
                             files.filter(f => !f.taskId).map(file => (
-                                <div key={file.id} className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
-                                    <File size={16} className="text-gray-400" />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate text-start">{file.name}</span>
+                                <div
+                                    key={file.id}
+                                    className="flex items-center justify-between p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer group/file"
+                                    onClick={() => handleFilePreview(file)}
+                                >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <File size={16} className="text-gray-400" />
+                                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate text-start">{file.name}</span>
+                                    </div>
+                                    <Eye size={14} className="text-gray-400 opacity-0 group-hover/file:opacity-100" />
                                 </div>
                             ))
                         )}
                     </div>
                 </div>
             </aside>
+
+            {/* File Upload Modal */}
+            <TalkFileUploadModal
+                isOpen={showFileUploadModal}
+                onClose={() => {
+                    setShowFileUploadModal(false);
+                    setSelectedFile(null);
+                }}
+                file={selectedFile}
+                onConfirm={handleFileUploadConfirm}
+            />
 
             {/* Send to Board Modal */}
             {showSendToBoardModal && selectedTask && (

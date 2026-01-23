@@ -23,7 +23,11 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-    const [showNewDmModal, setShowNewDmModal] = useState(false);
+    const [showNewConversationModal, setShowNewConversationModal] = useState(false);
+    const [newConvStep, setNewConvStep] = useState(1); // 1: Select Type, 2: Action
+    const [newConvType, setNewConvType] = useState<'dm' | 'channel' | null>(null);
+    const [newChannelName, setNewChannelName] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const pollIntervalRef = useRef<number | null>(null);
@@ -135,6 +139,7 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
 
     // Start new DM
     const handleStartDM = async (memberId: string) => {
+        setIsCreating(true);
         try {
             const token = await getToken();
             if (!token) return;
@@ -142,10 +147,43 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
             const conv = await talkService.getOrCreateDM(token, memberId);
             await loadConversations();
             setSelectedConversation(conv);
-            setShowNewDmModal(false);
+            setShowNewConversationModal(false);
+            setNewConvStep(1);
+            setNewConvType(null);
         } catch (error) {
             console.error('Failed to create DM:', error);
+        } finally {
+            setIsCreating(false);
         }
+    };
+
+    // Create new channel
+    const handleCreateChannel = async () => {
+        if (!newChannelName.trim()) return;
+        setIsCreating(true);
+        try {
+            const token = await getToken();
+            if (!token) return;
+
+            const conv = await talkService.createChannel(token, newChannelName.trim());
+            await loadConversations();
+            setSelectedConversation(conv);
+            setShowNewConversationModal(false);
+            setNewConvStep(1);
+            setNewConvType(null);
+            setNewChannelName('');
+        } catch (error) {
+            console.error('Failed to create channel:', error);
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    const handleOpenNewConversationModal = () => {
+        setNewConvStep(1);
+        setNewConvType(null);
+        setNewChannelName('');
+        setShowNewConversationModal(true);
     };
 
     // Get conversation display name
@@ -258,8 +296,8 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                     <div className="p-4 flex items-center justify-between">
                         <h2 className="text-lg font-bold">{t('talk')}</h2>
                         <button
-                            onClick={() => setShowNewDmModal(true)}
-                            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary transition-colors"
+                            onClick={handleOpenNewConversationModal}
+                            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors"
                             title={t('new_message')}
                         >
                             <span className="material-icons">add_comment</span>
@@ -268,15 +306,56 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
 
                     <div className="flex-1 overflow-y-auto">
                         <div className="px-2 py-2">
-                            {/* Direct Messages */}
+                            {/* Talk Groups (Channels) */}
                             <div className="px-2 mb-2 text-start">
                                 <span className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
-                                    {t('direct_messages')}
+                                    {language === 'ar' ? 'مجموعات المحادثة' : 'Talk Groups'}
+                                </span>
+                            </div>
+                            <div className="space-y-0.5 mb-4">
+                                {conversations.filter(c => c.type === 'channel').length === 0 ? (
+                                    <p className="px-2 py-2 text-xs text-text-secondary-light dark:text-text-secondary-dark text-center">
+                                        {t('no_conversations')}
+                                    </p>
+                                ) : (
+                                    conversations.filter(c => c.type === 'channel').map((conv) => {
+                                        const isActive = selectedConversation?.id === conv.id;
+
+                                        return (
+                                            <button
+                                                key={conv.id}
+                                                onClick={() => setSelectedConversation(conv)}
+                                                className={`w-full flex items-center px-2 py-2 rounded-lg text-sm transition-colors ${isActive
+                                                    ? 'bg-primary/10 text-primary font-semibold'
+                                                    : 'text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-gray-800'
+                                                    }`}
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center me-3 shrink-0">
+                                                    <UsersThree size={16} className="text-primary" weight="bold" />
+                                                </div>
+                                                <div className="flex-1 min-w-0 text-start">
+                                                    <div className="truncate font-medium">{conv.name}</div>
+                                                </div>
+                                                {conv.unreadCount > 0 && (
+                                                    <span className="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full ms-2">
+                                                        {conv.unreadCount}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            {/* Private Talk (DMs) */}
+                            <div className="px-2 mb-2 text-start">
+                                <span className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
+                                    {language === 'ar' ? 'محادثات خاصة' : 'Private Talk'}
                                 </span>
                             </div>
                             <div className="space-y-0.5">
                                 {conversations.filter(c => c.type === 'dm').length === 0 ? (
-                                    <p className="px-2 py-4 text-sm text-text-secondary-light dark:text-text-secondary-dark text-center">
+                                    <p className="px-2 py-2 text-xs text-text-secondary-light dark:text-text-secondary-dark text-center">
                                         {t('no_conversations')}
                                     </p>
                                 ) : (
@@ -309,11 +388,6 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                                     <div className="truncate font-medium">
                                                         {other?.name || other?.email?.split('@')[0] || 'Unknown'}
                                                     </div>
-                                                    {conv.lastMessage && (
-                                                        <div className="truncate text-xs text-gray-500">
-                                                            {conv.lastMessage.content}
-                                                        </div>
-                                                    )}
                                                 </div>
                                                 {conv.unreadCount > 0 && (
                                                     <span className="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full ms-2">
@@ -330,7 +404,7 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
 
                     <div className="p-4 border-t border-border-light dark:border-border-dark">
                         <button
-                            onClick={() => setShowNewDmModal(true)}
+                            onClick={handleOpenNewConversationModal}
                             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
                             <span className="text-lg">+</span>
@@ -355,7 +429,7 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                 </p>
                             </div>
                             <button
-                                onClick={() => setShowNewDmModal(true)}
+                                onClick={handleOpenNewConversationModal}
                                 className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                             >
                                 {t('start_new_conversation')}
@@ -496,60 +570,146 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                 />
             </main>
 
-            {/* New DM Modal */}
-            {showNewDmModal && (
+            {/* New Conversation Modal */}
+            {showNewConversationModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-                    <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-xl shadow-2xl max-w-md w-full m-4 border border-gray-200 dark:border-monday-dark-border">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold">{t('new_message')}</h3>
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowNewConversationModal(false)} />
+                    <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-xl shadow-2xl max-w-md w-full m-4 border border-gray-200 dark:border-monday-dark-border relative z-10 transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold">
+                                {newConvStep === 1
+                                    ? (language === 'ar' ? 'بدء محادثة جديدة' : 'Start New Conversation')
+                                    : (newConvType === 'dm'
+                                        ? (language === 'ar' ? 'محادثة خاصة' : 'Private Talk')
+                                        : (language === 'ar' ? 'مجموعة محادثة' : 'Talk Group'))
+                                }
+                            </h3>
                             <button
-                                onClick={() => setShowNewDmModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
+                                onClick={() => setShowNewConversationModal(false)}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                             >
                                 <span className="material-icons">close</span>
                             </button>
                         </div>
 
-                        <p className="text-sm text-gray-500 mb-4 text-start">
-                            {language === 'ar' ? 'اختر عضواً لبدء محادثة' : 'Select a team member to start a conversation'}
-                        </p>
+                        {newConvStep === 1 ? (
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => {
+                                        setNewConvType('dm');
+                                        setNewConvStep(2);
+                                    }}
+                                    className="flex flex-col items-center gap-4 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-center group"
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <User size={32} className="text-blue-600 dark:text-blue-400" weight="fill" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="font-bold text-gray-900 dark:text-gray-100">
+                                            {language === 'ar' ? 'محادثة خاصة' : 'Private Talk'}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                            {language === 'ar' ? 'تحدث مع أحد أعضاء الفريق' : 'Chat with a team member'}
+                                        </div>
+                                    </div>
+                                </button>
 
-                        <div className="max-h-64 overflow-y-auto">
-                            {teamMembers.length === 0 ? (
-                                <p className="text-center text-gray-500 py-4">
-                                    {language === 'ar' ? 'لا يوجد أعضاء بعد.' : 'No team members yet.'}
+                                <button
+                                    onClick={() => {
+                                        setNewConvType('channel');
+                                        setNewConvStep(2);
+                                    }}
+                                    className="flex flex-col items-center gap-4 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-center group"
+                                >
+                                    <div className="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <UsersThree size={32} className="text-purple-600 dark:text-purple-400" weight="fill" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="font-bold text-gray-900 dark:text-gray-100">
+                                            {language === 'ar' ? 'مجموعة محادثة' : 'Talk Group'}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                            {language === 'ar' ? 'دردشة جماعية للمشاريع' : 'Group chat for projects'}
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                        ) : newConvType === 'dm' ? (
+                            <>
+                                <p className="text-sm text-gray-500 mb-4 text-start">
+                                    {language === 'ar' ? 'اختر عضواً لبدء محادثة' : 'Select a team member to start a conversation'}
                                 </p>
-                            ) : (
-                                teamMembers.map((member) => (
+                                <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                    {teamMembers.length === 0 ? (
+                                        <p className="text-center text-gray-500 py-4">
+                                            {language === 'ar' ? 'لا يوجد أعضاء بعد.' : 'No team members yet.'}
+                                        </p>
+                                    ) : (
+                                        teamMembers.map((member) => (
+                                            <button
+                                                key={member.id}
+                                                disabled={isCreating}
+                                                onClick={() => handleStartDM(member.id)}
+                                                className="w-full flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors mb-1"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center me-3 shrink-0">
+                                                    {member.avatarUrl ? (
+                                                        <img src={member.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                                    ) : (
+                                                        <User size={18} className="text-white" weight="fill" />
+                                                    )}
+                                                </div>
+                                                <div className="text-start min-w-0 flex-1">
+                                                    <div className="font-medium truncate">{member.name || member.email.split('@')[0]}</div>
+                                                    <div className="text-xs text-gray-500 truncate">{member.email}</div>
+                                                </div>
+                                                {isCreating && <CircleNotch size={14} className="animate-spin text-primary ms-2" />}
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
                                     <button
-                                        key={member.id}
-                                        onClick={() => handleStartDM(member.id)}
-                                        className="w-full flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                        onClick={() => setNewConvStep(1)}
+                                        className="w-full py-2.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm font-medium"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center me-3 shrink-0">
-                                            {member.avatarUrl ? (
-                                                <img src={member.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                                            ) : (
-                                                <User size={18} className="text-white" weight="fill" />
-                                            )}
-                                        </div>
-                                        <div className="text-start">
-                                            <div className="font-medium">{member.name || member.email.split('@')[0]}</div>
-                                            <div className="text-sm text-gray-500">{member.email}</div>
-                                        </div>
+                                        {language === 'ar' ? 'رجوع' : 'Back'}
                                     </button>
-                                ))
-                            )}
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t">
-                            <button
-                                onClick={() => setShowNewDmModal(false)}
-                                className="w-full py-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                            >
-                                {t('cancel')}
-                            </button>
-                        </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block text-start">
+                                        {language === 'ar' ? 'اسم المجموعة' : 'Group Name'}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newChannelName}
+                                        onChange={(e) => setNewChannelName(e.target.value)}
+                                        placeholder={language === 'ar' ? 'أدخل اسم المجموعة...' : 'Enter group name...'}
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                                        autoFocus
+                                        onKeyDown={(e) => e.key === 'Enter' && handleCreateChannel()}
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                    <button
+                                        onClick={() => setNewConvStep(1)}
+                                        className="flex-1 py-2.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm font-medium"
+                                    >
+                                        {language === 'ar' ? 'رجوع' : 'Back'}
+                                    </button>
+                                    <button
+                                        disabled={!newChannelName.trim() || isCreating}
+                                        onClick={handleCreateChannel}
+                                        className="flex-1 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors text-sm font-bold flex items-center justify-center gap-2"
+                                    >
+                                        {isCreating ? <CircleNotch size={16} className="animate-spin" /> : (language === 'ar' ? 'إنشاء' : 'Create')}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
