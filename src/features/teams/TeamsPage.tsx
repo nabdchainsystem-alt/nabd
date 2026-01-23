@@ -103,15 +103,19 @@ export const TeamsPage: React.FC = () => {
             initials: (m.name || m.email).substring(0, 2).toUpperCase(),
             status: isUserOnline(m.lastActiveAt) ? TeamStatus.ACTIVE : TeamStatus.AWAY,
             role: TeamRole.MEMBER,
-            department: 'Team',
-            location: 'Remote',
+            department: t('team_dept'),
+            location: t('remote'),
             color: 'bg-gradient-to-br from-blue-500 to-indigo-600',
             avatarUrl: m.avatarUrl || undefined,
             showUserIcon: !m.avatarUrl && !m.name,
             isConnected: true,
             lastActiveAt: m.lastActiveAt
         })),
-        ...MOCK_MEMBERS
+        ...MOCK_MEMBERS.map(m => ({
+            ...m,
+            department: t(m.department.toLowerCase() === 'management' ? 'management' : 'team_dept'),
+            location: m.location === 'Remote' ? t('remote') : m.location
+        }))
     ];
 
     // Stats Logic
@@ -156,7 +160,7 @@ export const TeamsPage: React.FC = () => {
                                     onClick={() => setIsConnectModalOpen(true)}
                                     className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-monday-dark-border bg-white dark:bg-monday-dark-surface text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-monday-dark-hover transition-colors font-medium text-sm"
                                 >
-                                    <LinkIcon size={16} /> {t('connect') || 'Connect'}
+                                    <LinkIcon size={16} /> {t('connect')}
                                 </button>
                                 <button
                                     onClick={() => { setIsInviteModalOpen(true); handleGenerateInvite(); }}
@@ -273,7 +277,7 @@ export const TeamsPage: React.FC = () => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 text-start">
                                                     <div className="flex items-center gap-2">
                                                         {member.status === 'Active' && <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>}
                                                         {member.status === 'Invited' && <div className="w-2 h-2 rounded-full bg-yellow-500"></div>}
@@ -285,7 +289,7 @@ export const TeamsPage: React.FC = () => {
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 text-start">
                                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${member.role === 'Admin' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' :
                                                         member.role === 'Guest' ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800' :
                                                             'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
@@ -294,7 +298,7 @@ export const TeamsPage: React.FC = () => {
                                                         {t(member.role.toLowerCase() === 'member' ? 'member_role' : member.role.toLowerCase())}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-4 text-start">
                                                     <div className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-1">
                                                         <MapPin size={14} className="text-gray-400" />
                                                         {member.location}
@@ -339,8 +343,8 @@ export const TeamsPage: React.FC = () => {
                         </div>
                         {/* Invite Modal */}
                         {isInviteModalOpen && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-                                <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-xl shadow-2xl max-w-md w-full border border-gray-100 dark:border-monday-dark-border m-4">
+                            <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in pointer-events-none">
+                                <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] max-w-md w-full border border-gray-100 dark:border-monday-dark-border m-4 pointer-events-auto">
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('invite_to_workspace')}</h3>
                                         <button onClick={() => setIsInviteModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">

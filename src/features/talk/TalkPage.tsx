@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { PaperPlaneRight, User, CircleNotch, ChatCircle, Phone, VideoCamera, Microphone, UsersThree, DotsThreeVertical } from 'phosphor-react';
 import { useAppContext } from '../../contexts/AppContext';
-import { useAuth } from '../../auth-adapter';
+import { useAuth, useUser } from '../../auth-adapter';
 import { talkService, Conversation, Message } from '../../services/talkService';
 import { teamService, TeamMember } from '../../services/teamService';
 import ConversationSidebar from './components/ConversationSidebar';
@@ -11,8 +11,9 @@ interface TalkPageProps {
 }
 
 const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
-    const { t } = useAppContext();
-    const { getToken, user } = useAuth();
+    const { t, language } = useAppContext();
+    const { getToken } = useAuth();
+    const { user } = useUser();
 
     // State
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -212,17 +213,17 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
     }
 
     return (
-        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark font-sans overflow-hidden">
+        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark font-sans overflow-hidden" dir={language === 'ar' ? 'rtl' : 'ltr'}>
             {/* Header */}
             <header className="h-16 border-b border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark flex items-center justify-between px-6 shrink-0 z-10">
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center gap-4">
                     <h1 className="text-xl font-bold flex items-center">
                         {selectedConversation ? (
                             <>
                                 {selectedConversation.type === 'channel' ? (
-                                    <span className="text-text-secondary-light dark:text-text-secondary-dark mr-2">#</span>
+                                    <span className="text-text-secondary-light dark:text-text-secondary-dark me-2">#</span>
                                 ) : (
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-2">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center me-2">
                                         {selectedConversation.participants[0]?.avatarUrl ? (
                                             <img
                                                 src={selectedConversation.participants[0].avatarUrl}
@@ -237,16 +238,15 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                 {getConversationName(selectedConversation)}
                             </>
                         ) : (
-                            t('talk') || 'Talk'
+                            t('talk')
                         )}
                     </h1>
                     {selectedConversation?.type === 'dm' && selectedConversation.participants[0] && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            isUserOnline(selectedConversation.participants[0].lastActiveAt)
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-                                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                        }`}>
-                            {isUserOnline(selectedConversation.participants[0].lastActiveAt) ? 'Online' : 'Offline'}
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isUserOnline(selectedConversation.participants[0].lastActiveAt)
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                            }`}>
+                            {isUserOnline(selectedConversation.participants[0].lastActiveAt) ? t('online') : t('offline')}
                         </span>
                     )}
                 </div>
@@ -254,13 +254,13 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
 
             <main className="flex-1 flex overflow-hidden">
                 {/* Sidebar - Conversations */}
-                <div className="w-64 border-r border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark flex flex-col shrink-0">
+                <div className="w-64 border-e border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark flex flex-col shrink-0">
                     <div className="p-4 flex items-center justify-between">
-                        <h2 className="text-lg font-bold">{t('talk') || 'Talk'}</h2>
+                        <h2 className="text-lg font-bold">{t('talk')}</h2>
                         <button
                             onClick={() => setShowNewDmModal(true)}
                             className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-primary transition-colors"
-                            title={t('new_message') || 'New Message'}
+                            title={t('new_message')}
                         >
                             <span className="material-icons">add_comment</span>
                         </button>
@@ -269,15 +269,15 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                     <div className="flex-1 overflow-y-auto">
                         <div className="px-2 py-2">
                             {/* Direct Messages */}
-                            <div className="px-2 mb-2">
+                            <div className="px-2 mb-2 text-start">
                                 <span className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
-                                    {t('direct_messages') || 'Direct Messages'}
+                                    {t('direct_messages')}
                                 </span>
                             </div>
                             <div className="space-y-0.5">
                                 {conversations.filter(c => c.type === 'dm').length === 0 ? (
                                     <p className="px-2 py-4 text-sm text-text-secondary-light dark:text-text-secondary-dark text-center">
-                                        {t('no_conversations') || 'No conversations yet'}
+                                        {t('no_conversations')}
                                     </p>
                                 ) : (
                                     conversations.filter(c => c.type === 'dm').map((conv) => {
@@ -289,13 +289,12 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                             <button
                                                 key={conv.id}
                                                 onClick={() => setSelectedConversation(conv)}
-                                                className={`w-full flex items-center px-2 py-2 rounded-lg text-sm transition-colors ${
-                                                    isActive
-                                                        ? 'bg-primary/10 text-primary font-semibold'
-                                                        : 'text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-gray-800'
-                                                }`}
+                                                className={`w-full flex items-center px-2 py-2 rounded-lg text-sm transition-colors ${isActive
+                                                    ? 'bg-primary/10 text-primary font-semibold'
+                                                    : 'text-text-secondary-light dark:text-text-secondary-dark hover:bg-gray-100 dark:hover:bg-gray-800'
+                                                    }`}
                                             >
-                                                <div className="relative mr-3">
+                                                <div className="relative me-3">
                                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                                                         {other?.avatarUrl ? (
                                                             <img src={other.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
@@ -303,11 +302,10 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                                             <User size={14} className="text-white" weight="fill" />
                                                         )}
                                                     </div>
-                                                    <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-gray-800 ${
-                                                        isOnline ? 'bg-green-500' : 'bg-gray-400'
-                                                    }`} />
+                                                    <div className={`absolute bottom-0 right-0 rtl:right-auto rtl:left-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-gray-800 ${isOnline ? 'bg-green-500' : 'bg-gray-400'
+                                                        }`} />
                                                 </div>
-                                                <div className="flex-1 min-w-0 text-left">
+                                                <div className="flex-1 min-w-0 text-start">
                                                     <div className="truncate font-medium">
                                                         {other?.name || other?.email?.split('@')[0] || 'Unknown'}
                                                     </div>
@@ -318,7 +316,7 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                                     )}
                                                 </div>
                                                 {conv.unreadCount > 0 && (
-                                                    <span className="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full ml-2">
+                                                    <span className="bg-primary text-white text-[10px] px-1.5 py-0.5 rounded-full ms-2">
                                                         {conv.unreadCount}
                                                     </span>
                                                 )}
@@ -336,7 +334,7 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         >
                             <span className="text-lg">+</span>
-                            {t('new_message') || 'New Message'}
+                            {t('new_message')}
                         </button>
                     </div>
                 </div>
@@ -350,22 +348,22 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                             </div>
                             <div className="space-y-2">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                                    {t('select_conversation') || 'Select a conversation'}
+                                    {t('select_conversation')}
                                 </h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
-                                    {t('select_or_start_conversation') || 'Choose a conversation from the sidebar or start a new one'}
+                                    {t('select_or_start_conversation')}
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowNewDmModal(true)}
                                 className="px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                             >
-                                {t('start_new_conversation') || 'Start New Conversation'}
+                                {t('start_new_conversation')}
                             </button>
                         </div>
                     ) : (
                         <>
-                            {/* Call/Video/Meeting Toolbar */}
+                            {/* Call/Video/Toolbar */}
                             <div className="px-4 py-3 border-b border-border-light dark:border-border-dark flex items-center justify-end gap-1">
                                 <button
                                     className="p-2.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -407,9 +405,9 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                         <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
                                             <span className="material-icons text-3xl text-gray-400">waving_hand</span>
                                         </div>
-                                        <h3 className="text-lg font-semibold">{t('no_messages_yet') || 'No messages yet'}</h3>
+                                        <h3 className="text-lg font-semibold">{t('no_messages_yet')}</h3>
                                         <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                                            {t('send_first_message') || 'Send the first message to start the conversation'}
+                                            {t('send_first_message')}
                                         </p>
                                     </div>
                                 ) : (
@@ -431,17 +429,16 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                                         key={msg.id}
                                                         className={`flex items-start mb-4 ${isOwnMessage ? 'flex-row-reverse' : ''}`}
                                                     >
-                                                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
-                                                            isOwnMessage ? 'ml-3' : 'mr-3'
-                                                        } bg-gradient-to-br from-blue-500 to-indigo-600`}>
+                                                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${isOwnMessage ? 'ms-3' : 'me-3'
+                                                            } bg-gradient-to-br from-blue-500 to-indigo-600`}>
                                                             {msg.sender.avatarUrl ? (
                                                                 <img src={msg.sender.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
                                                             ) : (
                                                                 <User size={14} className="text-white" weight="fill" />
                                                             )}
                                                         </div>
-                                                        <div className={`max-w-[70%] ${isOwnMessage ? 'text-right' : ''}`}>
-                                                            <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                                                        <div className={`max-w-[70%] ${isOwnMessage ? 'text-start' : 'text-start'}`}>
+                                                            <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse text-start' : 'text-start'}`}>
                                                                 <span className="font-semibold text-sm">
                                                                     {msg.sender.name || msg.sender.email.split('@')[0]}
                                                                 </span>
@@ -449,11 +446,10 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                                                     {formatTime(msg.createdAt)}
                                                                 </span>
                                                             </div>
-                                                            <div className={`inline-block px-4 py-2 rounded-2xl ${
-                                                                isOwnMessage
-                                                                    ? 'bg-primary text-white rounded-tr-sm'
-                                                                    : 'bg-gray-100 dark:bg-gray-800 rounded-tl-sm'
-                                                            }`}>
+                                                            <div className={`inline-block px-4 py-2 rounded-2xl ${isOwnMessage
+                                                                ? 'bg-primary text-white rounded-te-none rtl:rounded-te-2xl rtl:rounded-ts-none'
+                                                                : 'bg-gray-100 dark:bg-gray-800 rounded-ts-none rtl:rounded-ts-2xl rtl:rounded-te-none'
+                                                                }`}>
                                                                 <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                                                             </div>
                                                         </div>
@@ -473,7 +469,7 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                         type="text"
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
-                                        placeholder={`${t('message') || 'Message'} ${getConversationName(selectedConversation)}...`}
+                                        placeholder={`${t('message')} ${getConversationName(selectedConversation)}...`}
                                         className="flex-1 px-4 py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                                     />
                                     <button
@@ -502,10 +498,10 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
 
             {/* New DM Modal */}
             {showNewDmModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="fixed inset-0 z-50 flex items-center justify-center" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                     <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-xl shadow-2xl max-w-md w-full m-4 border border-gray-200 dark:border-monday-dark-border">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold">New Message</h3>
+                            <h3 className="text-lg font-bold">{t('new_message')}</h3>
                             <button
                                 onClick={() => setShowNewDmModal(false)}
                                 className="text-gray-400 hover:text-gray-600"
@@ -514,14 +510,14 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                             </button>
                         </div>
 
-                        <p className="text-sm text-gray-500 mb-4">
-                            Select a team member to start a conversation
+                        <p className="text-sm text-gray-500 mb-4 text-start">
+                            {language === 'ar' ? 'اختر عضواً لبدء محادثة' : 'Select a team member to start a conversation'}
                         </p>
 
                         <div className="max-h-64 overflow-y-auto">
                             {teamMembers.length === 0 ? (
                                 <p className="text-center text-gray-500 py-4">
-                                    No team members yet. Connect with team members first.
+                                    {language === 'ar' ? 'لا يوجد أعضاء بعد.' : 'No team members yet.'}
                                 </p>
                             ) : (
                                 teamMembers.map((member) => (
@@ -530,14 +526,14 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                         onClick={() => handleStartDM(member.id)}
                                         className="w-full flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center me-3 shrink-0">
                                             {member.avatarUrl ? (
                                                 <img src={member.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
                                             ) : (
                                                 <User size={18} className="text-white" weight="fill" />
                                             )}
                                         </div>
-                                        <div className="text-left">
+                                        <div className="text-start">
                                             <div className="font-medium">{member.name || member.email.split('@')[0]}</div>
                                             <div className="text-sm text-gray-500">{member.email}</div>
                                         </div>
@@ -551,7 +547,7 @@ const TalkPage: React.FC<TalkPageProps> = ({ onNavigate }) => {
                                 onClick={() => setShowNewDmModal(false)}
                                 className="w-full py-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                             >
-                                Cancel
+                                {t('cancel')}
                             </button>
                         </div>
                     </div>

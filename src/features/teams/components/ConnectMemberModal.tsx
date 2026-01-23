@@ -88,8 +88,8 @@ export const ConnectMemberModal: React.FC<ConnectMemberModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-monday-dark-border m-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div className="bg-white dark:bg-monday-dark-surface p-6 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] max-w-md w-full border border-gray-200 dark:border-monday-dark-border m-4 pointer-events-auto">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <div>

@@ -16,8 +16,6 @@ import { userService } from '../../services/userService';
 export const ALL_PAGES = {
     // Top Level
     'home': { label: 'home', section: 'main', icon: House },
-    'flow_hub': { label: 'flow_hub', section: 'main', icon: Sparkle },
-    'process_map': { label: 'process_map', section: 'main', icon: Activity },
     'my_work': { label: 'my_work', section: 'main', icon: SquaresFour },
     'inbox': { label: 'inbox', section: 'main', icon: Tray },
     'teams': { label: 'teams', section: 'main', icon: Users },
@@ -76,7 +74,7 @@ type SettingsTab = 'general' | 'views' | 'notifications' | 'admin';
 // Feature categories for admin panel
 const FEATURE_CATEGORIES = {
     'Core': ['page_dashboard', 'page_my_work', 'page_inbox', 'page_teams', 'page_vault', 'page_talk'],
-    'Tools': ['page_flow_hub', 'page_process_map', 'page_dashboards', 'page_reports', 'page_test_tools'],
+    'Tools': ['page_dashboards', 'page_reports', 'page_test_tools'],
     'Mini Company': ['page_mini_company', 'page_sales', 'page_purchases', 'page_inventory', 'page_expenses', 'page_customers', 'page_suppliers'],
     'Supply Chain': ['page_supply_chain', 'page_procurement', 'page_warehouse', 'page_fleet', 'page_vendors', 'page_planning'],
     'Manufacturing': ['page_operations', 'page_maintenance', 'page_production', 'page_quality'],
@@ -92,8 +90,6 @@ const FEATURE_LABELS: Record<string, string> = {
     page_teams: 'Teams',
     page_vault: 'Vault',
     page_talk: 'Talk',
-    page_flow_hub: 'Flow Hub',
-    page_process_map: 'Process Map',
     page_dashboards: 'Dashboards',
     page_reports: 'Reports',
     page_test_tools: 'Test Tools',

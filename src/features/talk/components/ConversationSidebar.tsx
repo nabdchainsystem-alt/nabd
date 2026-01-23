@@ -60,7 +60,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     conversationId,
     onNavigate
 }) => {
-    const { t, activeWorkspaceId } = useAppContext();
+    const { t, activeWorkspaceId, language } = useAppContext();
     const { getToken } = useAuth();
 
     // State for conversation data
@@ -315,20 +315,20 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        if (date.toDateString() === today.toDateString()) return 'Today';
-        if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
-        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        if (date.toDateString() === today.toDateString()) return t('today');
+        if (date.toDateString() === tomorrow.toDateString()) return t('tomorrow');
+        return date.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' });
     };
 
     const isOverdue = (dateStr: string) => new Date(dateStr) < new Date();
 
     if (!conversationId) {
         return (
-            <aside className="w-72 border-l flex-col h-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 flex shrink-0">
+            <aside className="w-72 border-s flex-col h-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 flex shrink-0" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                 <div className="flex-1 flex items-center justify-center text-center p-6 text-gray-400">
                     <div>
                         <CheckSquare size={36} className="mx-auto mb-3" />
-                        <p className="text-sm">Select a conversation to see tasks & reminders</p>
+                        <p className="text-sm">{t('select_conversation_to_see_data')}</p>
                     </div>
                 </div>
             </aside>
@@ -337,13 +337,13 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
     return (
         <>
-            <aside className="w-72 border-l flex-col h-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 flex shrink-0 transition-all">
+            <aside className="w-72 border-s flex-col h-full bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 flex shrink-0 transition-all" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                 {/* Tasks Section */}
                 <div className="flex-1 border-b flex flex-col min-h-0 border-gray-200 dark:border-gray-800">
                     <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
                         <h3 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                            <CheckSquare className="mr-2" size={16} />
-                            Tasks
+                            <CheckSquare className="me-2" size={16} />
+                            {t('tasks')}
                         </h3>
                         <button onClick={() => setShowAddTask(true)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white">
                             <Plus size={16} />
@@ -356,14 +356,14 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                     type="text"
                                     value={newTaskName}
                                     onChange={(e) => setNewTaskName(e.target.value)}
-                                    placeholder="Task name..."
+                                    placeholder={t('task_name_placeholder')}
                                     className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded focus:outline-none"
                                     autoFocus
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
                                 />
                                 <div className="flex gap-2 mt-2">
-                                    <button onClick={() => setShowAddTask(false)} className="flex-1 py-1.5 text-xs text-gray-500">Cancel</button>
-                                    <button onClick={handleAddTask} disabled={!newTaskName.trim()} className="flex-1 py-1.5 text-xs bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded">Add</button>
+                                    <button onClick={() => setShowAddTask(false)} className="flex-1 py-1.5 text-xs text-gray-500">{t('cancel')}</button>
+                                    <button onClick={handleAddTask} disabled={!newTaskName.trim()} className="flex-1 py-1.5 text-xs bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded">{t('add')}</button>
                                 </div>
                             </div>
                         )}
@@ -371,7 +371,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                         {tasks.length === 0 && !showAddTask ? (
                             <div className="text-gray-400 text-center py-6">
                                 <CheckSquare size={28} className="mx-auto mb-2" />
-                                <p className="text-xs">No tasks</p>
+                                <p className="text-xs">{t('no_tasks')}</p>
                             </div>
                         ) : (
                             tasks.map(task => (
@@ -384,7 +384,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                         >
                                             {task.status === 'completed' && <Check size={10} className="text-white dark:text-gray-900" weight="bold" />}
                                         </button>
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 text-start">
                                             <p className={`text-sm truncate ${task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {task.name}
                                             </p>
@@ -399,19 +399,19 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                                     fileInputRef.current?.click();
                                                 }}
                                                 className="p-1 text-gray-400 hover:text-gray-700"
-                                                title="Assign File"
+                                                title={t('attachment')}
                                             >
                                                 <Plus size={14} />
                                             </button>
                                             {!task.sentToBoard && task.status !== 'completed' && (
-                                                <button onClick={() => openSendToBoardModal(task)} className="p-1 text-gray-400 hover:text-gray-700"><ArrowSquareOut size={14} /></button>
+                                                <button onClick={() => openSendToBoardModal(task)} className="p-1 text-gray-400 hover:text-gray-700" title={t('send_to_board')}><ArrowSquareOut size={14} /></button>
                                             )}
-                                            <button onClick={() => deleteTask(task.id)} className="p-1 text-gray-400 hover:text-red-500"><Trash size={14} /></button>
+                                            <button onClick={() => deleteTask(task.id)} className="p-1 text-gray-400 hover:text-red-500" title={t('delete')}><Trash size={14} /></button>
                                         </div>
                                     </div>
                                     {/* Related Files */}
                                     {files.filter(f => f.taskId === task.id).map(file => (
-                                        <div key={file.id} className="ml-6 mt-1 flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800/80 px-2 py-1 rounded">
+                                        <div key={file.id} className="ms-6 mt-1 flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800/80 px-2 py-1 rounded">
                                             <File size={10} />
                                             <span className="truncate">{file.name}</span>
                                         </div>
@@ -426,8 +426,8 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 <div className="flex-1 border-b flex flex-col min-h-0 border-gray-200 dark:border-gray-800">
                     <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
                         <h3 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                            <Bell className="mr-2" size={16} />
-                            Reminders
+                            <Bell className="me-2" size={16} />
+                            {t('reminders')}
                         </h3>
                         <button onClick={() => setShowAddReminder(true)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white">
                             <Plus size={16} />
@@ -440,7 +440,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                     type="text"
                                     value={newReminderText}
                                     onChange={(e) => setNewReminderText(e.target.value)}
-                                    placeholder="Reminder..."
+                                    placeholder={t('reminders')}
                                     className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded focus:outline-none mb-2"
                                 />
                                 <input
@@ -450,15 +450,15 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                     className="w-full px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border rounded focus:outline-none"
                                 />
                                 <div className="flex gap-2 mt-2">
-                                    <button onClick={() => setShowAddReminder(false)} className="flex-1 py-1.5 text-xs text-gray-500">Cancel</button>
-                                    <button onClick={handleAddReminder} disabled={!newReminderText.trim()} className="flex-1 py-1.5 text-xs bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded">Add</button>
+                                    <button onClick={() => setShowAddReminder(false)} className="flex-1 py-1.5 text-xs text-gray-500">{t('cancel')}</button>
+                                    <button onClick={handleAddReminder} disabled={!newReminderText.trim()} className="flex-1 py-1.5 text-xs bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded">{t('add')}</button>
                                 </div>
                             </div>
                         )}
                         {reminders.length === 0 && !showAddReminder ? (
                             <div className="text-gray-400 text-center py-6">
                                 <Bell size={28} className="mx-auto mb-2" />
-                                <p className="text-xs">No reminders</p>
+                                <p className="text-xs">{t('no_reminders')}</p>
                             </div>
                         ) : (
                             reminders.map(reminder => (
@@ -471,7 +471,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                         >
                                             {reminder.completed && <Check size={10} className="text-white dark:text-gray-900" weight="bold" />}
                                         </button>
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 text-start">
                                             <p className={`text-sm truncate ${reminder.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {reminder.text}
                                             </p>
@@ -491,8 +491,8 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 <div className="flex-1 flex flex-col min-h-0">
                     <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
                         <h3 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                            <Folder className="mr-2" size={16} />
-                            Files
+                            <Folder className="me-2" size={16} />
+                            {t('folders')}
                         </h3>
                         <div className="flex items-center gap-2">
                             <button
@@ -500,7 +500,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                 className="flex items-center gap-1 text-[10px] font-bold text-primary hover:underline uppercase tracking-wider"
                             >
                                 <Upload size={12} weight="bold" />
-                                Import
+                                {t('upload')}
                             </button>
                             <input
                                 type="file"
@@ -514,13 +514,13 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                         {files.filter(f => !f.taskId).length === 0 ? (
                             <div className="text-gray-400 text-center py-6">
                                 <File size={28} className="mx-auto mb-2" />
-                                <p className="text-xs">No files</p>
+                                <p className="text-xs">{t('no_files')}</p>
                             </div>
                         ) : (
                             files.filter(f => !f.taskId).map(file => (
                                 <div key={file.id} className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer">
                                     <File size={16} className="text-gray-400" />
-                                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{file.name}</span>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate text-start">{file.name}</span>
                                 </div>
                             ))
                         )}
@@ -530,37 +530,36 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
             {/* Send to Board Modal */}
             {showSendToBoardModal && selectedTask && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                    {/* Clear Backdrop as requested (removed bg-black/40 and backdrop-blur) */}
+                <div className="fixed inset-0 z-[60] flex items-center justify-center" dir={language === 'ar' ? 'rtl' : 'ltr'}>
                     <div className="fixed inset-0" onClick={() => setShowSendToBoardModal(false)} />
 
                     <div className="bg-white dark:bg-monday-dark-surface p-5 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] max-w-sm w-full m-4 border border-gray-200 dark:border-monday-dark-border relative z-10 scale-in-center">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-base font-bold text-gray-900 dark:text-white">Send to Board</h3>
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white">{t('send_to_board')}</h3>
                             <button onClick={() => setShowSendToBoardModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
                         </div>
 
-                        <div className="mb-4 p-3 bg-gray-50 dark:bg-monday-dark-bg rounded-lg border border-gray-100 dark:border-monday-dark-border">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Task</p>
+                        <div className="mb-4 p-3 bg-gray-50 dark:bg-monday-dark-bg rounded-lg border border-gray-100 dark:border-monday-dark-border text-start">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">{t('task')}</p>
                             <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedTask.name}</p>
                         </div>
 
-                        <p className="text-xs font-semibold text-gray-500 mb-2">Select board:</p>
+                        <p className="text-xs font-semibold text-gray-500 mb-2 text-start">{t('select_board_desc')}</p>
 
                         {loadingBoards ? (
                             <div className="flex items-center justify-center py-6"><CircleNotch size={20} className="animate-spin text-primary" /></div>
                         ) : boards.length === 0 ? (
-                            <div className="text-center py-4 text-sm text-gray-500">No boards available</div>
+                            <div className="text-center py-4 text-sm text-gray-500">{t('no_boards_available')}</div>
                         ) : (
                             <div className="max-h-40 overflow-y-auto mb-4 space-y-1 custom-scrollbar">
                                 {boards.map(board => (
                                     <button
                                         key={board.id}
                                         onClick={() => setSelectedBoardId(board.id)}
-                                        className={`w-full flex items-center p-2.5 rounded-lg transition-all text-left text-sm ${selectedBoardId === board.id ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                        className={`w-full flex items-center p-2.5 rounded-lg transition-all text-start text-sm ${selectedBoardId === board.id ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
                                             }`}
                                     >
-                                        <div className={`w-2 h-2 rounded-full mr-2.5 ${selectedBoardId === board.id ? 'bg-primary' : 'bg-gray-300'}`} />
+                                        <div className={`w-2 h-2 rounded-full me-2.5 ${selectedBoardId === board.id ? 'bg-primary' : 'bg-gray-300'}`} />
                                         {board.name}
                                     </button>
                                 ))}
@@ -572,14 +571,14 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                 onClick={() => setShowSendToBoardModal(false)}
                                 className="flex-1 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors border border-transparent"
                             >
-                                Cancel
+                                {t('cancel')}
                             </button>
                             <button
                                 onClick={handleSendToBoard}
                                 disabled={!selectedBoardId || isSending}
                                 className="flex-1 py-2.5 text-sm font-bold bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-primary/20"
                             >
-                                {isSending ? <CircleNotch size={14} className="animate-spin" /> : <><ArrowSquareOut size={16} weight="bold" /> Send</>}
+                                {isSending ? <CircleNotch size={14} className="animate-spin" /> : <><ArrowSquareOut size={16} weight="bold" /> {t('send')}</>}
                             </button>
                         </div>
                     </div>

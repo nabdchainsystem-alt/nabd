@@ -33,8 +33,6 @@ const Dashboard = lazyWithRetry(() => import('./features/dashboard/Dashboard').t
 const BoardView = lazyWithRetry(() => import('./features/board/BoardView').then(m => ({ default: m.BoardView })));
 const InboxView = lazyWithRetry(() => import('./features/inbox/InboxView').then(m => ({ default: m.InboxView })));
 const VaultView = lazyWithRetry(() => import('./features/vault/VaultView').then(m => ({ default: m.VaultView })));
-const FlowHubPage = lazyWithRetry(() => import('./features/flowHub/FlowHubPage'));
-const ProcessMapPage = lazyWithRetry(() => import('./features/flowHub/ProcessMapPage'));
 const MyWorkPage = lazyWithRetry(() => import('./features/myWork/MyWorkPage').then(m => ({ default: m.MyWorkPage })));
 const TeamsPage = lazyWithRetry(() => import('./features/teams/TeamsPage'));
 const TalkPage = lazyWithRetry(() => import('./features/talk/TalkPage'));
@@ -1363,10 +1361,6 @@ const AppContent: React.FC = () => {
               <FeatureErrorBoundary featureName="Vault">
                 <VaultView />
               </FeatureErrorBoundary>
-            ) : activeView === 'flow_hub' ? (
-              <FlowHubPage />
-            ) : activeView === 'process_map' ? (
-              <ProcessMapPage />
             ) : activeView === 'procurement' ? (
               <ProcurementPage />
             ) : activeView === 'warehouse' ? (
