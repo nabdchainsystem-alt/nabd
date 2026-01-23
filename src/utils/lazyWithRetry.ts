@@ -33,6 +33,7 @@ export function lazyWithRetry<T extends React.ComponentType<any>>(importer: () =
                         sessionStorage.setItem(RETRY_FLAG, '1');
                     }
                     // Reload to fetch fresh HTML/chunks when the previous ones 404/failed
+                    console.error('[lazyWithRetry] Force refreshing due to chunk load error:', error);
                     window.location.reload();
                     return new Promise(() => { /* keep suspense fallback until reload */ });
                 }

@@ -345,6 +345,131 @@ router.post('/conversations/:id/read', requireAuth, async (req: any, res: Respon
     }
 });
 
+// --- Talk Sidebar Data Routes ---
+
+// Get all tasks, reminders, and files for a conversation
+router.get('/conversations/:id/data', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+
+        // Verify participant
+        const participation = await prisma.conversationParticipant.findUnique({
+            where: { conversationId_userId: { conversationId: id, userId } }
+        });
+        if (!participation) return res.status(403).json({ error: 'Not a participant' });
+
+        const [tasks, reminders, files] = await Promise.all([
+            prisma.talkTask.findMany({ where: { conversationId: id }, orderBy: { createdAt: 'asc' }, include: { files: true } }),
+            prisma.talkReminder.findMany({ where: { conversationId: id }, orderBy: { createdAt: 'asc' } }),
+            prisma.talkFile.findMany({ where: { conversationId: id }, orderBy: { createdAt: 'asc' } })
+        ]);
+
+        res.json({ tasks, reminders, files });
+    } catch (error) {
+        console.error('Get talk data error:', error);
+        res.status(500).json({ error: 'Failed to get talk data' });
+    }
+});
+
+// Create a task
+router.post('/conversations/:id/tasks', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+        const { name } = z.object({ name: z.string() }).parse(req.body);
+
+        const task = await prisma.talkTask.create({
+            data: { conversationId: id, creatorId: userId, name }
+        });
+        res.json(task);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create task' });
+    }
+});
+
+// Create a reminder
+router.post('/conversations/:id/reminders', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+        const { text, dueDate } = z.object({ text: z.string(), dueDate: z.string() }).parse(req.body);
+
+        const reminder = await prisma.talkReminder.create({
+            data: { conversationId: id, creatorId: userId, text, dueDate: new Date(dueDate) }
+        });
+        res.json(reminder);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create reminder' });
+    }
+});
+
+// Create/Upload a file
+router.post('/conversations/:id/files', requireAuth, async (req: any, res: Response) => {
+    try {
+        const userId = (req as AuthRequest).auth.userId;
+        const { id } = req.params;
+        const { name, type, url, size, taskId } = z.object({
+            name: z.string(),
+            type: z.string(),
+            url: z.string().optional(),
+            size: z.number().optional(),
+            taskId: z.string().optional()
+        }).parse(req.body);
+
+        const talkFile = await prisma.talkFile.create({
+            data: { conversationId: id, uploaderId: userId, name, type, url, size, taskId }
+        });
+        res.json(talkFile);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to save file' });
+    }
+});
+
+// Update objects (generic toggle/update)
+router.patch('/tasks/:taskId', requireAuth, async (req: any, res: Response) => {
+    try {
+        const { taskId } = req.params;
+        const data = req.body;
+        const task = await prisma.talkTask.update({ where: { id: taskId }, data });
+        res.json(task);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed' });
+    }
+});
+
+router.patch('/reminders/:reminderId', requireAuth, async (req: any, res: Response) => {
+    try {
+        const { reminderId } = req.params;
+        const data = req.body;
+        const reminder = await prisma.talkReminder.update({ where: { id: reminderId }, data });
+        res.json(reminder);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed' });
+    }
+});
+
+// Delete objects
+router.delete('/tasks/:taskId', requireAuth, async (req: any, res: Response) => {
+    try {
+        await prisma.talkTask.delete({ where: { id: req.params.taskId } });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed' });
+    }
+});
+
+router.delete('/reminders/:reminderId', requireAuth, async (req: any, res: Response) => {
+    try {
+        await prisma.talkReminder.delete({ where: { id: req.params.reminderId } });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed' });
+    }
+});
+
+// --- End Talk Sidebar Data Routes ---
+
 // Delete a message (only sender can delete)
 router.delete('/messages/:id', requireAuth, async (req: any, res: Response) => {
     try {

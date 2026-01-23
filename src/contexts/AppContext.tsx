@@ -67,12 +67,7 @@ const translations: Translations = {
   play_now: { en: 'Play Now', ar: 'العب الآن' },
   high_score: { en: 'High Score', ar: 'أعلى نتيجة' },
   coming_soon: { en: 'Coming Soon', ar: 'قريباً' },
-  'snake': { en: 'Snake', ar: 'الثعبان' },
-  'desc_snake': { en: 'Classic snake game. Eat food to grow!', ar: 'لعبة الثعبان الكلاسيكية. كل الطعام لتكبر!' },
-  'tetris': { en: 'Tetris', ar: 'تحطيم الطوب' },
-  'desc_tetris': { en: 'Stack falling blocks to clear lines.', ar: 'رتّب الكتل وحطم كل الطوب. اجمع النقاط!' },
-  'pong': { en: 'Pong', ar: 'بونغ' },
-  'desc_pong': { en: 'Classic paddle game against AI. First to 7 points wins!', ar: 'لعبة المضرب الكلاسيكية ضد الذكاء الاصطناعي. الفائز من يصل 7 نقاط!' },
+
 
   notifications: { en: 'Notifications', ar: 'الإشعارات' },
   mark_all_read: { en: 'Mark all as read', ar: 'تحديد الكل كمقروء' },
@@ -488,6 +483,12 @@ const translations: Translations = {
   pro_tip: { en: 'Pro Tip:', ar: 'نصيحة:' },
   type: { en: 'Type', ar: 'اكتب' },
   to_create_task_chat: { en: 'to create a new task directly from chat.', ar: 'لإنشاء مهمة جديدة مباشرة من الدردشة.' },
+  new_message: { en: 'New Message', ar: 'رسالة جديدة' },
+  no_conversations: { en: 'No conversations yet', ar: 'لا توجد محادثات بعد' },
+  select_conversation: { en: 'Select Conversation', ar: 'اختر محادثة' },
+  select_or_start_conversation: { en: 'Choose a conversation from the sidebar or start a new one', ar: 'اختر محادثة من الشريط الجانبي أو ابدأ واحدة جديدة' },
+  start_new_conversation: { en: 'Start New Conversation', ar: 'بدء محادثة جديدة' },
+  send_first_message: { en: 'Send the first message to start the conversation', ar: 'أرسل الرسالة الأولى لبدء المحادثة' },
 
   // Vault Page (unique entries only)
   no_folders_yet: { en: 'No folders yet', ar: 'لا توجد مجلدات بعد' },
@@ -565,43 +566,6 @@ const translations: Translations = {
 
 
   // Arcade Games
-  games_suffix: { en: 'games', ar: 'لعبة' },
-  'space-shooter': { en: 'Space Shooter', ar: 'مهاجم الفضاء' },
-  desc_space_shooter: { en: 'Classic vertical scrolling shooter. Destroy enemies, collect power-ups, survive waves!', ar: 'لعبة إطلاق نار كلاسيكية. دمر الأعداء واجمع القوة!' },
-
-  'space-invaders': { en: 'Space Invaders', ar: 'غزاة الفضاء' },
-  desc_space_invaders: { en: 'Defend Earth from descending alien invaders. Classic arcade action!', ar: 'دافع عن الأرض من الغزاة الفضائيين. أكشن كلاسيكي!' },
-
-  'asteroids': { en: 'Asteroids', ar: 'الكويكبات' },
-  desc_asteroids: { en: 'Navigate your ship through space and destroy asteroids to survive!', ar: 'قُد سفينتك عبر الفضاء ودمر الكويكبات للبقاء على قيد الحياة!' },
-
-  'snake': { en: 'Snake', ar: 'الثعبان' },
-  desc_snake: { en: 'Classic snake game. Eat food to grow!', ar: 'لعبة الثعبان الكلاسيكية. كل الطعام لتكبر!' },
-
-  'tetris': { en: 'Tetris', ar: 'تتريس' },
-  desc_tetris: { en: 'Stack falling blocks to clear lines.', ar: 'رتب الكتل المتساقطة لتحطيم الخطوط.' },
-
-  'breakout': { en: 'Breakout', ar: 'تحطيم الطوب' },
-  desc_breakout: { en: 'Bounce the ball and break all the bricks. Collect power-ups!', ar: 'اكسر الطوب بالكرة. اجمع القوة!' },
-
-  'pong': { en: 'Pong', ar: 'بونغ' },
-  desc_pong: { en: 'Classic paddle game against AI. First to 7 points wins!', ar: 'لعبة المضرب الكلاسيكية. أول من يصل 7 نقاط يفوز!' },
-
-  'flappy-bird': { en: 'Flappy Bird', ar: 'الطائر المحلق' },
-  desc_flappy_bird: { en: 'Tap to fly through pipes. Simple but addictive!', ar: 'انقر للطيران عبر الأنابيب. بسيطة لكن ممتعة!' },
-
-  'whack-a-mole': { en: 'Whack-a-Mole', ar: 'اضرب الخلد' },
-  desc_whack_a_mole: { en: 'Hit the moles as they pop up! Golden moles worth more points!', ar: 'اضرب حيوان الخلد عندما يظهر! الخلد الذهبي يساوي نقاط أكثر!' },
-
-  'memory-match': { en: 'Memory Match', ar: 'تطابق الذاكرة' },
-  desc_memory_match: { en: 'Find matching pairs. Test your memory skills!', ar: 'جد الأزواج المتطابقة. اختبر مهارات ذاكرتك!' },
-
-  'sudoku': { en: 'Sudoku', ar: 'سودوكو' },
-  desc_sudoku: { en: 'Fill the grid so every row, column, and 3x3 box has 1-9!', ar: 'املأ الشبكة بحيث يحتوي كل صف وعمود ومربع على 1-9!' },
-
-  'simon-says': { en: 'Simon Says', ar: 'سايمون يقول' },
-  desc_simon_says: { en: 'Remember and repeat the color sequence. Test your memory!', ar: 'تذكر وكرر تسلسل الألوان. اختبر ذاكرتك!' },
-
 
 
   // TopBar - Focus Timer
@@ -809,9 +773,11 @@ const translations: Translations = {
   'simon-says': { en: 'Simon Says', ar: 'سايمون يقول' },
   'desc_simon-says': { en: 'Remember and repeat the color sequence. Test your memory!', ar: 'تذكر وكرر تسلسل الألوان. اختبر ذاكرتك!' },
   page_visibility: { en: 'Page Visibility', ar: 'إعدادات الصفحات' },
+  views_visibility: { en: 'Views Visibility', ar: 'رؤية الصفحات' },
   customize_sidebar_desc: { en: 'Customize which pages appear in your sidebar.', ar: 'تخصيص الصفحات التي تظهر في الشريط الجانبي.' },
   visibility_control: { en: 'Visibility Control', ar: 'التحكم في الرؤية' },
   toggle_pages_desc: { en: 'Toggle pages on or off to customize your experience.', ar: 'شغّل أو عطّل الصفحات لتخصيص تجربتك.' },
+
 
 
 
@@ -1178,6 +1144,18 @@ const translations: Translations = {
   starry_night: { en: 'Starry Night', ar: 'ليلة مليئة بالنجوم' },
   heavy_storm: { en: 'Heavy Storm', ar: 'عاصفة قوية' },
   midnight_rain: { en: 'Midnight Rain', ar: 'مطر منتصف الليل' },
+
+  // Science Facts
+  fact_0: { en: 'Honey never spoils.', ar: 'العسل لا يفسد أبداً.' },
+  fact_1: { en: 'Bananas are berries, but strawberries aren\'t.', ar: 'الموز من التوتيات، لكن الفراولة ليست كذلك.' },
+  fact_2: { en: 'A day on Venus is longer than a year on Venus.', ar: 'اليوم على كوكب الزهرة أطول من السنة عليه.' },
+  fact_3: { en: 'Octopuses have three hearts.', ar: 'للأخطبوط ثلاثة قلوب.' },
+  fact_4: { en: 'Water can boil and freeze at the same time.', ar: 'يمكن للماء أن يغلي ويتجمد في نفس الوقت.' },
+  fact_5: { en: 'There are more trees on Earth than stars in the Milky Way.', ar: 'عدد الأشجار على الأرض أكثر من النجوم في درب التبانة.' },
+  fact_6: { en: 'The Eiffel Tower can be 15 cm taller during the summer.', ar: 'يمكن لبرج إيفل أن يزداد ارتفاعه 15 سم في الصيف.' },
+  fact_7: { en: '20% of Earth\'s oxygen is produced by the Amazon rainforest.', ar: 'تنتج غابات الأمازون 20% من أكسجين الأرض.' },
+  fact_8: { en: 'Some metals are so reactive that they explode on contact with water.', ar: 'تتفاعل بعض المعادن بقوة لدرجة الانفجار عند ملامستها للماء.' },
+  fact_9: { en: 'A teaspoonful of neutron star would weigh 6 billion tons.', ar: 'ملعقة صغيرة من نجم نيوتروني تزن 6 مليارات طن.' },
 };
 
 interface AppContextType {

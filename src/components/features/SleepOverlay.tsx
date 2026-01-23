@@ -25,6 +25,8 @@ const SCENES: SceneConfig[] = [
     { id: 'video4', labelKey: 'midnight_rain', icon: '🌧️', textColor: 'text-indigo-200', subTextColor: 'text-indigo-400' },
 ];
 
+const FACTS = Array.from({ length: 10 }, (_, i) => `fact_${i}`);
+
 // Generate subtle rain drops
 const generateRainDrops = (count: number) => {
     return Array.from({ length: count }, (_, i) => ({
@@ -47,6 +49,7 @@ export const SleepOverlay: React.FC<SleepOverlayProps> = ({ onCheck }) => {
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [showIntro, setShowIntro] = useState(true);
     const [introStep, setIntroStep] = useState(0);
+    const [factIndex, setFactIndex] = useState(0);
     const userInteractedRef = useRef(false);
 
     // Get current scene config
@@ -136,7 +139,7 @@ export const SleepOverlay: React.FC<SleepOverlayProps> = ({ onCheck }) => {
                 clearInterval(fadeIn);
             }
             if (audioRef.current) audioRef.current.volume = volume;
-            if (rainAudioRef.current) rainAudioRef.current.volume = volume * 0.49; // Rain 30% quieter than before (0.7 * 0.7 = 0.49)
+            if (rainAudioRef.current) rainAudioRef.current.volume = volume * 0.25; // Rain reduced by another 50% (approx 0.49 * 0.5)
         }, 50);
 
         return () => {
@@ -170,6 +173,14 @@ export const SleepOverlay: React.FC<SleepOverlayProps> = ({ onCheck }) => {
         const lightningTimeout = { current: triggerLightning() };
         return () => clearTimeout(lightningTimeout.current);
     }, [scene]);
+
+    // Rotate facts every 3 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setFactIndex((prev) => (prev + 1) % FACTS.length);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Countdown - auto-exit when timer reaches 0
     useEffect(() => {
@@ -350,7 +361,7 @@ export const SleepOverlay: React.FC<SleepOverlayProps> = ({ onCheck }) => {
                         </div>
 
                         <p className={`text-sm mt-6 transition-colors duration-500 ${currentScene.textColor}`}>
-                            {currentScene.icon} {t(currentScene.labelKey)}
+                            {t(FACTS[factIndex])}
                         </p>
 
                         <p className={`text-sm mt-6 transition-colors duration-500 ${currentScene.subTextColor}`}>

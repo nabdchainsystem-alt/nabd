@@ -6,14 +6,14 @@ import { DashboardPreview } from './components/DashboardPreview';
 import { TestimonialsSection } from './components/TestimonialsSection';
 import { CTASection } from './components/CTASection';
 
-import { useClerk } from '../../auth-adapter';
+// useClerk import removed
 import { DeveloperLoginModal } from '../auth/DeveloperLoginModal';
 import { List, X } from 'phosphor-react';
 
 export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSystem }) => {
     const [isDevLoginOpen, setIsDevLoginOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const { openSignIn } = useClerk();
+    // openSignIn removed
     const { scrollY } = useScroll();
 
     const navBackground = useTransform(
@@ -36,23 +36,7 @@ export const LandingPage: React.FC<{ onEnterSystem: () => void }> = ({ onEnterSy
             localStorage.removeItem('mock_auth_token');
         }
 
-        openSignIn({
-            appearance: {
-                variables: {
-                    colorPrimary: '#000000',
-                    colorText: '#000000',
-                    colorTextSecondary: '#71717a',
-                    colorBackground: '#ffffff',
-                },
-                elements: {
-                    // Hide Google/social sign-in buttons
-                    socialButtons: "hidden",
-                    socialButtonsBlockButton: "hidden",
-                    dividerRow: "hidden",
-                    formButtonPrimary: "bg-black hover:bg-zinc-800 text-white",
-                }
-            }
-        });
+        onEnterSystem();
     };
 
     const navLinks = [

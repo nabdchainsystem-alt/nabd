@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { X, UserCircle, ArrowRight, Clock, CheckCircle, EnvelopeSimple, EnvelopeOpen } from 'phosphor-react';
 import { Assignment } from '../../services/assignmentService';
+import { teamService, ConnectionRequest } from '../../services/teamService';
+import { useAuth } from '../../auth-adapter';
 
 interface NotificationPanelProps {
     isOpen: boolean;
     onClose: () => void;
     assignments: Assignment[];
+    pendingRequests?: ConnectionRequest[];
     onViewAssignment: (assignment: Assignment) => void;
+    onRespondToRequest?: (connectionId: string, action: 'accept' | 'reject') => void;
     isLoading?: boolean;
 }
 
@@ -15,11 +19,20 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
     isOpen,
     onClose,
     assignments,
+    pendingRequests = [],
     onViewAssignment,
+    onRespondToRequest,
     isLoading = false
 }) => {
     const { t, language } = useAppContext();
+    const { getToken } = useAuth();
     const [activeTab, setActiveTab] = useState<'unread' | 'read'>('unread');
+    const [localRequests, setLocalRequests] = useState<ConnectionRequest[]>(pendingRequests);
+
+    // Sync local state with props
+    React.useEffect(() => {
+        setLocalRequests(pendingRequests);
+    }, [pendingRequests]);
 
     if (!isOpen) return null;
 
@@ -51,7 +64,30 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
     // Filter assignments by read/unread status
     const unreadAssignments = assignments.filter(a => !a.isViewed);
     const readAssignments = assignments.filter(a => a.isViewed);
-    const displayedAssignments = activeTab === 'unread' ? unreadAssignments : readAssignments;
+
+    const isCurrentTabEmpty = activeTab === 'unread'
+        ? (unreadAssignments.length === 0 && localRequests.length === 0)
+        : readAssignments.length === 0;
+
+    // Total unread includes pending connection requests
+    const totalUnreadCount = unreadAssignments.length + localRequests.length;
+
+    const handleRespond = async (connectionId: string, action: 'accept' | 'reject') => {
+        try {
+            const token = await getToken();
+            if (!token) return;
+            await teamService.respondToRequest(token, connectionId, action);
+
+            // Remove from local state immediately for better UX
+            setLocalRequests(prev => prev.filter(r => r.id !== connectionId));
+
+            if (onRespondToRequest) {
+                onRespondToRequest(connectionId, action);
+            }
+        } catch (error) {
+            console.error('Failed to respond to request:', error);
+        }
+    };
 
     return (
         <div className="absolute top-full right-0 rtl:right-auto rtl:left-0 mt-2 w-96 max-h-[520px] bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl border border-gray-100 dark:border-monday-dark-border z-50 overflow-hidden animate-fadeIn">
@@ -61,9 +97,9 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                     <h3 className="font-semibold text-gray-800 dark:text-monday-dark-text">
                         {t('notifications')}
                     </h3>
-                    {unreadAssignments.length > 0 && (
+                    {totalUnreadCount > 0 && (
                         <span className="px-2 py-0.5 text-xs font-medium bg-monday-blue text-white rounded-full">
-                            {unreadAssignments.length}
+                            {totalUnreadCount}
                         </span>
                     )}
                 </div>
@@ -86,10 +122,10 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                 >
                     <EnvelopeSimple size={16} />
                     {t('unread')}
-                    {unreadAssignments.length > 0 && (
+                    {totalUnreadCount > 0 && (
                         <span className={`px-1.5 py-0.5 text-xs rounded-full ${activeTab === 'unread' ? 'bg-monday-blue text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                             }`}>
-                            {unreadAssignments.length}
+                            {totalUnreadCount}
                         </span>
                     )}
                 </button>
@@ -117,7 +153,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                     <div className="flex items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-monday-blue"></div>
                     </div>
-                ) : displayedAssignments.length === 0 ? (
+                ) : isCurrentTabEmpty ? (
                     <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-monday-dark-text-secondary">
                         <CheckCircle size={48} weight="light" className="mb-3 opacity-50" />
                         <p className="text-sm">
@@ -129,7 +165,64 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-100 dark:divide-monday-dark-border">
-                        {displayedAssignments.map((assignment) => (
+                        {/* Connection Requests (Always in Unread) */}
+                        {activeTab === 'unread' && localRequests.map((request) => (
+                            <div
+                                key={request.id}
+                                className="px-4 py-4 bg-blue-50/30 dark:bg-blue-900/5 hover:bg-gray-50 dark:hover:bg-monday-dark-hover transition-colors"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div className="flex-shrink-0">
+                                        {request.sender?.avatarUrl ? (
+                                            <img
+                                                src={request.sender.avatarUrl}
+                                                alt={request.sender.name || 'User'}
+                                                className="w-10 h-10 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center">
+                                                <UserCircle size={24} weight="fill" className="text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-medium text-sm text-gray-800 dark:text-monday-dark-text truncate">
+                                                {request.sender?.name || request.sender?.email}
+                                            </span>
+                                            <span className="w-2 h-2 bg-monday-blue rounded-full flex-shrink-0"></span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 dark:text-monday-dark-text-secondary mt-0.5">
+                                            {language === 'ar' ? 'أرسل لك طلباً للتواصل' : 'sent you a connection request'}
+                                        </p>
+
+                                        <div className="flex gap-2 mt-3">
+                                            <button
+                                                onClick={() => handleRespond(request.id, 'accept')}
+                                                className="px-3 py-1.5 bg-monday-blue hover:bg-monday-blue-hover text-white text-xs font-semibold rounded-md transition-colors shadow-sm"
+                                            >
+                                                {language === 'ar' ? 'قبول' : 'Accept'}
+                                            </button>
+                                            <button
+                                                onClick={() => handleRespond(request.id, 'reject')}
+                                                className="px-3 py-1.5 bg-gray-100 dark:bg-monday-dark-hover hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-monday-dark-text text-xs font-semibold rounded-md transition-colors"
+                                            >
+                                                {language === 'ar' ? 'تجاهل' : 'Ignore'}
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 dark:text-monday-dark-text-secondary">
+                                            <Clock size={12} />
+                                            <span className="font-datetime">{formatTimeAgo(request.createdAt)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Assignments */}
+                        {(activeTab === 'unread' ? unreadAssignments : readAssignments).map((assignment) => (
                             <div
                                 key={assignment.id}
                                 className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-monday-dark-hover cursor-pointer transition-colors ${!assignment.isViewed ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''

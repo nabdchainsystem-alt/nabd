@@ -34,6 +34,9 @@ model User {
   pagePermissions          UserPagePermission[]
   fileMappings             FileMapping[]
   aiUsageLogs              AIUsageLog[]
+  talkTasks                TalkTask[]
+  talkReminders            TalkReminder[]
+  talkFiles                TalkFile[]
 
   @@index([workspaceId])
   @@index([lastActiveAt])
@@ -374,6 +377,62 @@ model Conversation {
 
   @@index([type])
   @@index([updatedAt])
+  talkTasks    TalkTask[]
+  talkReminders TalkReminder[]
+  talkFiles    TalkFile[]
+}
+
+model TalkTask {
+  id             String       @id @default(uuid())
+  conversationId String
+  creatorId      String
+  name           String
+  status         String       @default("pending") // pending, in_progress, completed
+  boardId        String?      // If sent to a board
+  boardName      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  creator        User         @relation(fields: [creatorId], references: [id])
+  files          TalkFile[]
+
+  @@index([conversationId])
+  @@index([creatorId])
+}
+
+model TalkReminder {
+  id             String       @id @default(uuid())
+  conversationId String
+  creatorId      String
+  text           String
+  dueDate        DateTime
+  completed      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  creator        User         @relation(fields: [creatorId], references: [id])
+
+  @@index([conversationId])
+  @@index([creatorId])
+}
+
+model TalkFile {
+  id             String       @id @default(uuid())
+  conversationId String
+  uploaderId     String
+  taskId         String?
+  name           String
+  type           String
+  url            String?
+  size           Int?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  uploader       User         @relation(fields: [uploaderId], references: [id])
+  task           TalkTask?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([uploaderId])
+  @@index([taskId])
 }
 
 model Message {

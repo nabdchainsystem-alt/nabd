@@ -9,6 +9,7 @@ import { SleepOverlay } from '../features/SleepOverlay';
 import { FocusMode } from '../features/FocusMode';
 import { NotificationPanel } from './NotificationPanel';
 import { assignmentService, Assignment } from '../../services/assignmentService';
+import { teamService, ConnectionRequest } from '../../services/teamService';
 
 import { NabdSmartBar } from '../ui/NabdSmartBar';
 import { QuickNotesPanel } from './QuickNotesPanel';
@@ -37,6 +38,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, boards = [], onCreat
   // Notification state
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<ConnectionRequest[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -119,8 +121,14 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, boards = [], onCreat
     try {
       const token = await getToken();
       if (!token) return;
-      const count = await assignmentService.getUnreadCount(token);
-      setUnreadCount(count);
+
+      const [assignmentCount, requests] = await Promise.all([
+        assignmentService.getUnreadCount(token),
+        teamService.getPendingRequests(token)
+      ]);
+
+      setUnreadCount(assignmentCount + requests.length);
+      setPendingRequests(requests);
     } catch (error) {
       console.error('Failed to fetch notification count:', error);
     }
@@ -145,11 +153,17 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, boards = [], onCreat
     try {
       const token = await getToken();
       if (!token) return;
-      // Fetch all assignments (both read and unread)
-      const allAssignments = await assignmentService.getAllAssignments(token);
+      // Fetch both assignments and connection requests
+      const [allAssignments, requests] = await Promise.all([
+        assignmentService.getAllAssignments(token),
+        teamService.getPendingRequests(token)
+      ]);
+
       setAssignments(allAssignments);
+      setPendingRequests(requests);
+      setUnreadCount((allAssignments.filter(a => !a.isViewed).length) + requests.length);
     } catch (error) {
-      console.error('Failed to fetch assignments:', error);
+      console.error('Failed to fetch notifications:', error);
     } finally {
       setIsLoadingNotifications(false);
     }
@@ -192,6 +206,11 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, boards = [], onCreat
     } catch (error) {
       console.error('Failed to view assignment:', error);
     }
+  };
+
+  const handleRespondToRequest = (connectionId: string) => {
+    setPendingRequests(prev => prev.filter(r => r.id !== connectionId));
+    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   return (
@@ -351,7 +370,9 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, boards = [], onCreat
               isOpen={isNotificationOpen}
               onClose={() => setIsNotificationOpen(false)}
               assignments={assignments}
+              pendingRequests={pendingRequests}
               onViewAssignment={handleViewAssignment}
+              onRespondToRequest={handleRespondToRequest}
               isLoading={isLoadingNotifications}
             />
           </div>

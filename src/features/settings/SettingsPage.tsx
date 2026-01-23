@@ -11,6 +11,7 @@ import {
     Flask
 } from 'phosphor-react';
 import { adminService, FeatureFlag, AdminUser, UserPagePermission } from '../../services/adminService';
+import { userService } from '../../services/userService';
 
 export const ALL_PAGES = {
     // Top Level
@@ -476,7 +477,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ visibility, onVisibi
         fileInputRef.current?.click();
     };
 
-    const handleSaveProfile = () => {
+    const handleSaveProfile = async () => {
         localStorage.setItem('user_job_title', jobTitle);
         localStorage.setItem('user_department', department);
         localStorage.setItem('user_bio', bio);
@@ -485,10 +486,22 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ visibility, onVisibi
         if (profileImage && profileImage.startsWith('data:image')) {
             try {
                 localStorage.setItem('user_profile_image', profileImage);
+
+                // Sync with backend - THIS IS THE CRITICAL PART FOR OTHERS TO SEE IT
+                const token = await getToken();
+                if (token) {
+                    await userService.updateProfile(token, { avatarUrl: profileImage });
+                }
+
                 window.dispatchEvent(new Event('profile-image-updated'));
             } catch (error) {
-                console.error('Storage quota exceeded', error);
-                alert('Image is too large to save locally. Please try a smaller image.');
+                console.error('Failed to sync profile image:', error);
+
+                if (error instanceof Error && error.message.includes('quota')) {
+                    alert('Image is too large to save locally. Please try a smaller image.');
+                } else {
+                    alert('Failed to sync profile picture with backend. Others might not see your update.');
+                }
                 return;
             }
         }

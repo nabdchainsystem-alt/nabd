@@ -37,7 +37,7 @@ export const Header: React.FC = () => {
                     <span className="material-symbols-outlined text-[24px]">videocam</span>
                 </button>
                 {/* Black share button for branding */}
-                <button className="flex items-center justify-center rounded-full h-9 px-6 bg-gray-900 text-white text-sm font-bold gap-2 hover:bg-gray-800 transition-colors">
+                <button className="flex items-center justify-center rounded-full h-9 px-6 bg-slate-800 text-white text-sm font-medium gap-2 hover:bg-slate-700 transition-all shadow-sm border border-slate-700">
                     <span className="material-symbols-outlined text-[18px]">lock</span>
                     <span>Share</span>
                 </button>

@@ -269,7 +269,7 @@ const ArcadePage: React.FC = () => {
 
       {/* Footer tip */}
       <div className="flex-shrink-0 p-4 text-center text-gray-500 text-xs border-t border-gray-200 dark:border-gray-700/50">
-        Press ESC while playing to pause the game
+        {t('press_esc_to_pause')}
       </div>
     </div>
   );

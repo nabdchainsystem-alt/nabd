@@ -118,5 +118,80 @@ export const talkService = {
         if (!response.ok) {
             throw new Error('Failed to delete message');
         }
+    },
+
+    // --- Sidebar Data ---
+    async getConversationData(token: string, conversationId: string): Promise<any> {
+        const response = await fetch(`${API_URL}/talk/conversations/${conversationId}/data`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to get conversation data');
+        return response.json();
+    },
+
+    async createTask(token: string, conversationId: string, name: string): Promise<any> {
+        const response = await fetch(`${API_URL}/talk/conversations/${conversationId}/tasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ name })
+        });
+        if (!response.ok) throw new Error('Failed to create task');
+        return response.json();
+    },
+
+    async updateTask(token: string, taskId: string, data: any): Promise<any> {
+        const response = await fetch(`${API_URL}/talk/tasks/${taskId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Failed to update task');
+        return response.json();
+    },
+
+    async deleteTask(token: string, taskId: string): Promise<void> {
+        const response = await fetch(`${API_URL}/talk/tasks/${taskId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to delete task');
+    },
+
+    async createReminder(token: string, conversationId: string, text: string, dueDate: string): Promise<any> {
+        const response = await fetch(`${API_URL}/talk/conversations/${conversationId}/reminders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ text, dueDate })
+        });
+        if (!response.ok) throw new Error('Failed to create reminder');
+        return response.json();
+    },
+
+    async updateReminder(token: string, reminderId: string, data: any): Promise<any> {
+        const response = await fetch(`${API_URL}/talk/reminders/${reminderId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Failed to update reminder');
+        return response.json();
+    },
+
+    async deleteReminder(token: string, reminderId: string): Promise<void> {
+        const response = await fetch(`${API_URL}/talk/reminders/${reminderId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to delete reminder');
+    },
+
+    async createFile(token: string, conversationId: string, fileData: any): Promise<any> {
+        const response = await fetch(`${API_URL}/talk/conversations/${conversationId}/files`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(fileData)
+        });
+        if (!response.ok) throw new Error('Failed to create file');
+        return response.json();
     }
 };
