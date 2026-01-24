@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo, useRef } from 'react';
 import { useAuth } from '../auth-adapter';
 import { aiLogger } from '../utils/logger';
 
@@ -223,8 +223,10 @@ export function AIProvider({ children }: AIProviderProps) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentTier, setCurrentTier] = useState<ModelTier | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [currentBoardContext, setCurrentBoardContext] = useState<BoardContextData | null>(null);
-    const [currentRoomContext, setCurrentRoomContext] = useState<RoomContextData | null>(null);
+    // Use refs for board/room context to prevent re-renders when context updates
+    // These are only needed for API calls, not for rendering
+    const currentBoardContextRef = useRef<BoardContextData | null>(null);
+    const currentRoomContextRef = useRef<RoomContextData | null>(null);
 
     // Persist department to localStorage
     useEffect(() => {
@@ -244,7 +246,16 @@ export function AIProvider({ children }: AIProviderProps) {
         };
     }, [getToken]);
 
-    // Build context object for API calls
+    // Stable setter functions that don't cause re-renders
+    const setCurrentBoardContext = useCallback((data: BoardContextData | null) => {
+        currentBoardContextRef.current = data;
+    }, []);
+
+    const setCurrentRoomContext = useCallback((data: RoomContextData | null) => {
+        currentRoomContextRef.current = data;
+    }, []);
+
+    // Build context object for API calls (reads from refs)
     const buildContext = useCallback((): AIContext => {
         const context: AIContext = {};
 
@@ -252,16 +263,16 @@ export function AIProvider({ children }: AIProviderProps) {
             context.department = userDepartment;
         }
 
-        if (currentBoardContext) {
-            context.boardData = currentBoardContext;
+        if (currentBoardContextRef.current) {
+            context.boardData = currentBoardContextRef.current;
         }
 
-        if (currentRoomContext) {
-            context.roomData = currentRoomContext;
+        if (currentRoomContextRef.current) {
+            context.roomData = currentRoomContextRef.current;
         }
 
         return context;
-    }, [userDepartment, currentBoardContext, currentRoomContext]);
+    }, [userDepartment]);
 
     // Refresh credits from server
     const refreshCredits = useCallback(async () => {
@@ -691,8 +702,9 @@ export function AIProvider({ children }: AIProviderProps) {
         currentTier,
         error,
         clearError,
-        currentBoardContext,
-        currentRoomContext,
+        // Expose refs' current values (reads are live, writes don't cause re-renders)
+        currentBoardContext: currentBoardContextRef.current,
+        currentRoomContext: currentRoomContextRef.current,
         setCurrentBoardContext,
         setCurrentRoomContext,
         processPrompt,
@@ -718,8 +730,7 @@ export function AIProvider({ children }: AIProviderProps) {
         currentTier,
         error,
         clearError,
-        currentBoardContext,
-        currentRoomContext,
+        // Note: refs not in deps - updates don't trigger re-renders
         setCurrentBoardContext,
         setCurrentRoomContext,
         processPrompt,
