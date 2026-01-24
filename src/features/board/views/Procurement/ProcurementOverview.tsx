@@ -366,13 +366,6 @@ export const ProcurementOverview: React.FC = () => {
         });
     }, [orders, rfqs.length]);
 
-    // Load data from the procurement service (decoupled from Board/Table)
-    useEffect(() => {
-        loadData();
-        loadRfqs();
-        loadOrders();
-    }, [loadData, loadRfqs, loadOrders]);
-
     const loadRfqs = useCallback(async () => {
         setLoadingRfqs(true);
         try {
@@ -408,6 +401,13 @@ export const ProcurementOverview: React.FC = () => {
             appLogger.error("Failed to load requests", error);
         }
     }, [getToken]);
+
+    // Load data from the procurement service (decoupled from Board/Table)
+    useEffect(() => {
+        loadData();
+        loadRfqs();
+        loadOrders();
+    }, [loadData, loadRfqs, loadOrders]);
 
     const handleCreateRequest = async (data: any) => {
         // Map modal data to board task structure
