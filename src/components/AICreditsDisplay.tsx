@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAI } from '../contexts/AIContext';
-import { Sparkle, Lightning, Brain, CircleNotch, Robot, Database, Info } from 'phosphor-react';
+import { Sparkle, Lightning, Brain, CircleNotch, Robot, Database, Power } from 'phosphor-react';
 import { useAppContext } from '../contexts/AppContext';
 
 interface AICreditsDisplayProps {
@@ -26,6 +26,8 @@ export function AICreditsDisplay({ showMode = true, compact = false }: AICredits
         currentTier,
         currentBoardContext,
         currentRoomContext,
+        aiEnabled,
+        toggleAI,
     } = useAI();
     const { theme } = useAppContext();
     const [isOpen, setIsOpen] = useState(false);
@@ -92,10 +94,16 @@ export function AICreditsDisplay({ showMode = true, compact = false }: AICredits
                     hover:bg-gray-100 dark:hover:bg-monday-dark-hover
                     h-8 flex items-center justify-center
                     ${isOpen ? 'bg-gray-100 dark:bg-monday-dark-hover text-[#323338] dark:text-monday-dark-text' : ''}
+                    ${!aiEnabled ? 'opacity-50' : ''}
                 `}
-                title={`NABD Brain - ${credits} credits • ${deepModeEnabled ? 'Deep Mode' : 'Auto Mode'}${hasContext ? ' • Context Active' : ''}`}
+                title={aiEnabled
+                    ? `NABD Brain - ${credits} credits • ${deepModeEnabled ? 'Deep Mode' : 'Auto Mode'}${hasContext ? ' • Context Active' : ''}`
+                    : 'NABD Brain - AI Disabled (click to enable)'
+                }
             >
-                {isProcessing ? (
+                {!aiEnabled ? (
+                    <Power size={18} className="text-gray-400" />
+                ) : isProcessing ? (
                     <CircleNotch size={18} className="animate-spin" />
                 ) : (
                     <Sparkle
@@ -104,13 +112,20 @@ export function AICreditsDisplay({ showMode = true, compact = false }: AICredits
                     />
                 )}
 
-                {/* Credits badge */}
-                <span className={`text-[10px] font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {creditsLoading ? '...' : credits}
-                </span>
+                {/* Credits badge - only show when enabled */}
+                {aiEnabled && (
+                    <span className={`text-[10px] font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {creditsLoading ? '...' : credits}
+                    </span>
+                )}
+
+                {/* OFF indicator when disabled */}
+                {!aiEnabled && (
+                    <span className="text-[10px] font-medium text-gray-400">OFF</span>
+                )}
 
                 {/* Context indicator */}
-                {hasContext && (
+                {hasContext && aiEnabled && (
                     <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-500" />
                 )}
             </button>
@@ -121,7 +136,7 @@ export function AICreditsDisplay({ showMode = true, compact = false }: AICredits
                     absolute top-full right-0 rtl:right-auto rtl:left-0 mt-2 w-48 rounded-xl shadow-xl border z-50 overflow-hidden
                     ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}
                 `}>
-                    {/* Header */}
+                    {/* Header with ON/OFF Toggle */}
                     <div className={`px-3 py-2.5 border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -130,63 +145,89 @@ export function AICreditsDisplay({ showMode = true, compact = false }: AICredits
                                     NABD Brain
                                 </span>
                             </div>
-                            <span className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {creditsLoading ? '...' : `${credits} cr`}
-                            </span>
+                            {/* ON/OFF Toggle Switch */}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); toggleAI(); }}
+                                className={`
+                                    relative w-10 h-5 rounded-full transition-colors duration-200
+                                    ${aiEnabled
+                                        ? 'bg-blue-500'
+                                        : isDark ? 'bg-gray-700' : 'bg-gray-300'
+                                    }
+                                `}
+                                title={aiEnabled ? 'Click to disable AI' : 'Click to enable AI'}
+                            >
+                                <div className={`
+                                    absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200
+                                    ${aiEnabled ? 'translate-x-5' : 'translate-x-0.5'}
+                                `} />
+                            </button>
                         </div>
+                        {aiEnabled && (
+                            <div className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                {creditsLoading ? '...' : `${credits} credits available`}
+                            </div>
+                        )}
+                        {!aiEnabled && (
+                            <div className="text-[10px] mt-1 text-orange-500">
+                                AI features are disabled
+                            </div>
+                        )}
                     </div>
 
-                    {/* Mode Selection */}
-                    <div className="p-2 space-y-1">
-                        {/* Auto Mode (Smart Routing) */}
-                        <button
-                            onClick={() => { if (deepModeEnabled) toggleDeepMode(); setIsOpen(false); }}
-                            className={`
-                                w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all
-                                ${!deepModeEnabled
-                                    ? isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900'
-                                    : isDark ? 'hover:bg-gray-800/50 text-gray-400' : 'hover:bg-gray-50 text-gray-500'
-                                }
-                            `}
-                        >
-                            <Robot size={15} weight={!deepModeEnabled ? 'fill' : 'regular'} />
-                            <div className="flex-1 text-left">
-                                <div className="text-xs font-medium">Auto</div>
-                                <div className={`text-[9px] opacity-60`}>
-                                    Smart routing • 1-5 cr
+                    {/* Mode Selection - Only show when AI is enabled */}
+                    {aiEnabled && (
+                        <div className="p-2 space-y-1">
+                            {/* Auto Mode (Smart Routing) */}
+                            <button
+                                onClick={() => { if (deepModeEnabled) toggleDeepMode(); setIsOpen(false); }}
+                                className={`
+                                    w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all
+                                    ${!deepModeEnabled
+                                        ? isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900'
+                                        : isDark ? 'hover:bg-gray-800/50 text-gray-400' : 'hover:bg-gray-50 text-gray-500'
+                                    }
+                                `}
+                            >
+                                <Robot size={15} weight={!deepModeEnabled ? 'fill' : 'regular'} />
+                                <div className="flex-1 text-left">
+                                    <div className="text-xs font-medium">Auto</div>
+                                    <div className={`text-[9px] opacity-60`}>
+                                        Smart routing • 1-5 cr
+                                    </div>
                                 </div>
-                            </div>
-                            {!deepModeEnabled && (
-                                <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-white' : 'bg-gray-900'}`} />
-                            )}
-                        </button>
+                                {!deepModeEnabled && (
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-white' : 'bg-gray-900'}`} />
+                                )}
+                            </button>
 
-                        {/* Deep Mode */}
-                        <button
-                            onClick={() => { if (!deepModeEnabled) toggleDeepMode(); setIsOpen(false); }}
-                            className={`
-                                w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all
-                                ${deepModeEnabled
-                                    ? isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900'
-                                    : isDark ? 'hover:bg-gray-800/50 text-gray-400' : 'hover:bg-gray-50 text-gray-500'
-                                }
-                            `}
-                        >
-                            <Brain size={15} weight={deepModeEnabled ? 'fill' : 'regular'} />
-                            <div className="flex-1 text-left">
-                                <div className="text-xs font-medium">Deep</div>
-                                <div className={`text-[9px] opacity-60`}>
-                                    Thinker only • 5 cr
+                            {/* Deep Mode */}
+                            <button
+                                onClick={() => { if (!deepModeEnabled) toggleDeepMode(); setIsOpen(false); }}
+                                className={`
+                                    w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-all
+                                    ${deepModeEnabled
+                                        ? isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900'
+                                        : isDark ? 'hover:bg-gray-800/50 text-gray-400' : 'hover:bg-gray-50 text-gray-500'
+                                    }
+                                `}
+                            >
+                                <Brain size={15} weight={deepModeEnabled ? 'fill' : 'regular'} />
+                                <div className="flex-1 text-left">
+                                    <div className="text-xs font-medium">Deep</div>
+                                    <div className={`text-[9px] opacity-60`}>
+                                        Thinker only • 5 cr
+                                    </div>
                                 </div>
-                            </div>
-                            {deepModeEnabled && (
-                                <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-white' : 'bg-gray-900'}`} />
-                            )}
-                        </button>
-                    </div>
+                                {deepModeEnabled && (
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-white' : 'bg-gray-900'}`} />
+                                )}
+                            </button>
+                        </div>
+                    )}
 
-                    {/* Context Status */}
-                    {hasContext && (
+                    {/* Context Status - Only show when AI is enabled */}
+                    {aiEnabled && hasContext && (
                         <div className={`px-3 py-2 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
                             <div className="flex items-center gap-2">
                                 <Database size={11} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
@@ -197,14 +238,16 @@ export function AICreditsDisplay({ showMode = true, compact = false }: AICredits
                         </div>
                     )}
 
-                    {/* Keyboard Shortcut Hint */}
-                    <div className={`px-3 py-2 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
-                        <div className="flex items-center justify-center gap-1.5">
-                            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                <kbd className="px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-800' : 'bg-gray-100'} text-[9px] font-mono">⌘J</kbd> to chat
-                            </span>
+                    {/* Keyboard Shortcut Hint - Only show when AI is enabled */}
+                    {aiEnabled && (
+                        <div className={`px-3 py-2 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+                            <div className="flex items-center justify-center gap-1.5">
+                                <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                    <kbd className="px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-800' : 'bg-gray-100'} text-[9px] font-mono">⌘J</kbd> to chat
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
         </div>
