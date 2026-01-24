@@ -18,6 +18,7 @@ export interface AIRequest {
     promptType?: 'chart' | 'gtd' | 'analysis' | 'upload' | 'general' | 'table' | 'forecast' | 'tips';
     conversationId?: string;
     includeHistory?: boolean;
+    language?: 'en' | 'ar'; // Response language preference
 }
 
 export interface AIContext {
@@ -561,7 +562,7 @@ export async function saveConversationTurn(
 /**
  * Builds comprehensive system prompt with department-specific instructions
  */
-function buildSystemPrompt(tier: ModelTier, context?: AIContext, promptType?: string): string {
+function buildSystemPrompt(tier: ModelTier, context?: AIContext, promptType?: string, language?: 'en' | 'ar'): string {
     let systemPrompt = '';
 
     // Base prompts for each tier - 5-Tier System
@@ -758,6 +759,18 @@ Guidelines:
         }
     }
 
+    // Add language instruction
+    if (language === 'ar') {
+        systemPrompt += `\n\n🌍 LANGUAGE INSTRUCTION - CRITICAL:
+You MUST respond entirely in Arabic (العربية).
+- All text, explanations, and insights must be in Arabic
+- Use proper Arabic grammar and vocabulary
+- For technical terms, you may include English in parentheses if helpful
+- Numbers can use Arabic numerals (0-9) or Arabic-Indic numerals (٠-٩)
+- Structure your response in a right-to-left friendly format
+- Keep JSON keys in English for technical outputs (charts, tables), but translate values and descriptions to Arabic`;
+    }
+
     return systemPrompt;
 }
 
@@ -789,11 +802,21 @@ async function executeWithRetry<T>(
         } catch (error) {
             lastError = error instanceof Error ? error : new Error(String(error));
 
-            // Don't retry on certain errors
+            // Don't retry on certain errors - throw immediately
             if (lastError.message.includes('PERMISSION_DENIED') ||
                 lastError.message.includes('INVALID_API_KEY') ||
                 lastError.message.includes('quota')) {
                 throw lastError;
+            }
+
+            // For overloaded/503 errors, fail fast to trigger fallback sooner
+            if (lastError.message.includes('overloaded') ||
+                lastError.message.includes('503') ||
+                lastError.message.includes('Service Unavailable')) {
+                // Only retry once for overload, then let fallback handle it
+                if (attempt >= 1) {
+                    throw lastError;
+                }
             }
 
             // Exponential backoff
@@ -836,7 +859,7 @@ export async function routeRequest(request: AIRequest): Promise<AIResponse> {
         const { model, modelName } = await getModelWithFallback(tier, useFallback);
 
         // Build system prompt based on tier and context
-        const systemPrompt = buildSystemPrompt(tier, request.context, request.promptType);
+        const systemPrompt = buildSystemPrompt(tier, request.context, request.promptType, request.language);
 
         // Build conversation history if available
         let contents: Content[] = [];
@@ -878,7 +901,7 @@ export async function routeRequest(request: AIRequest): Promise<AIResponse> {
                     escalated = true;
 
                     const { model: thinkerModel, modelName: thinkerModelName } = await getModelWithFallback('thinker');
-                    const thinkerPrompt = buildSystemPrompt('thinker', request.context, request.promptType);
+                    const thinkerPrompt = buildSystemPrompt('thinker', request.context, request.promptType, request.language);
 
                     const thinkerResult = await executeWithRetry(async () => {
                         return thinkerModel.generateContent({
@@ -960,7 +983,7 @@ export async function routeRequest(request: AIRequest): Promise<AIResponse> {
         if (!useFallback) {
             try {
                 const { model: fallbackModel, modelName: fallbackModelName } = await getModelWithFallback(tier, true);
-                const systemPrompt = buildSystemPrompt(tier, request.context, request.promptType);
+                const systemPrompt = buildSystemPrompt(tier, request.context, request.promptType, request.language);
 
                 const result = await fallbackModel.generateContent({
                     contents: [{ role: 'user', parts: [{ text: request.prompt }] }],
@@ -1510,7 +1533,7 @@ export async function getUsageStats(
         where: whereClause,
     });
 
-    const byTier: Record<ModelTier, number> = { cleaner: 0, worker: 0, thinker: 0 };
+    const byTier: Record<ModelTier, number> = { cleaner: 0, assistant: 0, worker: 0, analyst: 0, thinker: 0 };
     const byType: Record<string, number> = {};
     let totalCredits = 0;
     let successCount = 0;
