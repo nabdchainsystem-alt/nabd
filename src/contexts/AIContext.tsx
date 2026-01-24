@@ -39,6 +39,10 @@ export interface AIContext {
 }
 
 export interface AIContextType {
+    // AI enabled/disabled toggle
+    aiEnabled: boolean;
+    toggleAI: () => void;
+
     // Credits
     credits: number;
     creditsLoading: boolean;
@@ -214,6 +218,10 @@ export function AIProvider({ children }: AIProviderProps) {
     const { getToken } = useAuth();
 
     // State
+    const [aiEnabled, setAiEnabled] = useState<boolean>(() => {
+        const saved = localStorage.getItem('ai_enabled');
+        return saved !== null ? saved === 'true' : true; // Default to enabled
+    });
     const [credits, setCredits] = useState(100); // Default credits
     const [creditsLoading, setCreditsLoading] = useState(false);
     const [deepModeEnabled, setDeepModeEnabled] = useState(false);
@@ -236,6 +244,16 @@ export function AIProvider({ children }: AIProviderProps) {
             localStorage.removeItem('user_ai_department');
         }
     }, [userDepartment]);
+
+    // Persist AI enabled state to localStorage
+    useEffect(() => {
+        localStorage.setItem('ai_enabled', String(aiEnabled));
+    }, [aiEnabled]);
+
+    // Toggle AI on/off
+    const toggleAI = useCallback(() => {
+        setAiEnabled(prev => !prev);
+    }, []);
 
     // Fetch auth headers
     const getAuthHeaders = useCallback(async (): Promise<HeadersInit> => {
@@ -320,6 +338,11 @@ export function AIProvider({ children }: AIProviderProps) {
         prompt: string,
         promptType: string = 'general'
     ): Promise<AIResponse> => {
+        // Check if AI is enabled
+        if (!aiEnabled) {
+            return { success: false, tier: 'worker', creditsUsed: 0, error: 'AI is disabled. Enable it to use AI features.' };
+        }
+
         try {
             setIsProcessing(true);
             setError(null);
@@ -355,13 +378,18 @@ export function AIProvider({ children }: AIProviderProps) {
         } finally {
             setIsProcessing(false);
         }
-    }, [deepModeEnabled, getAuthHeaders, buildContext, refreshCredits]);
+    }, [aiEnabled, deepModeEnabled, getAuthHeaders, buildContext, refreshCredits]);
 
     // Generate chart configuration
     const generateChart = useCallback(async (
         prompt: string,
         data: Record<string, unknown>[]
     ): Promise<ChartResponse> => {
+        // Check if AI is enabled
+        if (!aiEnabled) {
+            return { success: false, error: 'AI is disabled. Enable it to use AI features.' };
+        }
+
         try {
             setIsProcessing(true);
             setError(null);
@@ -393,13 +421,17 @@ export function AIProvider({ children }: AIProviderProps) {
         } finally {
             setIsProcessing(false);
         }
-    }, [deepModeEnabled, getAuthHeaders, refreshCredits]);
+    }, [aiEnabled, deepModeEnabled, getAuthHeaders, refreshCredits]);
 
     // Generate table
     const generateTable = useCallback(async (
         prompt: string,
         data: Record<string, unknown>[]
     ): Promise<TableResponse> => {
+        if (!aiEnabled) {
+            return { success: false, error: 'AI is disabled. Enable it to use AI features.' };
+        }
+
         try {
             setIsProcessing(true);
             setError(null);
@@ -431,7 +463,7 @@ export function AIProvider({ children }: AIProviderProps) {
         } finally {
             setIsProcessing(false);
         }
-    }, [deepModeEnabled, getAuthHeaders, refreshCredits]);
+    }, [aiEnabled, deepModeEnabled, getAuthHeaders, refreshCredits]);
 
     // Generate forecast
     const generateForecast = useCallback(async (
@@ -439,6 +471,10 @@ export function AIProvider({ children }: AIProviderProps) {
         data: Record<string, unknown>[],
         periods: number = 6
     ): Promise<ForecastResponse> => {
+        if (!aiEnabled) {
+            return { success: false, error: 'AI is disabled. Enable it to use AI features.' };
+        }
+
         try {
             setIsProcessing(true);
             setError(null);
@@ -471,12 +507,16 @@ export function AIProvider({ children }: AIProviderProps) {
         } finally {
             setIsProcessing(false);
         }
-    }, [getAuthHeaders, refreshCredits]);
+    }, [aiEnabled, getAuthHeaders, refreshCredits]);
 
     // Generate tips
     const generateTips = useCallback(async (
         focusArea?: string
     ): Promise<TipsResponse> => {
+        if (!aiEnabled) {
+            return { success: false, error: 'AI is disabled. Enable it to use AI features.' };
+        }
+
         try {
             setIsProcessing(true);
             setError(null);
@@ -509,12 +549,16 @@ export function AIProvider({ children }: AIProviderProps) {
         } finally {
             setIsProcessing(false);
         }
-    }, [getAuthHeaders, buildContext, refreshCredits]);
+    }, [aiEnabled, getAuthHeaders, buildContext, refreshCredits]);
 
     // Extract GTD tasks
     const extractGTDTasks = useCallback(async (
         input: string
     ): Promise<GTDTaskResponse> => {
+        if (!aiEnabled) {
+            return { success: false, error: 'AI is disabled. Enable it to use AI features.' };
+        }
+
         try {
             setIsProcessing(true);
             setError(null);
@@ -547,12 +591,16 @@ export function AIProvider({ children }: AIProviderProps) {
         } finally {
             setIsProcessing(false);
         }
-    }, [getAuthHeaders, buildContext, refreshCredits]);
+    }, [aiEnabled, getAuthHeaders, buildContext, refreshCredits]);
 
     // Upload file for schema mapping
     const uploadFile = useCallback(async (
         fileData: FileUploadData
     ): Promise<FileMappingResponse> => {
+        if (!aiEnabled) {
+            return { success: false, error: 'AI is disabled. Enable it to use AI features.' };
+        }
+
         try {
             setIsProcessing(true);
             setError(null);
@@ -581,13 +629,17 @@ export function AIProvider({ children }: AIProviderProps) {
         } finally {
             setIsProcessing(false);
         }
-    }, [getAuthHeaders, refreshCredits]);
+    }, [aiEnabled, getAuthHeaders, refreshCredits]);
 
     // Deep analysis (forces Tier 3)
     const analyzeDeep = useCallback(async (
         prompt: string,
         context?: Record<string, unknown>
     ): Promise<AIResponse> => {
+        if (!aiEnabled) {
+            return { success: false, tier: 'thinker', creditsUsed: 0, error: 'AI is disabled. Enable it to use AI features.' };
+        }
+
         try {
             setIsProcessing(true);
             setError(null);
@@ -621,10 +673,14 @@ export function AIProvider({ children }: AIProviderProps) {
         } finally {
             setIsProcessing(false);
         }
-    }, [getAuthHeaders, buildContext, refreshCredits]);
+    }, [aiEnabled, getAuthHeaders, buildContext, refreshCredits]);
 
     // Preview which tier would be used (no credits charged)
     const previewTier = useCallback(async (prompt: string): Promise<TierPreview> => {
+        if (!aiEnabled) {
+            return { tier: 'worker', creditCost: 0, model: 'AI Disabled' };
+        }
+
         try {
             const headers = await getAuthHeaders();
             const context = buildContext();
@@ -643,10 +699,14 @@ export function AIProvider({ children }: AIProviderProps) {
         } catch (err) {
             return { tier: 'worker', creditCost: 1, model: 'Gemini 3 Flash' };
         }
-    }, [deepModeEnabled, getAuthHeaders, buildContext]);
+    }, [aiEnabled, deepModeEnabled, getAuthHeaders, buildContext]);
 
     // Analyze complexity without processing
     const analyzeComplexity = useCallback(async (prompt: string): Promise<ComplexityAnalysis> => {
+        if (!aiEnabled) {
+            return { score: 0, tier: 'worker', confidence: 0, factors: ['AI is disabled'] };
+        }
+
         try {
             const headers = await getAuthHeaders();
             const context = buildContext();
@@ -661,7 +721,7 @@ export function AIProvider({ children }: AIProviderProps) {
         } catch (err) {
             return { score: 0, tier: 'worker', confidence: 0.5, factors: [] };
         }
-    }, [getAuthHeaders, buildContext]);
+    }, [aiEnabled, getAuthHeaders, buildContext]);
 
     // Get usage statistics
     const getUsageStats = useCallback(async (
@@ -691,6 +751,8 @@ export function AIProvider({ children }: AIProviderProps) {
     }, [getAuthHeaders]);
 
     const value = useMemo<AIContextType>(() => ({
+        aiEnabled,
+        toggleAI,
         credits,
         creditsLoading,
         refreshCredits,
@@ -719,6 +781,8 @@ export function AIProvider({ children }: AIProviderProps) {
         analyzeComplexity,
         getUsageStats,
     }), [
+        aiEnabled,
+        toggleAI,
         credits,
         creditsLoading,
         refreshCredits,
