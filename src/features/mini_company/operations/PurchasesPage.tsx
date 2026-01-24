@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { BoardView } from '../../board/BoardView';
 import { Board } from '../../../types';
 import { ChartLineUp, ShoppingCart, Truck, TrendUp, CurrencyDollar, Funnel, ShieldWarning, Target } from 'phosphor-react';
@@ -117,15 +117,19 @@ const PurchasesPage: React.FC = () => {
         });
     };
 
-    // Create localized board with translated name and description
+    // Translated labels (separated from board object to prevent remounts)
+    const boardName = t('purchases_page_title');
+    const boardDescription = t('purchases_page_desc');
+
+    // Create localized board - only depends on board data, not translations
     const localizedBoard = useMemo(() => ({
         ...board,
-        name: t('purchases_page_title'),
-        description: t('purchases_page_desc')
-    }), [board, t]);
+        name: boardName,
+        description: boardDescription
+    }), [board, boardName, boardDescription]);
 
-    // Render custom dashboard views
-    const renderCustomView = (viewId: string) => {
+    // Render custom dashboard views - memoized to prevent recreation
+    const renderCustomView = useCallback((viewId: string) => {
         switch (viewId) {
             case 'purchase_overview':
                 return <PurchaseOverviewDashboard />;
@@ -144,7 +148,7 @@ const PurchasesPage: React.FC = () => {
             default:
                 return null;
         }
-    };
+    }, []);
 
     return (
         <BoardView

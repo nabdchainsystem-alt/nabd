@@ -953,7 +953,7 @@ export const BoardView: React.FC<BoardViewProps> = memo(({ board: initialBoard, 
                     const custom = renderCustomView(baseViewType);
                     if (custom) {
                         return (
-                            <div className="w-full h-full overflow-y-auto relative">
+                            <div key={`${board.id}-${baseViewType}`} className="w-full h-full overflow-y-auto relative">
                                 {custom}
                             </div>
                         );

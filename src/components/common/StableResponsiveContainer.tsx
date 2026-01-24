@@ -25,31 +25,17 @@ let globalIsVisible = true;
 let lastVisibilityChange = 0;
 const STABILITY_WINDOW = 500; // Ignore resize for 500ms after visibility change
 
-// Initialize chart stability system
+// Track visibility changes without DOM manipulation
 if (typeof document !== 'undefined') {
-    const enableStabilityMode = () => {
-        document.body.classList.add('chart-stability-active');
-        lastVisibilityChange = Date.now();
-        // Remove stability class after window
-        setTimeout(() => {
-            document.body.classList.remove('chart-stability-active');
-        }, STABILITY_WINDOW);
-    };
-
     document.addEventListener('visibilitychange', () => {
         globalIsVisible = !document.hidden;
         if (globalIsVisible) {
-            enableStabilityMode();
+            lastVisibilityChange = Date.now();
         }
     });
 
-    window.addEventListener('focus', enableStabilityMode);
-
-    // Also handle mouse re-entry (switching monitors)
-    document.addEventListener('mouseenter', () => {
-        if (Date.now() - lastVisibilityChange < 1000) {
-            enableStabilityMode();
-        }
+    window.addEventListener('focus', () => {
+        lastVisibilityChange = Date.now();
     });
 }
 

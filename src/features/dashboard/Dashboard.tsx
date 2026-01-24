@@ -297,32 +297,12 @@ export const Dashboard: React.FC<DashboardProps> = memo(({ onBoardCreated, recen
     // Initial update
     updateTime();
 
-    const timer = setInterval(updateTime, 60000); // Update every minute
-
-    // Debounced update on visibility change to prevent flash
-    let focusTimeout: ReturnType<typeof setTimeout> | null = null;
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Delay update to prevent flash when switching windows
-        if (focusTimeout) clearTimeout(focusTimeout);
-        focusTimeout = setTimeout(updateTime, 100);
-      }
-    };
-
-    const handleFocus = () => {
-      // Use RAF to batch with other updates and prevent flash
-      if (focusTimeout) clearTimeout(focusTimeout);
-      focusTimeout = setTimeout(updateTime, 100);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+    // Update every minute - no need to update on focus/visibility change
+    // as the interval handles it and immediate updates cause flashing
+    const timer = setInterval(updateTime, 60000);
 
     return () => {
       clearInterval(timer);
-      if (focusTimeout) clearTimeout(focusTimeout);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

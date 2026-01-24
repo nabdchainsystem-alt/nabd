@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { BoardView } from '../../board/BoardView';
 import { Board } from '../../../types';
 import { Users, Diamond, Activity, Table, Kanban, ListDashes } from 'phosphor-react';
@@ -75,7 +75,7 @@ export const CustomersPage = () => {
         });
     };
 
-    const dashboardSections = [
+    const dashboardSections = useMemo(() => [
         {
             title: t('customer_intelligence'),
             options: [
@@ -123,9 +123,10 @@ export const CustomersPage = () => {
                 }
             ]
         }
-    ];
+    ], [t]);
 
-    const renderCustomView = (viewId: string) => {
+    // Render custom dashboard views - memoized to prevent recreation
+    const renderCustomView = useCallback((viewId: string) => {
         switch (viewId) {
             case 'customer_overview':
                 return <CustomerOverviewDashboard />;
@@ -144,14 +145,18 @@ export const CustomersPage = () => {
             default:
                 return null;
         }
-    };
+    }, []);
 
-    // Create localized board with translated name and description
+    // Translated labels (separated from board object to prevent remounts)
+    const boardName = t('customer_intelligence');
+    const boardDescription = t('customer_intelligence_desc');
+
+    // Create localized board - only depends on board data, not translations
     const localizedBoard = useMemo(() => ({
         ...board,
-        name: t('customer_intelligence'),
-        description: t('customer_intelligence_desc')
-    }), [board, t]);
+        name: boardName,
+        description: boardDescription
+    }), [board, boardName, boardDescription]);
 
     return (
         <BoardView

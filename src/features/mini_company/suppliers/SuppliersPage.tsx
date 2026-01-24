@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { BoardView } from '../../board/BoardView';
 import { Board } from '../../../types';
 import { Truck, Factory, Money, Star, Package, Clock, ShieldCheck, MapTrifold, Handshake, Rocket, ShieldWarning } from 'phosphor-react';
@@ -74,7 +74,7 @@ export const SuppliersPage = () => {
         });
     };
 
-    const dashboardSections = [
+    const dashboardSections = useMemo(() => [
         {
             title: 'Sourcing & Procurement',
             options: [
@@ -122,9 +122,10 @@ export const SuppliersPage = () => {
                 }
             ]
         }
-    ];
+    ], [t]);
 
-    const renderCustomView = (viewId: string) => {
+    // Render custom dashboard views - memoized to prevent recreation
+    const renderCustomView = useCallback((viewId: string) => {
         switch (viewId) {
             case 'supplier_overview':
                 return <SupplierOverviewDashboard />;
@@ -143,14 +144,18 @@ export const SuppliersPage = () => {
             default:
                 return null;
         }
-    };
+    }, []);
 
-    // Create translated board for display
+    // Translated labels (separated from board object to prevent remounts)
+    const boardName = t('suppliers');
+    const boardDescription = t('suppliers_page_desc');
+
+    // Create translated board for display - only depends on board data, not translations
     const translatedBoard = useMemo(() => ({
         ...board,
-        name: t('suppliers'),
-        description: t('suppliers_page_desc')
-    }), [board, t]);
+        name: boardName,
+        description: boardDescription
+    }), [board, boardName, boardDescription]);
 
     return (
         <BoardView

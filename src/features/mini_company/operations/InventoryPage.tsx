@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { BoardView } from '../../board/BoardView';
 import { Board } from '../../../types';
-import { Package, ArrowsLeftRight, Clock, Target, ShoppingCart, Buildings, TrendUp } from 'phosphor-react';
+import { Package, ArrowsLeftRight, Clock, Target, ShoppingCart, Buildings, TrendUp, ChartLineUp } from 'phosphor-react';
+import InventoryInsights from './InventoryInsights';
 import { InventoryOverviewDashboard } from './InventoryOverviewDashboard';
 import { StockMovementDashboard } from './StockMovementDashboard';
 import { InventoryAgingDashboard } from './InventoryAgingDashboard';
@@ -27,11 +28,12 @@ const InventoryPage: React.FC = () => {
         ],
         tasks: [],
         availableViews: [
+            'inventory_insights',
             'inventory_overview', 'stock_movement', 'inventory_aging',
             'stock_accuracy', 'reorder_planning', 'warehouse_performance', 'inventory_forecast',
             'datatable'
         ],
-        defaultView: 'overview'
+        defaultView: 'inventory_insights'
     }), [t]);
 
     // Dashboard sections for the Add View menu
@@ -39,6 +41,12 @@ const InventoryPage: React.FC = () => {
         {
             title: t('dashboards'),
             options: [
+                {
+                    id: 'inventory_insights',
+                    label: t('inventory_insights'),
+                    icon: ChartLineUp,
+                    description: t('inventory_insights_desc')
+                },
                 {
                     id: 'inventory_overview',
                     label: t('inventory_overview'),
@@ -121,9 +129,11 @@ const InventoryPage: React.FC = () => {
         });
     };
 
-    // Render custom dashboard views
-    const renderCustomView = (viewId: string) => {
+    // Render custom dashboard views - memoized to prevent recreation
+    const renderCustomView = useCallback((viewId: string) => {
         switch (viewId) {
+            case 'inventory_insights':
+                return <InventoryInsights />;
             case 'inventory_overview':
                 return <InventoryOverviewDashboard />;
             case 'stock_movement':
@@ -141,14 +151,18 @@ const InventoryPage: React.FC = () => {
             default:
                 return null;
         }
-    };
+    }, []);
 
-    // Create localized board with translated name and description
+    // Translated labels (separated from board object to prevent remounts)
+    const boardName = t('stock_inventory');
+    const boardDescription = t('manage_stock_levels');
+
+    // Create localized board - only depends on board data, not translations
     const localizedBoard = useMemo(() => ({
         ...board,
-        name: t('stock_inventory'),
-        description: t('manage_stock_levels')
-    }), [board, t]);
+        name: boardName,
+        description: boardDescription
+    }), [board, boardName, boardDescription]);
 
     return (
         <BoardView

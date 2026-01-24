@@ -478,6 +478,8 @@ const translations: Translations = {
   manage_stock_levels: { en: 'Manage stock levels', ar: 'إدارة مستويات المخزون' },
   item_name: { en: 'Item Name', ar: 'اسم العنصر' },
   sku: { en: 'SKU', ar: 'رمز المنتج' },
+  inventory_insights: { en: 'Inventory Insights', ar: 'رؤى المخزون' },
+  inventory_insights_desc: { en: 'All dashboards in one scrollable view', ar: 'جميع لوحات المعلومات في عرض واحد قابل للتمرير' },
   inventory_overview: { en: 'Inventory Overview', ar: 'نظرة عامة على المخزون' },
   inventory_overview_desc: { en: 'Key metrics and KPIs for inventory health', ar: 'المقاييس الرئيسية ومؤشرات الأداء لصحة المخزون' },
   stock_movement: { en: 'Stock Movement', ar: 'حركة المخزون' },

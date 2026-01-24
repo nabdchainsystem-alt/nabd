@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { BoardView } from '../../board/BoardView';
 import { Board } from '../../../types';
 import { Wallet, Tag, Receipt } from 'phosphor-react';
@@ -41,8 +41,8 @@ const INITIAL_BOARD: Board = {
 const ExpensesPage: React.FC = () => {
     const { t } = useLanguage();
 
-    // Define dashboard sections for the board view
-    const dashboardSections = [
+    // Define dashboard sections for the board view - memoized
+    const dashboardSections = useMemo(() => [
         {
             title: t('control_analysis'),
             options: [
@@ -95,7 +95,7 @@ const ExpensesPage: React.FC = () => {
                 }
             ]
         }
-    ];
+    ], [t]);
 
     const [board, setBoard] = useState<Board>(() => {
         const saved = localStorage.getItem('dept-expenses-data');
@@ -133,7 +133,8 @@ const ExpensesPage: React.FC = () => {
         });
     };
 
-    const renderCustomView = (viewId: string) => {
+    // Render custom dashboard views - memoized to prevent recreation
+    const renderCustomView = useCallback((viewId: string) => {
         switch (viewId) {
             case 'expenses_overview':
                 return <ExpensesOverviewDashboard />;
@@ -152,14 +153,18 @@ const ExpensesPage: React.FC = () => {
             default:
                 return null;
         }
-    };
+    }, []);
 
-    // Create localized board with translated name and description
+    // Translated labels (separated from board object to prevent remounts)
+    const boardName = t('expenses');
+    const boardDescription = t('expenses_desc');
+
+    // Create localized board - only depends on board data, not translations
     const localizedBoard = useMemo(() => ({
         ...board,
-        name: t('expenses'),
-        description: t('expenses_desc')
-    }), [board, t]);
+        name: boardName,
+        description: boardDescription
+    }), [board, boardName, boardDescription]);
 
     return (
         <BoardView

@@ -1,5 +1,5 @@
-import React, { memo, useRef, useEffect, useCallback } from 'react';
-import ReactEChartsCore from 'echarts-for-react';
+import React, { memo, useRef, useCallback } from 'react';
+import ReactECharts from 'echarts-for-react';
 
 interface MemoizedChartProps {
     option: any;
@@ -81,36 +81,6 @@ export const MemoizedChart: React.FC<MemoizedChartProps> = memo(({
     const chartRef = useRef<any>(null);
     const isFirstRender = useRef(true);
 
-    // Track page visibility to prevent re-renders when returning from hidden state
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            // When page becomes visible again, prevent chart from re-animating
-            if (!document.hidden && chartRef.current) {
-                const instance = chartRef.current.getEchartsInstance?.();
-                if (instance) {
-                    // Silently resize without animation
-                    instance.resize({ animation: { duration: 0 } });
-                }
-            }
-        };
-
-        const handleFocus = () => {
-            if (chartRef.current) {
-                const instance = chartRef.current.getEchartsInstance?.();
-                if (instance) {
-                    instance.resize({ animation: { duration: 0 } });
-                }
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', handleFocus);
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', handleFocus);
-        };
-    }, []);
-
     // Check if we're in stability window (recently returned from hidden)
     const inStabilityWindow = Date.now() - lastVisibilityChange < STABILITY_WINDOW;
 
@@ -145,10 +115,13 @@ export const MemoizedChart: React.FC<MemoizedChartProps> = memo(({
         ...opts,
     };
 
+    // Ensure we have a valid option object
+    const chartOption = cachedOption.current || option || {};
+
     return (
-        <ReactEChartsCore
+        <ReactECharts
             ref={chartRef}
-            option={cachedOption.current}
+            option={chartOption}
             style={style}
             className={className}
             opts={mergedOpts}
