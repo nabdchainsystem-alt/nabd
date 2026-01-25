@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Warning, Truck, Factory, Money, Star, Buildings, Globe, Handshake } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Warning, Truck, Factory, Money, Star, Buildings, Globe, Handshake } from 'phosphor-react';
 import { SupplierOverviewInfo } from './SupplierOverviewInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -73,6 +72,15 @@ export const SupplierOverviewDashboard: React.FC = () => {
     const { t, dir } = useLanguage();
     const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
 
     // Translated KPI Data
     const TOP_KPIS = useMemo(() => [
@@ -106,7 +114,7 @@ export const SupplierOverviewDashboard: React.FC = () => {
     ], [t]);
 
     // Loading state for smooth entrance animation
-    const isLoading = useFirstMountLoading('suppliers-overview-dashboard', 1200);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -115,7 +123,7 @@ export const SupplierOverviewDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -128,10 +136,10 @@ export const SupplierOverviewDashboard: React.FC = () => {
             data: TRANSLATED_CATEGORY_SPLIT,
             color: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
         }]
-    };
+    }), [TRANSLATED_CATEGORY_SPLIT]);
 
     // Supplier Status Pie
-    const statusPieOption: EChartsOption = {
+    const statusPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -143,10 +151,68 @@ export const SupplierOverviewDashboard: React.FC = () => {
             data: TRANSLATED_SUPPLIER_STATUS,
             color: ['#8b5cf6', '#10b981', '#ef4444', '#f59e0b']
         }]
-    };
+    }), [TRANSLATED_SUPPLIER_STATUS]);
+
+    // Spend by Supplier Bar Chart
+    const spendBySupplierOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 60, right: isRTL ? 60 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SPEND_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: SPEND_BY_SUPPLIER.map(d => d.Spend),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL]);
+
+    // Rating by Supplier Bar Chart
+    const ratingBySupplierOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: RATING_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            min: 0,
+            max: 5,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: RATING_BY_SUPPLIER.map(d => d.Rating),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL]);
 
     // Bubble Chart (Scatter)
-    const bubbleOption: EChartsOption = {
+    const bubbleOption: EChartsOption = useMemo(() => ({
         title: { text: t('supplier_matrix'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         grid: { left: '8%', right: '10%', top: '15%', bottom: '15%' },
         tooltip: {
@@ -173,7 +239,7 @@ export const SupplierOverviewDashboard: React.FC = () => {
                 shadowColor: 'rgba(0, 0, 0, 0.2)'
             }
         }]
-    };
+    }), [t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -192,9 +258,9 @@ export const SupplierOverviewDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -231,48 +297,22 @@ export const SupplierOverviewDashboard: React.FC = () => {
                     </>
                 ) : (
                     <>
-                        {/* Recharts: Spend by Supplier (Bar) */}
+                        {/* Spend by Supplier (Bar) */}
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow animate-fade-in-up">
                             <div className={`mb-4 ${isRTL ? 'text-right' : ''}`}>
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('top_spend')}</h3>
                                 <p className="text-xs text-gray-400">{t('by_supplier')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SPEND_BY_SUPPLIER} margin={{ top: 5, right: isRTL ? 10 : 30, left: isRTL ? 30 : 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="Spend" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} name={t('spend')} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={spendBySupplierOption} style={{ height: '220px', width: '100%' }} />
                         </div>
 
-                        {/* Recharts: Rating by Supplier (Bar) */}
+                        {/* Rating by Supplier (Bar) */}
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow animate-fade-in-up">
                             <div className={`mb-4 ${isRTL ? 'text-right' : ''}`}>
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('supplier_ratings')}</h3>
                                 <p className="text-xs text-gray-400">{t('performance_score')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={RATING_BY_SUPPLIER} margin={{ top: 5, right: isRTL ? 10 : 30, left: isRTL ? 30 : 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} domain={[0, 5]} orientation={isRTL ? 'right' : 'left'} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="Rating" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} name={t('rating')} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={ratingBySupplierOption} style={{ height: '220px', width: '100%' }} />
                         </div>
                     </>
                 )}

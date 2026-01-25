@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Warning, MagicWand, Graph, Crosshair, ShieldCheck } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Warning, MagicWand, Graph, Crosshair, ShieldCheck } from 'phosphor-react';
 import { ForecastOptimizationInfo } from './ForecastOptimizationInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -75,30 +74,40 @@ const getOptimizationStatus = (t: (key: string) => string) => [
 
 export const ForecastOptimizationDashboard: React.FC = () => {
     const { currency } = useAppContext();
-    const { t } = useLanguage();
+    const { t, dir } = useLanguage();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('forecast-optimization-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
     // Get translated KPI data
-    const TOP_KPIS = getTopKPIs(t);
-    const SIDE_KPIS = getSideKPIs(t);
+    const TOP_KPIS = useMemo(() => getTopKPIs(t), [t]);
+    const SIDE_KPIS = useMemo(() => getSideKPIs(t), [t]);
 
     // Get translated chart/table data
-    const FORECAST_BY_CATEGORY = getForecastByCategory(t);
-    const FUTURE_ALLOCATION = getFutureAllocation(t);
-    const OPTIMIZATION_TABLE = getOptimizationTable(t);
-    const LANDSCAPE_DATA = getLandscapeData(t);
-    const SAVINGS_BY_INITIATIVE = getSavingsByInitiative(t);
-    const OPTIMIZATION_STATUS = getOptimizationStatus(t);
+    const FORECAST_BY_CATEGORY = useMemo(() => getForecastByCategory(t), [t]);
+    const FUTURE_ALLOCATION = useMemo(() => getFutureAllocation(t), [t]);
+    const OPTIMIZATION_TABLE = useMemo(() => getOptimizationTable(t), [t]);
+    const LANDSCAPE_DATA = useMemo(() => getLandscapeData(t), [t]);
+    const SAVINGS_BY_INITIATIVE = useMemo(() => getSavingsByInitiative(t), [t]);
+    const OPTIMIZATION_STATUS = useMemo(() => getOptimizationStatus(t), [t]);
 
     // --- ECharts Options ---
 
     // Pie Chart
-    const pieOption: EChartsOption = {
+    const pieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -111,10 +120,10 @@ export const ForecastOptimizationDashboard: React.FC = () => {
             data: FUTURE_ALLOCATION,
             color: ['#8b5cf6', '#f59e0b', '#3b82f6', '#10b981', '#6366f1']
         }]
-    };
+    }), [FUTURE_ALLOCATION]);
 
     // Optimization Status Pie
-    const statusPieOption: EChartsOption = {
+    const statusPieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -126,10 +135,10 @@ export const ForecastOptimizationDashboard: React.FC = () => {
             data: OPTIMIZATION_STATUS,
             color: ['#10b981', '#3b82f6', '#f59e0b']
         }]
-    };
+    }), [OPTIMIZATION_STATUS]);
 
     // Scatter Chart (Landscape)
-    const scatterOption: EChartsOption = {
+    const scatterOption = useMemo<EChartsOption>(() => ({
         title: { text: t('optimization_landscape'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         grid: { top: 30, right: 40, bottom: 20, left: 40, containLabel: true },
         tooltip: {
@@ -153,7 +162,62 @@ export const ForecastOptimizationDashboard: React.FC = () => {
             },
             label: { show: true, formatter: (param: any) => param.value[2], position: 'top', color: '#6b7280' }
         }]
-    };
+    }), [LANDSCAPE_DATA, t]);
+
+    // Bar Chart - Forecast by Category (grouped)
+    const forecastByCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['Current', 'Forecast'], itemWidth: 10, itemHeight: 10 },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: FORECAST_BY_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            { type: 'bar', name: 'Current', data: FORECAST_BY_CATEGORY.map(d => d.Current), itemStyle: { color: '#dbeafe', borderRadius: [4, 4, 0, 0] }, barWidth: 12 },
+            { type: 'bar', name: 'Forecast', data: FORECAST_BY_CATEGORY.map(d => d.Forecast), itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] }, barWidth: 12 },
+        ],
+    }), [FORECAST_BY_CATEGORY, isRTL]);
+
+    // Bar Chart - Savings by Initiative
+    const savingsByInitiativeOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SAVINGS_BY_INITIATIVE.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: SAVINGS_BY_INITIATIVE.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [SAVINGS_BY_INITIATIVE, isRTL]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -172,9 +236,9 @@ export const ForecastOptimizationDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -208,21 +272,7 @@ export const ForecastOptimizationDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('forecast_by_category')}</h3>
                                 <p className="text-xs text-gray-400">{t('current_vs_forecast')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={FORECAST_BY_CATEGORY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="Current" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                        <Bar dataKey="Forecast" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={forecastByCategoryOption} style={{ height: '220px', width: '100%' }} />
                         </>
                     )}
                 </div>
@@ -236,20 +286,7 @@ export const ForecastOptimizationDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('savings_by_initiative')}</h3>
                                 <p className="text-xs text-gray-400">{t('potential_savings_breakdown')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SAVINGS_BY_INITIATIVE} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={savingsByInitiativeOption} style={{ height: '220px', width: '100%' }} />
                         </>
                     )}
                 </div>

@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Warning, Lightning, Sparkle, Target, ChartLineUp, ShieldCheck } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Warning, Lightning, Sparkle, Target, ChartLineUp, ShieldCheck } from 'phosphor-react';
 import { ForecastLifetimeRiskInfo } from './ForecastLifetimeRiskInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -35,7 +34,8 @@ const RISK_TABLE_DATA = [
 
 export const ForecastLifetimeRiskDashboard: React.FC = () => {
     const { currency } = useAppContext();
-    const { t } = useLanguage();
+    const { t, dir } = useLanguage();
+    const isRTL = dir === 'rtl';
 
     // --- KPI Data with translations ---
     const TOP_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[]>(() => [
@@ -86,7 +86,16 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
         action: t(item.actionKey)
     })), [t]);
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('forecast-lifetime-risk-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+    const isLoading = useLoadingAnimation();
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -95,7 +104,7 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -108,10 +117,10 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
             data: RISK_DISTRIBUTION,
             color: ['#10b981', '#f59e0b', '#ef4444']
         }]
-    };
+    }), [RISK_DISTRIBUTION]);
 
     // Forecast Accuracy Pie
-    const accuracyPieOption: EChartsOption = {
+    const accuracyPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -123,10 +132,66 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
             data: FORECAST_ACCURACY,
             color: ['#10b981', '#f59e0b', '#ef4444']
         }]
-    };
+    }), [FORECAST_ACCURACY]);
+
+    // CLV Forecast Bar Chart
+    const clvForecastOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: FORECAST_BY_SEGMENT.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: FORECAST_BY_SEGMENT.map(d => d.Value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [FORECAST_BY_SEGMENT, isRTL]);
+
+    // Growth by Cohort Bar Chart
+    const growthByCohortOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: GROWTH_BY_COHORT.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: GROWTH_BY_COHORT.map(d => d.Growth),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [GROWTH_BY_COHORT, isRTL]);
 
     // Area Chart (Cone)
-    const coneOption: EChartsOption = {
+    const coneOption: EChartsOption = useMemo(() => ({
         title: { text: t('revenue_projection'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { trigger: 'axis' },
         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -175,7 +240,7 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
                 // Making the "range" just a shadow/glow below for effect
             }
         ]
-    };
+    }), [t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -184,7 +249,7 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <Sparkle size={28} className="text-purple-600 dark:text-purple-400 mt-1" />
+                    <Sparkle size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('forecast_lifetime_risk')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('forecast_lifetime_risk_desc')}</p>
@@ -193,16 +258,16 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-purple-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -228,48 +293,22 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
                     </>
                 ) : (
                     <>
-                        {/* Recharts: Forecast CLV (Bar) */}
+                        {/* Forecast CLV (Bar) */}
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                             <div className="mb-4">
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('clv_forecast')}</h3>
                                 <p className="text-xs text-gray-400">{t('projected_values')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={FORECAST_BY_SEGMENT} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="Value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={clvForecastOption} style={{ height: '220px', width: '100%' }} />
                         </div>
 
-                        {/* Recharts: Growth by Cohort (Bar) */}
+                        {/* Growth by Cohort (Bar) */}
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                             <div className="mb-4">
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('growth_vs_risk')}</h3>
                                 <p className="text-xs text-gray-400">{t('forecast_breakdown')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={GROWTH_BY_COHORT} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="Growth" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={growthByCohortOption} style={{ height: '220px', width: '100%' }} />
                         </div>
                     </>
                 )}
@@ -347,7 +386,7 @@ export const ForecastLifetimeRiskDashboard: React.FC = () => {
                                             <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                                                 <td className="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">{row.customer}</td>
                                                 <td className="px-5 py-3 text-gray-600 dark:text-gray-400 text-xs">{row.currentCLV}</td>
-                                                <td className="px-5 py-3 font-medium text-purple-600 dark:text-purple-400">{row.forecastCLV}</td>
+                                                <td className="px-5 py-3 font-medium text-blue-600 dark:text-blue-400">{row.forecastCLV}</td>
                                                 <td className="px-5 py-3">
                                                     <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${row.riskKey === 'high' ? 'bg-red-100 text-red-700' :
                                                         row.riskKey === 'medium' ? 'bg-orange-100 text-orange-700' :

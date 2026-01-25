@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, CurrencyDollar, TrendDown, TrendUp, Warning, CheckCircle, ChartPie } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, CurrencyDollar, TrendDown, TrendUp, Warning, CheckCircle, ChartPie } from 'phosphor-react';
 import { CostControlInfo } from './CostControlInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { formatCurrency } from '../../../utils/formatters';
@@ -63,33 +62,125 @@ const RADAR_INDICATORS = [
 ];
 
 export const CostControlDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('cost-control-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
     // --- KPI Data ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '1', label: t('total_cost'), subtitle: t('actual_spend'), value: '142,500', isCurrency: true, rawValue: 142500, change: '+5.2%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [130, 132, 135, 138, 140, 141, 142.5] },
-        { id: '2', label: t('budget_variance'), subtitle: t('vs_plan'), value: '+8.4%', change: '+1.2%', trend: 'down', icon: <TrendUp size={18} />, sparklineData: [5, 6, 7, 7.5, 8, 8.2, 8.4] },
-        { id: '3', label: t('avg_category_cost'), subtitle: t('per_category'), value: '28,500', isCurrency: true, rawValue: 28500, change: '+2%', trend: 'up', icon: <ChartPie size={18} />, sparklineData: [26, 26.5, 27, 27.5, 28, 28.2, 28.5] },
-        { id: '4', label: t('negotiation_savings'), subtitle: t('total_saved'), value: '12,400', isCurrency: true, rawValue: 12400, change: '+15%', trend: 'up', icon: <CheckCircle size={18} />, sparklineData: [8, 9, 9.5, 10, 11, 12, 12.4] },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('total_cost'), subtitle: t('actual_spend'), value: '142,500', isCurrency: true, rawValue: 142500, change: '+5.2%', trend: 'up' as const, icon: <CurrencyDollar size={18} />, sparklineData: [130, 132, 135, 138, 140, 141, 142.5] },
+        { id: '2', label: t('budget_variance'), subtitle: t('vs_plan'), value: '+8.4%', change: '+1.2%', trend: 'down' as const, icon: <TrendUp size={18} />, sparklineData: [5, 6, 7, 7.5, 8, 8.2, 8.4] },
+        { id: '3', label: t('avg_category_cost'), subtitle: t('per_category'), value: '28,500', isCurrency: true, rawValue: 28500, change: '+2%', trend: 'up' as const, icon: <ChartPie size={18} />, sparklineData: [26, 26.5, 27, 27.5, 28, 28.2, 28.5] },
+        { id: '4', label: t('negotiation_savings'), subtitle: t('total_saved'), value: '12,400', isCurrency: true, rawValue: 12400, change: '+15%', trend: 'up' as const, icon: <CheckCircle size={18} />, sparklineData: [8, 9, 9.5, 10, 11, 12, 12.4] },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '5', label: t('volatility_index'), subtitle: t('price_stability'), value: '42', change: '-5', trend: 'up', icon: <TrendDown size={18} />, sparklineData: [50, 48, 46, 45, 44, 43, 42] },
-        { id: '6', label: t('high_risk_items'), subtitle: t('over_budget_volatile'), value: '12', change: '+2', trend: 'down', icon: <Warning size={18} />, sparklineData: [9, 10, 10, 11, 11, 12, 12] },
-        { id: '7', label: t('optimization_opps'), subtitle: t('potential_savings'), value: '8', change: '0', trend: 'neutral', icon: <CurrencyDollar size={18} />, sparklineData: [6, 7, 7, 8, 8, 8, 8] },
-        { id: '8', label: t('cost_efficiency'), subtitle: t('savings_rate_pct'), value: '8.7%', change: '+1.2%', trend: 'up', icon: <CheckCircle size={18} />, sparklineData: [6.5, 7, 7.3, 7.8, 8.2, 8.5, 8.7] },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('volatility_index'), subtitle: t('price_stability'), value: '42', change: '-5', trend: 'up' as const, icon: <TrendDown size={18} />, sparklineData: [50, 48, 46, 45, 44, 43, 42] },
+        { id: '6', label: t('high_risk_items'), subtitle: t('over_budget_volatile'), value: '12', change: '+2', trend: 'down' as const, icon: <Warning size={18} />, sparklineData: [9, 10, 10, 11, 11, 12, 12] },
+        { id: '7', label: t('optimization_opps'), subtitle: t('potential_savings'), value: '8', change: '0', trend: 'neutral' as const, icon: <CurrencyDollar size={18} />, sparklineData: [6, 7, 7, 8, 8, 8, 8] },
+        { id: '8', label: t('cost_efficiency'), subtitle: t('savings_rate_pct'), value: '8.7%', change: '+1.2%', trend: 'up' as const, icon: <CheckCircle size={18} />, sparklineData: [6.5, 7, 7.3, 7.8, 8.2, 8.5, 8.7] },
+    ], [t]);
 
     // --- ECharts Options ---
 
+    // Bar Chart - Cost vs Budget (grouped)
+    const costVsBudgetOption = useMemo<EChartsOption>(() => ({
+        tooltip: {
+            trigger: 'axis',
+            formatter: (params: any) => {
+                let result = `${params[0].name}<br/>`;
+                params.forEach((p: any) => {
+                    result += `${p.marker} ${p.seriesName}: ${formatCurrency(p.value, currency.code, currency.symbol)}<br/>`;
+                });
+                return result;
+            }
+        },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, data: [t('budget'), t('actual_cost')] },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: COST_VS_BUDGET.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('budget'),
+                type: 'bar',
+                data: COST_VS_BUDGET.map(d => d.budget),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+            {
+                name: t('actual_cost'),
+                type: 'bar',
+                data: COST_VS_BUDGET.map(d => d.cost),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+        ],
+    }), [isRTL, t, currency.code, currency.symbol]);
+
+    // Bar Chart - Monthly Cost Trend
+    const monthlyCostTrendOption = useMemo<EChartsOption>(() => ({
+        tooltip: {
+            trigger: 'axis',
+            formatter: (params: any) => {
+                const p = params[0];
+                return `${p.name}<br/>${p.marker} ${formatCurrency(p.value, currency.code, currency.symbol)}`;
+            }
+        },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: MONTHLY_COST_TREND.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: MONTHLY_COST_TREND.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL, currency.code, currency.symbol]);
+
     // Pie Chart - Cost Allocation
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: (params: any) => `${params.name}: ${formatCurrency(params.value, currency.code, currency.symbol)} (${params.percent}%)` },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -101,10 +192,10 @@ export const CostControlDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
             data: COST_ALLOCATION
         }]
-    };
+    }), [currency.code, currency.symbol]);
 
     // Pie Chart - Savings Breakdown
-    const savingsPieOption: EChartsOption = {
+    const savingsPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: (params: any) => `${params.name}: ${formatCurrency(params.value, currency.code, currency.symbol)} (${params.percent}%)` },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -117,10 +208,10 @@ export const CostControlDashboard: React.FC = () => {
             data: SAVINGS_BREAKDOWN,
             color: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe']
         }]
-    };
+    }), [currency.code, currency.symbol]);
 
     // Radar Chart
-    const radarOption: EChartsOption = {
+    const radarOption: EChartsOption = useMemo(() => ({
         title: { text: t('deviation_radar'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', data: [t('budget'), t('actual_cost')], itemWidth: 10, itemHeight: 10 },
@@ -149,7 +240,7 @@ export const CostControlDashboard: React.FC = () => {
                 }
             ]
         }]
-    };
+    }), [t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -168,9 +259,9 @@ export const CostControlDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -198,7 +289,7 @@ export const CostControlDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts - Cost vs Budget */}
+                {/* ECharts - Cost vs Budget */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('cost_vs_budget')} />
@@ -210,26 +301,12 @@ export const CostControlDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('actual_vs_planned_spend')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={COST_VS_BUDGET} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        formatter={(val: number) => formatCurrency(val, currency.code, currency.symbol)}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
-                                    <Bar dataKey="budget" name={t('budget')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                    <Bar dataKey="cost" name={t('actual_cost')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={costVsBudgetOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts - Monthly Cost Trend */}
+                {/* ECharts - Monthly Cost Trend */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('monthly_cost_trend')} />
@@ -241,19 +318,7 @@ export const CostControlDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('cost_fluctuation_over_time')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={MONTHLY_COST_TREND} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        formatter={(val: number) => formatCurrency(val, currency.code, currency.symbol)}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={monthlyCostTrendOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

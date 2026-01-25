@@ -1,15 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
-} from 'recharts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import {
     ChartLineUp, CurrencyDollar, TrendUp,
-    Info, ArrowsOut,
+    Info, ArrowsOut, ArrowsIn,
     CaretLeft, CaretRight, Warning, Target, ChartLine, ArrowUp, ArrowDown, Minus
 } from 'phosphor-react';
 import { SalesForecastInfo } from './SalesForecastInfo';
@@ -65,35 +62,26 @@ const DECISION_TABLE_DATA = [
     { id: 7, name: 'Ergonomic Chair', type: 'Product', last30: 9500, forecast30: 8000, deviation: -15.7, status: 'At Risk' },
 ];
 
-// --- Sub-components ---
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white dark:bg-monday-dark-surface p-3 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{label}</p>
-                {payload.map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 mt-1">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }}></div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {entry.name}: <span className="font-bold text-gray-900 dark:text-white">{entry.value}</span>
-                        </p>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    return null;
-};
-
 interface SalesForecastDashboardProps {
     hideFullscreen?: boolean;
 }
 
 export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ hideFullscreen = false }) => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('sales-forecast-dashboard', 800);
+
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // Table State
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' | null }>({ key: 'deviation', direction: 'desc' });
@@ -132,23 +120,23 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
     };
 
     // KPI Config - Top 4 KPIs
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
+    const TOP_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean })[]>(() => [
         { id: '1', label: t('expected_revenue'), subtitle: t('next_90_days_projection'), value: '0', rawValue: 320500, isCurrency: true, change: '+18.5%', trend: 'up', icon: <Target size={18} />, sparklineData: [40, 42, 45, 48, 52, 58, 65] },
         { id: '2', label: t('forecast_accuracy'), subtitle: t('historical_performance'), value: '94.2%', change: '+1.4%', trend: 'up', icon: <ChartLine size={18} />, sparklineData: [92, 93, 91, 94, 94.5, 94.2, 94.2] },
         { id: '3', label: t('risk_level'), subtitle: t('operational_risk_status'), value: t('low'), change: t('stable'), trend: 'neutral', icon: <Warning size={18} />, sparklineData: [0, 0, 0, 0, 0, 0, 0] },
         { id: '4', label: t('exp_profit_margin'), subtitle: t('projected_efficiency'), value: '24.5%', change: '-0.5%', trend: 'down', icon: <CurrencyDollar size={18} />, sparklineData: [26, 25.5, 25, 24.8, 24.5, 24.5, 24.5] },
-    ];
+    ], [t]);
 
     // Side 4 KPIs
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
+    const SIDE_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean })[]>(() => [
         { id: '5', label: t('growth_rate'), subtitle: t('yoy_projection'), value: '+12.4%', change: '+2.1%', trend: 'up', icon: <TrendUp size={18} />, sparklineData: [8, 9, 10, 11, 11.5, 12, 12.4] },
         { id: '6', label: t('pipeline_value'), subtitle: t('potential_revenue'), value: '0', rawValue: 185000, isCurrency: true, change: '+8%', trend: 'up', icon: <ChartLineUp size={18} />, sparklineData: [150, 160, 165, 170, 175, 180, 185] },
         { id: '7', label: t('confidence_score'), subtitle: t('model_reliability'), value: '87%', change: '+3%', trend: 'up', icon: <Target size={18} />, sparklineData: [80, 82, 83, 84, 85, 86, 87] },
         { id: '8', label: t('deviation_avg'), subtitle: t('forecast_error'), value: '6.2%', change: '-1.5%', trend: 'up', icon: <ChartLine size={18} />, sparklineData: [9, 8.5, 8, 7.5, 7, 6.5, 6.2] },
-    ];
+    ], [t]);
 
     // ECharts Actual vs Forecast Option
-    const lineOption: EChartsOption = {
+    const lineOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
         legend: { data: [t('actual'), t('forecast')], textStyle: { color: '#94a3b8' }, bottom: 0 },
         grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
@@ -183,10 +171,10 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                 symbolSize: 8
             }
         ]
-    };
+    }), [t]);
 
     // ECharts Risk Distribution Option
-    const riskPieOption: EChartsOption = {
+    const riskPieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
         legend: { orient: 'vertical', left: 'left', textStyle: { fontSize: 11, color: '#94a3b8' } },
         series: [{
@@ -202,10 +190,10 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                 { value: 10, name: t('high_risk'), itemStyle: { color: '#f43f5e' } }
             ]
         }]
-    };
+    }), [t]);
 
     // ECharts Scatter Companion Chart
-    const scatterOption: EChartsOption = {
+    const scatterOption = useMemo<EChartsOption>(() => ({
         tooltip: {
             trigger: 'item',
             formatter: (params: any) => {
@@ -245,7 +233,75 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                 color: (params: any) => params.data[1] > 10 ? '#f43f5e' : '#10b981'
             }
         }]
-    };
+    }), [t, currency.code, currency.symbol]);
+
+    // ECharts Forecast per Product Option (Grouped Bar)
+    const forecastByProductOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, textStyle: { fontSize: 10, color: '#94a3b8' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: FORECAST_BY_PRODUCT_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [
+            {
+                name: t('current'),
+                type: 'bar',
+                data: FORECAST_BY_PRODUCT_DATA.map(d => d.actual),
+                itemStyle: { color: '#d1d5db', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            },
+            {
+                name: t('forecast'),
+                type: 'bar',
+                data: FORECAST_BY_PRODUCT_DATA.map(d => d.forecast),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            }
+        ],
+    }), [isRTL, t]);
+
+    // ECharts Regional Forecast Option
+    const regionalForecastOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 10, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: FORECAST_BY_REGION_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            name: t('forecast'),
+            type: 'bar',
+            data: FORECAST_BY_REGION_DATA.map(d => d.forecast),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 16,
+        }],
+    }), [isRTL, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -266,9 +322,9 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                         <button
                             onClick={toggleFullScreen}
                             className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                            title={t('full_screen')}
+                            title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                         >
-                            <ArrowsOut size={18} />
+                            {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                         </button>
                     )}
                     <button
@@ -325,17 +381,7 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                                 <p className="text-xs text-gray-400 mt-1">{t('projected_demand')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={FORECAST_BY_PRODUCT_DATA} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip cursor={{ fill: '#f1f5f9', opacity: 0.5 }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                        <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar dataKey="actual" name={t('current')} fill="#d1d5db" radius={[4, 4, 0, 0]} barSize={20} animationDuration={1000} />
-                                        <Bar dataKey="forecast" name={t('forecast')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={forecastByProductOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -368,15 +414,7 @@ export const SalesForecastDashboard: React.FC<SalesForecastDashboardProps> = ({ 
                                 <p className="text-xs text-gray-400 mt-1">{t('territory_performance')}</p>
                             </div>
                             <div className="h-[210px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={FORECAST_BY_REGION_DATA} margin={{ top: 5, right: 5, left: 10, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip cursor={{ fill: '#f1f5f9', opacity: 0.5 }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                        <Bar dataKey="forecast" name={t('forecast')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={16} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={regionalForecastOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}

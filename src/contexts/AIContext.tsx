@@ -30,6 +30,13 @@ export interface RoomContextData {
     sampleRows?: Record<string, unknown>[];
 }
 
+export interface PageContextData {
+    view: string;
+    department?: string;
+    boardId?: string;
+    boardName?: string;
+}
+
 export interface AIContext {
     department?: string;
     userRole?: string;
@@ -67,11 +74,13 @@ export interface AIContextType {
     // Context management
     setCurrentBoardContext: (board: BoardContextData | null) => void;
     setCurrentRoomContext: (room: RoomContextData | null) => void;
+    setCurrentPageContext: (page: PageContextData | null) => void;
     currentBoardContext: BoardContextData | null;
     currentRoomContext: RoomContextData | null;
+    currentPageContext: PageContextData | null;
 
-    // API methods
-    processPrompt: (prompt: string, promptType?: string) => Promise<AIResponse>;
+    // API methods (language: 'en' | 'ar' for response language)
+    processPrompt: (prompt: string, promptType?: string, language?: string) => Promise<AIResponse>;
     generateChart: (prompt: string, data: Record<string, unknown>[]) => Promise<ChartResponse>;
     generateTable: (prompt: string, data: Record<string, unknown>[]) => Promise<TableResponse>;
     generateForecast: (prompt: string, data: Record<string, unknown>[], periods?: number) => Promise<ForecastResponse>;
@@ -222,8 +231,8 @@ export function AIProvider({ children }: AIProviderProps) {
         const saved = localStorage.getItem('ai_enabled');
         return saved !== null ? saved === 'true' : true; // Default to enabled
     });
-    const [credits, setCredits] = useState(100); // Default credits
-    const [creditsLoading, setCreditsLoading] = useState(false);
+    const [credits, setCredits] = useState(0); // Start at 0, fetched from API
+    const [creditsLoading, setCreditsLoading] = useState(true); // Start as loading
     const [deepModeEnabled, setDeepModeEnabled] = useState(false);
     const [userDepartment, setUserDepartment] = useState<string | null>(() => {
         return localStorage.getItem('user_ai_department');
@@ -231,10 +240,11 @@ export function AIProvider({ children }: AIProviderProps) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentTier, setCurrentTier] = useState<ModelTier | null>(null);
     const [error, setError] = useState<string | null>(null);
-    // Use refs for board/room context to prevent re-renders when context updates
+    // Use refs for board/room/page context to prevent re-renders when context updates
     // These are only needed for API calls, not for rendering
     const currentBoardContextRef = useRef<BoardContextData | null>(null);
     const currentRoomContextRef = useRef<RoomContextData | null>(null);
+    const currentPageContextRef = useRef<PageContextData | null>(null);
 
     // Persist department to localStorage
     useEffect(() => {
@@ -273,6 +283,10 @@ export function AIProvider({ children }: AIProviderProps) {
         currentRoomContextRef.current = data;
     }, []);
 
+    const setCurrentPageContext = useCallback((data: PageContextData | null) => {
+        currentPageContextRef.current = data;
+    }, []);
+
     // Build context object for API calls (reads from refs)
     const buildContext = useCallback((): AIContext => {
         const context: AIContext = {};
@@ -281,12 +295,24 @@ export function AIProvider({ children }: AIProviderProps) {
             context.department = userDepartment;
         }
 
+        // Use page context department if available
+        if (currentPageContextRef.current?.department) {
+            context.department = currentPageContextRef.current.department;
+        }
+
         if (currentBoardContextRef.current) {
             context.boardData = currentBoardContextRef.current;
         }
 
         if (currentRoomContextRef.current) {
             context.roomData = currentRoomContextRef.current;
+        }
+
+        // Add current page context info
+        if (currentPageContextRef.current) {
+            context.projectContext = `Current page: ${currentPageContextRef.current.view}${
+                currentPageContextRef.current.boardName ? ` - Board: ${currentPageContextRef.current.boardName}` : ''
+            }`;
         }
 
         return context;
@@ -336,7 +362,8 @@ export function AIProvider({ children }: AIProviderProps) {
     // Process a prompt through the AI router
     const processPrompt = useCallback(async (
         prompt: string,
-        promptType: string = 'general'
+        promptType: string = 'general',
+        language: string = 'en'
     ): Promise<AIResponse> => {
         // Check if AI is enabled
         if (!aiEnabled) {
@@ -357,6 +384,7 @@ export function AIProvider({ children }: AIProviderProps) {
                     prompt,
                     forceDeepMode: deepModeEnabled,
                     promptType,
+                    language, // Pass language preference for response
                     context: Object.keys(context).length > 0 ? context : undefined,
                 }),
             });
@@ -767,8 +795,10 @@ export function AIProvider({ children }: AIProviderProps) {
         // Expose refs' current values (reads are live, writes don't cause re-renders)
         currentBoardContext: currentBoardContextRef.current,
         currentRoomContext: currentRoomContextRef.current,
+        currentPageContext: currentPageContextRef.current,
         setCurrentBoardContext,
         setCurrentRoomContext,
+        setCurrentPageContext,
         processPrompt,
         generateChart,
         generateTable,
@@ -797,6 +827,7 @@ export function AIProvider({ children }: AIProviderProps) {
         // Note: refs not in deps - updates don't trigger re-renders
         setCurrentBoardContext,
         setCurrentRoomContext,
+        setCurrentPageContext,
         processPrompt,
         generateChart,
         generateTable,

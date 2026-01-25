@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, ShoppingCart, Warning, Clock, Package, TrendUp, ShieldCheck } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, ShoppingCart, Warning, Clock, Package, TrendUp, ShieldCheck } from 'phosphor-react';
 import { ReorderPlanningInfo } from './ReorderPlanningInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -62,24 +61,35 @@ const WAVE_DATA = {
 };
 
 export const ReorderPlanningDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('reorder-planning-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // --- KPI Data ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
-        { id: '1', label: t('below_reorder_point'), subtitle: t('action_required'), value: '18', change: '+4', trend: 'down', icon: <Warning size={18} />, sparklineData: [14, 15, 15, 16, 17, 18], color: 'blue' },
-        { id: '2', label: t('reorder_qty_needed'), subtitle: t('to_max_level'), value: '2,450', rawValue: 2450, isCurrency: false, change: '+12%', trend: 'up', icon: <ShoppingCart size={18} />, sparklineData: [2000, 2100, 2200, 2300, 2400, 2450], color: 'blue' },
-        { id: '3', label: t('avg_lead_time'), subtitle: t('supplier_speed'), value: '12d', change: '+1d', trend: 'down', icon: <Clock size={18} />, sparklineData: [11, 11, 12, 12, 12, 12], color: 'blue' },
-        { id: '4', label: t('days_stock_left'), subtitle: t('runway'), value: '24d', change: '-2d', trend: 'down', icon: <Package size={18} />, sparklineData: [28, 27, 26, 25, 25, 24], color: 'blue' },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('below_reorder_point'), subtitle: t('action_required'), value: '18', change: '+4', trend: 'down' as const, icon: <Warning size={18} />, sparklineData: [14, 15, 15, 16, 17, 18], color: 'blue' },
+        { id: '2', label: t('reorder_qty_needed'), subtitle: t('to_max_level'), value: '2,450', rawValue: 2450, isCurrency: false, change: '+12%', trend: 'up' as const, icon: <ShoppingCart size={18} />, sparklineData: [2000, 2100, 2200, 2300, 2400, 2450], color: 'blue' },
+        { id: '3', label: t('avg_lead_time'), subtitle: t('supplier_speed'), value: '12d', change: '+1d', trend: 'down' as const, icon: <Clock size={18} />, sparklineData: [11, 11, 12, 12, 12, 12], color: 'blue' },
+        { id: '4', label: t('days_stock_left'), subtitle: t('runway'), value: '24d', change: '-2d', trend: 'down' as const, icon: <Package size={18} />, sparklineData: [28, 27, 26, 25, 25, 24], color: 'blue' },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
-        { id: '5', label: t('emergency_reorders'), subtitle: t('expedited'), value: '3', change: '-1', trend: 'up', icon: <Lightning size={18} />, sparklineData: [5, 4, 4, 3, 3, 3], color: 'blue' },
-        { id: '6', label: t('overstock_items'), subtitle: t('above_max_limit'), value: '45', change: '+5', trend: 'down', icon: <TrendUp size={18} />, sparklineData: [40, 41, 42, 43, 44, 45], color: 'blue' },
-        { id: '7', label: t('planning_confidence'), subtitle: t('data_reliability'), value: '92%', change: '+1%', trend: 'up', icon: <ShieldCheck size={18} />, sparklineData: [90, 91, 91, 91, 92, 92], color: 'blue' },
-        { id: '8', label: t('stockout_risk'), subtitle: t('items_at_risk'), value: '8', change: '-2', trend: 'up', icon: <Warning size={18} />, sparklineData: [12, 11, 10, 9, 9, 8], color: 'blue' },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('emergency_reorders'), subtitle: t('expedited'), value: '3', change: '-1', trend: 'up' as const, icon: <Lightning size={18} />, sparklineData: [5, 4, 4, 3, 3, 3], color: 'blue' },
+        { id: '6', label: t('overstock_items'), subtitle: t('above_max_limit'), value: '45', change: '+5', trend: 'down' as const, icon: <TrendUp size={18} />, sparklineData: [40, 41, 42, 43, 44, 45], color: 'blue' },
+        { id: '7', label: t('planning_confidence'), subtitle: t('data_reliability'), value: '92%', change: '+1%', trend: 'up' as const, icon: <ShieldCheck size={18} />, sparklineData: [90, 91, 91, 91, 92, 92], color: 'blue' },
+        { id: '8', label: t('stockout_risk'), subtitle: t('items_at_risk'), value: '8', change: '-2', trend: 'up' as const, icon: <Warning size={18} />, sparklineData: [12, 11, 10, 9, 9, 8], color: 'blue' },
+    ], [t]);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -87,8 +97,64 @@ export const ReorderPlanningDashboard: React.FC = () => {
 
     // --- ECharts Options ---
 
+    // Bar Chart - Reorder Qty by SKU
+    const reorderQtyBySkuOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: REORDER_QTY_BY_SKU.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: REORDER_QTY_BY_SKU.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL]);
+
+    // Bar Chart - Lead Time by Supplier
+    const leadTimeBySupplierOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: LEAD_TIME_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: LEAD_TIME_BY_SUPPLIER.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL]);
+
     // Pie Chart - Stock Coverage Status
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -100,10 +166,10 @@ export const ReorderPlanningDashboard: React.FC = () => {
             data: STOCK_COVERAGE_STATUS,
             color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
         }]
-    };
+    }), []);
 
     // Pie Chart - Urgency Level
-    const urgencyPieOption: EChartsOption = {
+    const urgencyPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -115,10 +181,10 @@ export const ReorderPlanningDashboard: React.FC = () => {
             data: URGENCY_LEVEL,
             color: ['#22c55e', '#eab308', '#f97316', '#dc2626']
         }]
-    };
+    }), []);
 
     // Line Chart (Reorder Threshold Wave)
-    const waveOption: EChartsOption = {
+    const waveOption: EChartsOption = useMemo(() => ({
         title: { text: 'Burn Rate vs Reorder Point', left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { trigger: 'axis' },
         grid: { left: '10%', right: '10%', bottom: '10%', top: '20%' },
@@ -142,7 +208,7 @@ export const ReorderPlanningDashboard: React.FC = () => {
                 itemStyle: { opacity: 0 }
             }
         ]
-    };
+    }), []);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -161,9 +227,9 @@ export const ReorderPlanningDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title="Full Screen"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -190,7 +256,7 @@ export const ReorderPlanningDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts: Reorder Qty by SKU */}
+                {/* ECharts: Reorder Qty by SKU */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title="Reorder Amounts" />
@@ -202,23 +268,12 @@ export const ReorderPlanningDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('qty_to_order_per_sku')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={REORDER_QTY_BY_SKU} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={reorderQtyBySkuOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts: Lead Time by Supplier */}
+                {/* ECharts: Lead Time by Supplier */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title="Lead Time by Supplier" />
@@ -230,18 +285,7 @@ export const ReorderPlanningDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('days_to_delivery')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={LEAD_TIME_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={leadTimeBySupplierOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

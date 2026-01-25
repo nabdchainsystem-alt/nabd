@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, ShieldWarning, Warning, LinkBreak, UserSwitch, CurrencyDollar, Compass } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, ShieldWarning, Warning, LinkBreak, UserSwitch, CurrencyDollar, Compass } from 'phosphor-react';
 import { DependencyRiskInfo } from './DependencyRiskInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -71,39 +70,139 @@ const GRAPH_LINKS = [
 ];
 
 export const DependencyRiskDashboard: React.FC = () => {
-    const { t } = useAppContext();
+    const { t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('dependency-risk-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
     // --- KPI Data ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '1', label: t('dependency_ratio'), subtitle: t('top_5_concentration'), value: '45%', change: '-2%', trend: 'up', icon: <LinkBreak size={18} />, sparklineData: [48, 47, 46, 46, 45, 45, 45] },
-        { id: '2', label: t('single_source_cats'), subtitle: t('no_backup'), value: '3', change: '0', trend: 'neutral', icon: <Warning size={18} />, sparklineData: [3, 3, 3, 3, 3, 3, 3] },
-        { id: '3', label: t('risk_exposure'), subtitle: t('high_risk_spend'), value: '18%', change: '+1%', trend: 'down', icon: <ShieldWarning size={18} />, sparklineData: [15, 16, 17, 18, 18, 18, 18] },
-        { id: '4', label: t('stability_score'), subtitle: t('supply_chain_health'), value: '82/100', change: '+2', trend: 'up', icon: <Compass size={18} />, sparklineData: [78, 79, 80, 81, 80, 81, 82] },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('dependency_ratio'), subtitle: t('top_5_concentration'), value: '45%', change: '-2%', trend: 'up' as const, icon: <LinkBreak size={18} />, sparklineData: [48, 47, 46, 46, 45, 45, 45] },
+        { id: '2', label: t('single_source_cats'), subtitle: t('no_backup'), value: '3', change: '0', trend: 'neutral' as const, icon: <Warning size={18} />, sparklineData: [3, 3, 3, 3, 3, 3, 3] },
+        { id: '3', label: t('risk_exposure'), subtitle: t('high_risk_spend'), value: '18%', change: '+1%', trend: 'down' as const, icon: <ShieldWarning size={18} />, sparklineData: [15, 16, 17, 18, 18, 18, 18] },
+        { id: '4', label: t('stability_score'), subtitle: t('supply_chain_health'), value: '82/100', change: '+2', trend: 'up' as const, icon: <Compass size={18} />, sparklineData: [78, 79, 80, 81, 80, 81, 82] },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '5', label: t('backup_suppliers'), subtitle: t('avg_per_category'), value: '1.8', change: '+0.1', trend: 'up', icon: <UserSwitch size={18} />, sparklineData: [1.5, 1.5, 1.6, 1.6, 1.7, 1.7, 1.8] },
-        { id: '6', label: t('avg_switching_cost'), subtitle: t('est_impact'), value: '$12k', change: '0', trend: 'neutral', icon: <CurrencyDollar size={18} />, sparklineData: [12, 12, 12, 12, 12, 12, 12] },
-        { id: '7', label: t('active_risk_alerts'), subtitle: t('critical_issues'), value: '2', change: '+1', trend: 'down', icon: <Warning size={18} />, sparklineData: [0, 0, 1, 1, 1, 2, 2] },
-        { id: '8', label: t('mitigation_progress'), subtitle: t('actions_completed'), value: '72%', change: '+8%', trend: 'up', icon: <Compass size={18} />, sparklineData: [58, 62, 64, 66, 68, 70, 72] },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('backup_suppliers'), subtitle: t('avg_per_category'), value: '1.8', change: '+0.1', trend: 'up' as const, icon: <UserSwitch size={18} />, sparklineData: [1.5, 1.5, 1.6, 1.6, 1.7, 1.7, 1.8] },
+        { id: '6', label: t('avg_switching_cost'), subtitle: t('est_impact'), value: '$12k', change: '0', trend: 'neutral' as const, icon: <CurrencyDollar size={18} />, sparklineData: [12, 12, 12, 12, 12, 12, 12] },
+        { id: '7', label: t('active_risk_alerts'), subtitle: t('critical_issues'), value: '2', change: '+1', trend: 'down' as const, icon: <Warning size={18} />, sparklineData: [0, 0, 1, 1, 1, 2, 2] },
+        { id: '8', label: t('mitigation_progress'), subtitle: t('actions_completed'), value: '72%', change: '+8%', trend: 'up' as const, icon: <Compass size={18} />, sparklineData: [58, 62, 64, 66, 68, 70, 72] },
+    ], [t]);
 
-    const RISK_LEVELS = [
+    const RISK_LEVELS = useMemo(() => [
         { value: 12, name: t('high_risk') },
         { value: 28, name: t('medium_risk') },
         { value: 60, name: t('low_risk') }
-    ];
+    ], [t]);
 
     // --- ECharts Options ---
 
+    // Bar Chart - Dependency by Category (stacked)
+    const dependencyByCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, data: [t('primary'), t('backup')] },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: DEPENDENCY_BY_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('primary'),
+                type: 'bar',
+                stack: 'total',
+                data: DEPENDENCY_BY_CATEGORY.map(d => d.primary),
+                itemStyle: { color: '#3b82f6', borderRadius: [0, 0, 0, 0] },
+                barWidth: 12,
+            },
+            {
+                name: t('backup'),
+                type: 'bar',
+                stack: 'total',
+                data: DEPENDENCY_BY_CATEGORY.map(d => d.secondary),
+                itemStyle: { color: '#d1d5db', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+        ],
+    }), [isRTL, t]);
+
+    // Bar Chart - Risk Trend (stacked)
+    const riskTrendOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, data: [t('high'), t('medium'), t('low')] },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: RISK_TREND.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('high'),
+                type: 'bar',
+                stack: 'total',
+                data: RISK_TREND.map(d => d.high),
+                itemStyle: { color: '#ef4444' },
+                barWidth: 20,
+            },
+            {
+                name: t('medium'),
+                type: 'bar',
+                stack: 'total',
+                data: RISK_TREND.map(d => d.medium),
+                itemStyle: { color: '#f59e0b' },
+                barWidth: 20,
+            },
+            {
+                name: t('low'),
+                type: 'bar',
+                stack: 'total',
+                data: RISK_TREND.map(d => d.low),
+                itemStyle: { color: '#10b981', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            },
+        ],
+    }), [isRTL, t]);
+
     // Pie Chart - Risk Distribution
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -120,10 +219,10 @@ export const DependencyRiskDashboard: React.FC = () => {
                 }
             }))
         }]
-    };
+    }), [RISK_LEVELS, t]);
 
     // Pie Chart - Diversification Scores
-    const diversificationPieOption: EChartsOption = {
+    const diversificationPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: `{b}: {c}% ${t('diversified')}` },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -136,10 +235,10 @@ export const DependencyRiskDashboard: React.FC = () => {
             data: DIVERSIFICATION_SCORES,
             color: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe']
         }]
-    };
+    }), [t]);
 
     // Network Graph
-    const graphOption: EChartsOption = {
+    const graphOption: EChartsOption = useMemo(() => ({
         title: { text: t('supply_chain_network'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: {},
         legend: { data: [t('categories'), t('suppliers')], bottom: 0 },
@@ -158,7 +257,7 @@ export const DependencyRiskDashboard: React.FC = () => {
                 lineStyle: { color: 'source', curveness: 0.3 }
             }
         ]
-    };
+    }), [t]);
 
     const getAlertLabel = (alert: string) => {
         switch (alert) {
@@ -187,9 +286,9 @@ export const DependencyRiskDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -216,7 +315,7 @@ export const DependencyRiskDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts - Dependency by Category */}
+                {/* ECharts - Dependency by Category */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('dependency_by_category')} />
@@ -228,25 +327,12 @@ export const DependencyRiskDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('primary_vs_secondary_share')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={DEPENDENCY_BY_CATEGORY} margin={{ top: 5, right: 5, left: 10, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="primary" stackId="a" name={t('primary')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                    <Bar dataKey="secondary" stackId="a" name={t('backup')} fill="#d1d5db" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={dependencyByCategoryOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts - Risk Trend */}
+                {/* ECharts - Risk Trend */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('risk_trend')} />
@@ -258,21 +344,7 @@ export const DependencyRiskDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('monthly_risk_distribution')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={RISK_TREND} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="high" stackId="a" name={t('high')} fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={20} animationDuration={1000} />
-                                    <Bar dataKey="medium" stackId="a" name={t('medium')} fill="#3b82f6" radius={[0, 0, 0, 0]} barSize={20} animationDuration={1000} />
-                                    <Bar dataKey="low" stackId="a" name={t('low')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={riskTrendOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

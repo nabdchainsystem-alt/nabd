@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
     PaperPlaneTilt,
     Sparkle,
@@ -28,9 +28,13 @@ import {
     CaretUp,
     ChatCircle,
     ChartLineUp,
+    ClockCounterClockwise,
+    Plus,
+    ChatDots,
 } from 'phosphor-react';
-import { useAI, ModelTier, BoardContextData, RoomContextData } from '../contexts/AIContext';
+import { useAI, ModelTier, BoardContextData, RoomContextData, PageContextData } from '../contexts/AIContext';
 import { useAppContext } from '../contexts/AppContext';
+import { getStorageItem, setStorageItem } from '../utils/storage';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -53,18 +57,51 @@ interface Message {
     data?: Record<string, unknown>;
 }
 
+interface ChatSession {
+    id: string;
+    title: string;
+    messages: Message[];
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 interface AIChatProps {
     isOpen: boolean;
     onClose: () => void;
     initialPrompt?: string;
 }
 
-const getQuickActions = (t: (key: string) => string) => [
-    { icon: ChartBar, label: t('ai_chart'), prompt: 'Create a chart showing ', promptType: 'chart', color: 'text-blue-500 bg-blue-500/10' },
-    { icon: Table, label: t('ai_table'), prompt: 'Generate a table of ', promptType: 'table', color: 'text-green-500 bg-green-500/10' },
-    { icon: ListChecks, label: t('tasks'), prompt: 'Extract tasks from: ', promptType: 'gtd', color: 'text-orange-500 bg-orange-500/10' },
-    { icon: TrendUp, label: t('ai_forecast'), prompt: 'Forecast the trend for ', promptType: 'forecast', color: 'text-purple-500 bg-purple-500/10' },
-    { icon: Lightbulb, label: t('ai_tips'), prompt: 'Give me tips on ', promptType: 'tips', color: 'text-amber-500 bg-amber-500/10' },
+const getQuickActions = (t: (key: string) => string, isRTL: boolean) => [
+    {
+        icon: ChartBar,
+        label: t('ai_chart'),
+        prompt: isRTL ? 'أنشئ رسم بياني يوضح ' : 'Create a chart showing ',
+        promptType: 'chart',
+    },
+    {
+        icon: Table,
+        label: t('ai_table'),
+        prompt: isRTL ? 'أنشئ جدول يحتوي على ' : 'Generate a table of ',
+        promptType: 'table',
+    },
+    {
+        icon: ListChecks,
+        label: t('tasks'),
+        prompt: isRTL ? 'استخرج المهام من: ' : 'Extract tasks from: ',
+        promptType: 'gtd',
+    },
+    {
+        icon: TrendUp,
+        label: t('ai_forecast'),
+        prompt: isRTL ? 'توقع الاتجاه لـ ' : 'Forecast the trend for ',
+        promptType: 'forecast',
+    },
+    {
+        icon: Lightbulb,
+        label: t('ai_tips'),
+        prompt: isRTL ? 'أعطني نصائح حول ' : 'Give me tips on ',
+        promptType: 'tips',
+    },
 ];
 
 const TIER_INFO = {
@@ -115,6 +152,13 @@ const TIER_INFO = {
     },
 };
 
+// Helper to generate chat title from first message
+const generateChatTitle = (content: string, t: (key: string) => string): string => {
+    if (!content) return t('new_chat') || 'New Chat';
+    const cleaned = content.trim().slice(0, 50);
+    return cleaned.length < content.trim().length ? `${cleaned}...` : cleaned;
+};
+
 export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
     const {
         credits,
@@ -136,11 +180,73 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
         analyzeComplexity,
         currentBoardContext,
         currentRoomContext,
+        currentPageContext,
     } = useAI();
     const { theme, t, dir } = useAppContext();
     const isRTL = dir === 'rtl';
 
-    const [messages, setMessages] = useState<Message[]>([]);
+    // Load all chat sessions from localStorage
+    const [chatSessions, setChatSessions] = useState<ChatSession[]>(() => {
+        const stored = getStorageItem<Array<ChatSession & { createdAt: string; updatedAt: string; messages: Array<Message & { timestamp: string }> }>>('ai-chat-sessions', []);
+        return stored.map(session => ({
+            ...session,
+            createdAt: new Date(session.createdAt),
+            updatedAt: new Date(session.updatedAt),
+            messages: session.messages.map(msg => ({
+                ...msg,
+                timestamp: new Date(msg.timestamp)
+            }))
+        }));
+    });
+
+    // Current active chat session ID
+    const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+        return getStorageItem<string | null>('ai-active-session-id', null);
+    });
+
+    // Show chat history panel
+    const [showHistory, setShowHistory] = useState(false);
+
+    // Get current session messages
+    const currentSession = chatSessions.find(s => s.id === activeSessionId);
+    const messages = currentSession?.messages || [];
+
+    // Set messages for current session
+    const setMessages = useCallback((updater: Message[] | ((prev: Message[]) => Message[])) => {
+        setChatSessions(prev => {
+            const newMessages = typeof updater === 'function'
+                ? updater(currentSession?.messages || [])
+                : updater;
+
+            if (!activeSessionId) {
+                // Create new session if none active
+                const newSession: ChatSession = {
+                    id: `chat-${Date.now()}`,
+                    title: t('new_chat') || 'New Chat',
+                    messages: newMessages,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+                setActiveSessionId(newSession.id);
+                return [...prev, newSession];
+            }
+
+            return prev.map(session =>
+                session.id === activeSessionId
+                    ? {
+                        ...session,
+                        messages: newMessages,
+                        updatedAt: new Date(),
+                        // Update title from first user message if still "New Chat"
+                        title: session.title === (t('new_chat') || 'New Chat') && newMessages.length > 0
+                            ? generateChatTitle(newMessages.find(m => m.role === 'user')?.content || '', t)
+                            : session.title
+                    }
+                    : session
+            );
+        });
+    }, [activeSessionId, currentSession?.messages, t]);
+
     const [input, setInput] = useState('');
     const [isExpanded, setIsExpanded] = useState(false);
     const [tierPreview, setTierPreview] = useState<{
@@ -156,6 +262,7 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
 
     const isDark = theme === 'dark';
 
@@ -179,6 +286,48 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
     useEffect(() => {
         scrollToBottom();
     }, [messages, scrollToBottom]);
+
+    // Save chat sessions to localStorage whenever they change
+    useEffect(() => {
+        setStorageItem('ai-chat-sessions', chatSessions);
+    }, [chatSessions]);
+
+    // Save active session ID to localStorage
+    useEffect(() => {
+        if (activeSessionId) {
+            setStorageItem('ai-active-session-id', activeSessionId);
+        }
+    }, [activeSessionId]);
+
+    // Create new chat session
+    const createNewChat = useCallback(() => {
+        const newSession: ChatSession = {
+            id: `chat-${Date.now()}`,
+            title: t('new_chat') || 'New Chat',
+            messages: [],
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        setChatSessions(prev => [...prev, newSession]);
+        setActiveSessionId(newSession.id);
+        setShowHistory(false);
+    }, [t]);
+
+    // Switch to a different chat session
+    const switchToSession = useCallback((sessionId: string) => {
+        setActiveSessionId(sessionId);
+        setShowHistory(false);
+    }, []);
+
+    // Delete a chat session
+    const deleteSession = useCallback((sessionId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setChatSessions(prev => prev.filter(s => s.id !== sessionId));
+        if (activeSessionId === sessionId) {
+            const remaining = chatSessions.filter(s => s.id !== sessionId);
+            setActiveSessionId(remaining.length > 0 ? remaining[0].id : null);
+        }
+    }, [activeSessionId, chatSessions]);
 
     // Focus input when opened
     useEffect(() => {
@@ -257,7 +406,9 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
 
         try {
             const startTime = Date.now();
-            const response = await processPrompt(currentInput, promptType);
+            // Pass language based on RTL mode: Arabic when RTL, English otherwise
+            const language = isRTL ? 'ar' : 'en';
+            const response = await processPrompt(currentInput, promptType, language);
             const processingTime = Date.now() - startTime;
 
             const assistantMessage: Message = {
@@ -303,7 +454,7 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
         }
     };
 
-    const QUICK_ACTIONS = getQuickActions(t);
+    const QUICK_ACTIONS = useMemo(() => getQuickActions(t, isRTL), [t, isRTL]);
 
     const handleQuickAction = (action: typeof QUICK_ACTIONS[0]) => {
         setInput(action.prompt);
@@ -317,7 +468,13 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
     };
 
     const clearChat = () => {
-        setMessages([]);
+        if (activeSessionId) {
+            setChatSessions(prev => prev.map(session =>
+                session.id === activeSessionId
+                    ? { ...session, messages: [], updatedAt: new Date(), title: t('new_chat') || 'New Chat' }
+                    : session
+            ));
+        }
     };
 
     const getTierIcon = (tier: ModelTier) => {
@@ -334,16 +491,23 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
     if (!isOpen) return null;
 
     return (
-        <div
-            className={`
-                fixed z-[9999] flex flex-col shadow-2xl border rounded-2xl overflow-hidden transition-all duration-300
-                ${isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}
-                ${isExpanded
-                    ? 'inset-4'
-                    : `bottom-20 w-[440px] h-[620px] ${isRTL ? 'left-4' : 'right-4'}`
-                }
-            `}
-        >
+        <>
+            {/* Click-outside overlay */}
+            <div
+                className="fixed inset-0 z-[9998] bg-transparent"
+                onClick={onClose}
+            />
+            <div
+                ref={chatContainerRef}
+                className={`
+                    fixed z-[9999] flex flex-col shadow-2xl border rounded-2xl overflow-hidden transition-all duration-300
+                    ${isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}
+                    ${isExpanded
+                        ? 'inset-4'
+                        : `bottom-20 w-[440px] h-[620px] ${isRTL ? 'left-4' : 'right-4'}`
+                    }
+                `}
+            >
             {/* Header */}
             <div className={`
                 flex items-center justify-between px-4 py-3 border-b
@@ -422,6 +586,35 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                 </div>
 
                 <div className="flex items-center gap-1">
+                    {/* New chat button */}
+                    <button
+                        onClick={createNewChat}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                            isDark ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
+                        }`}
+                        title={t('new_chat') || 'New Chat'}
+                    >
+                        <Plus size={16} />
+                    </button>
+                    {/* Chat history button */}
+                    <button
+                        onClick={() => setShowHistory(!showHistory)}
+                        className={`
+                            p-1.5 rounded-lg transition-colors relative
+                            ${showHistory
+                                ? 'bg-purple-500/20 text-purple-500'
+                                : isDark ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
+                            }
+                        `}
+                        title={t('chat_history') || 'Chat History'}
+                    >
+                        <ClockCounterClockwise size={16} />
+                        {chatSessions.length > 0 && (
+                            <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-purple-500 text-[8px] text-white font-bold flex items-center justify-center">
+                                {chatSessions.length > 9 ? '9+' : chatSessions.length}
+                            </div>
+                        )}
+                    </button>
                     {/* Context info button */}
                     <button
                         onClick={() => setShowContextInfo(!showContextInfo)}
@@ -435,7 +628,7 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                         title={t('view_context')}
                     >
                         <Database size={16} />
-                        {(currentBoardContext || currentRoomContext) && (
+                        {(currentBoardContext || currentRoomContext || currentPageContext) && (
                             <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-500" />
                         )}
                     </button>
@@ -471,8 +664,105 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                 </div>
             </div>
 
+            {/* Chat History Panel */}
+            {showHistory && (
+                <div className={`
+                    border-b max-h-[280px] overflow-y-auto
+                    ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-100 bg-purple-50/30'}
+                `}>
+                    <div className="flex items-center justify-between px-4 py-2 sticky top-0 z-10 backdrop-blur-sm"
+                        style={{ backgroundColor: isDark ? 'rgba(31, 41, 55, 0.9)' : 'rgba(250, 245, 255, 0.9)' }}>
+                        <div className="flex items-center gap-2">
+                            <ClockCounterClockwise size={14} className={isDark ? 'text-purple-400' : 'text-purple-500'} />
+                            <span className={`text-xs font-semibold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                                {t('chat_history') || 'Chat History'}
+                            </span>
+                        </div>
+                        <button
+                            onClick={createNewChat}
+                            className={`
+                                flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors
+                                ${isDark
+                                    ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                                    : 'bg-purple-500/10 text-purple-600 hover:bg-purple-500/20'
+                                }
+                            `}
+                        >
+                            <Plus size={12} />
+                            {t('new_chat') || 'New Chat'}
+                        </button>
+                    </div>
+                    {chatSessions.length === 0 ? (
+                        <div className={`px-4 py-6 text-center text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            <ChatDots size={24} className="mx-auto mb-2 opacity-50" />
+                            {t('no_chat_history') || 'No chat history yet'}
+                        </div>
+                    ) : (
+                        <div className="px-2 pb-2 space-y-1">
+                            {[...chatSessions]
+                                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                                .map(session => (
+                                    <div
+                                        key={session.id}
+                                        onClick={() => switchToSession(session.id)}
+                                        className={`
+                                            group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all
+                                            ${session.id === activeSessionId
+                                                ? isDark
+                                                    ? 'bg-purple-500/20 border border-purple-500/30'
+                                                    : 'bg-purple-500/10 border border-purple-500/20'
+                                                : isDark
+                                                    ? 'hover:bg-gray-700/50 border border-transparent'
+                                                    : 'hover:bg-gray-100 border border-transparent'
+                                            }
+                                        `}
+                                    >
+                                        <div className={`
+                                            w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                                            ${session.id === activeSessionId
+                                                ? 'bg-purple-500/20'
+                                                : isDark ? 'bg-gray-700' : 'bg-gray-100'
+                                            }
+                                        `}>
+                                            <ChatCircle
+                                                size={16}
+                                                weight={session.id === activeSessionId ? 'fill' : 'regular'}
+                                                className={session.id === activeSessionId
+                                                    ? 'text-purple-500'
+                                                    : isDark ? 'text-gray-400' : 'text-gray-500'
+                                                }
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className={`text-xs font-medium truncate ${
+                                                isDark ? 'text-gray-200' : 'text-gray-800'
+                                            }`}>
+                                                {session.title}
+                                            </div>
+                                            <div className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                                                {session.messages.length} {t('messages') || 'messages'} • {new Date(session.updatedAt).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => deleteSession(session.id, e)}
+                                            className={`
+                                                p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity
+                                                ${isDark ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-50 text-red-500'}
+                                            `}
+                                            title={t('delete') || 'Delete'}
+                                        >
+                                            <Trash size={14} />
+                                        </button>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Context Info Panel */}
-            {showContextInfo && (
+            {showContextInfo && !showHistory && (
                 <div className={`
                     px-4 py-3 border-b
                     ${isDark ? 'border-gray-700 bg-gray-800/50' : 'border-gray-100 bg-blue-50/50'}
@@ -483,6 +773,24 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                             {t('context_being_read')}
                         </span>
                     </div>
+                    {/* Current Page Context */}
+                    {currentPageContext && (
+                        <div className={`text-xs mb-2 pb-2 border-b ${isDark ? 'text-gray-300 border-gray-700' : 'text-gray-600 border-gray-200'}`}>
+                            <div className="flex items-center gap-2 mb-1">
+                                <Eye size={12} />
+                                <strong>{t('current_page') || 'Current Page'}:</strong>
+                                <span className={`px-1.5 py-0.5 rounded ${isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-500/10 text-blue-600'}`}>
+                                    {currentPageContext.department || currentPageContext.view}
+                                </span>
+                            </div>
+                            {currentPageContext.boardName && (
+                                <div className={`text-[11px] opacity-80 ${isRTL ? 'mr-4' : 'ml-4'}`}>
+                                    {t('board_label')}: {currentPageContext.boardName}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {/* Board/Room Context */}
                     {currentBoardContext ? (
                         <div className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                             <div className="flex items-center gap-2 mb-1">
@@ -505,7 +813,7 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                                 <div>{t('columns_label')}: {currentRoomContext.columns.slice(0, 5).join(', ')}{currentRoomContext.columns.length > 5 ? '...' : ''}</div>
                             </div>
                         </div>
-                    ) : (
+                    ) : !currentPageContext && (
                         <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                             <Info size={12} className={`inline ${isRTL ? 'ml-1' : 'mr-1'}`} />
                             {t('no_board_context_hint')}
@@ -521,7 +829,7 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                     <div className="flex flex-col items-center justify-center h-full text-center px-4">
                         <div className="mb-4">
                             <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                                <Brain size={32} weight="duotone" className={isDark ? 'text-purple-400' : 'text-purple-500'} />
+                                <Brain size={32} weight="duotone" className={isDark ? 'text-gray-300' : 'text-gray-700'} style={{filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.2))'}} />
                             </div>
                             <h2 className={`text-lg font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 {t('welcome_nabd_brain')}
@@ -666,7 +974,7 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                                     }
                                 `}
                             >
-                                <action.icon size={14} className={action.color.split(' ')[0]} />
+                                <action.icon size={14} className={isDark ? 'text-gray-400' : 'text-gray-600'} />
                                 {action.label}
                             </button>
                         ))}
@@ -765,7 +1073,7 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                             w-11 h-11 rounded-xl flex items-center justify-center shrink-0
                             transition-all duration-200
                             ${input.trim() && !isProcessing && credits >= 1
-                                ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105'
+                                ? 'bg-black text-white shadow-lg hover:bg-gray-800 hover:scale-105'
                                 : isDark
                                     ? 'bg-gray-800 text-gray-500'
                                     : 'bg-gray-100 text-gray-400'
@@ -796,6 +1104,7 @@ export function AIChat({ isOpen, onClose, initialPrompt }: AIChatProps) {
                 )}
             </div>
         </div>
+        </>
     );
 }
 

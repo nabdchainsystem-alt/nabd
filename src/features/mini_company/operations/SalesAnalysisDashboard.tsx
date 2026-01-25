@@ -1,14 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
-} from 'recharts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import {
     ChartLineUp, ChartBar, CurrencyDollar, ShoppingCart, TrendUp,
-    Info, ArrowsOut,
+    Info, ArrowsOut, ArrowsIn,
     CaretLeft, CaretRight, Database, Lightbulb
 } from 'phosphor-react';
 import { SalesAnalysisInfo } from './SalesAnalysisInfo';
@@ -53,32 +50,25 @@ const TABLE_DATA = [
     { id: 'ORD-008', date: '2026-01-17', customer: 'Future Tech', product: 'Gaming Mouse', qty: 15, price: 60, total: 900, salesperson: 'Layla', region: 'Abha', status: 'Completed' },
 ];
 
-// --- Sub-components ---
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white dark:bg-monday-dark-surface p-3 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{label}</p>
-                <div className="flex items-center gap-2 mt-1">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: payload[0].fill }}></div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {payload[0].name}: <span className="font-bold text-gray-900 dark:text-white">{payload[0].value}</span>
-                    </p>
-                </div>
-            </div>
-        );
-    }
-    return null;
-};
-
 interface SalesAnalysisDashboardProps {
     hideFullscreen?: boolean;
 }
 
 export const SalesAnalysisDashboard: React.FC<SalesAnalysisDashboardProps> = ({ hideFullscreen = false }) => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
+
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
     // Disabled loading animation for troubleshooting chart issues
     const isLoading = false;
 
@@ -152,6 +142,86 @@ export const SalesAnalysisDashboard: React.FC<SalesAnalysisDashboardProps> = ({ 
         legend: { bottom: '5%', left: 'center', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#94a3b8' } }
     };
 
+    // ECharts Sales by Product Option
+    const salesByProductOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SALES_BY_PRODUCT_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            type: 'bar',
+            data: SALES_BY_PRODUCT_DATA.map(d => d.sales),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL]);
+
+    // ECharts Sales by Agent Option
+    const salesByAgentOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 30, right: isRTL ? 30 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SALES_BY_PERSON_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            show: false,
+        },
+        series: [{
+            type: 'bar',
+            data: SALES_BY_PERSON_DATA.map(d => d.sales),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL]);
+
+    // ECharts Regional Performance Option
+    const regionalPerformanceOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 40, right: isRTL ? 40 : 20, top: 10, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SALES_BY_REGION_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: SALES_BY_REGION_DATA.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 18,
+        }],
+    }), [isRTL]);
+
     // --- COMPANION CHART: Sankey (Hidden Story) ---
     // Reveals flow from Region -> Salesperson -> Status
     const flowChartOption: EChartsOption = {
@@ -201,9 +271,9 @@ export const SalesAnalysisDashboard: React.FC<SalesAnalysisDashboardProps> = ({ 
                         <button
                             onClick={toggleFullScreen}
                             className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                            title={t('full_screen')}
+                            title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                         >
-                            <ArrowsOut size={18} />
+                            {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                         </button>
                     )}
                     <button
@@ -243,15 +313,7 @@ export const SalesAnalysisDashboard: React.FC<SalesAnalysisDashboardProps> = ({ 
                                 <p className="text-xs text-gray-400 mt-1">{t('revenue_generating_items')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SALES_BY_PRODUCT_DATA} margin={{ left: -15, right: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Bar dataKey="sales" radius={[4, 4, 0, 0]} barSize={50} fill="#3b82f6" animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={salesByProductOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -268,15 +330,7 @@ export const SalesAnalysisDashboard: React.FC<SalesAnalysisDashboardProps> = ({ 
                                 <p className="text-xs text-gray-400 mt-1">{t('individual_contribution')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SALES_BY_PERSON_DATA} margin={{ left: 10, right: 10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                        <YAxis hide />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Bar dataKey="sales" radius={[4, 4, 0, 0]} barSize={24} fill="#3b82f6" animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={salesByAgentOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -309,15 +363,7 @@ export const SalesAnalysisDashboard: React.FC<SalesAnalysisDashboardProps> = ({ 
                                 <p className="text-xs text-gray-400 mt-1">{t('comparative_volume_territory')}</p>
                             </div>
                             <div className="h-[210px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SALES_BY_REGION_DATA} margin={{ left: 10, right: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                        <Bar dataKey="value" name={t('share_percent')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={18} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={regionalPerformanceOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}

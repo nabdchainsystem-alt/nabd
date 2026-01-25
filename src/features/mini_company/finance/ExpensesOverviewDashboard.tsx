@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Warning, Wallet, ChartBar, Receipt, CalendarBlank, CurrencyDollar } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Warning, Wallet, ChartBar, Receipt, CalendarBlank, CurrencyDollar } from 'phosphor-react';
 import { ExpensesOverviewInfo } from './ExpensesOverviewInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -84,28 +83,38 @@ const getRadialData = (t: (key: string) => string) => ({
 
 export const ExpensesOverviewDashboard: React.FC = () => {
     const { currency } = useAppContext();
-    const { t } = useLanguage();
+    const { t, dir } = useLanguage();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('expenses-overview-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+    const isLoading = useLoadingAnimation();
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
-    // Get translated data
-    const TOP_KPIS = getTopKPIs(t);
-    const SIDE_KPIS = getSideKPIs(t);
-    const EXPENSES_BY_CATEGORY = getExpensesByCategory(t);
-    const EXPENSES_BY_DEPARTMENT = getExpensesByDepartment(t);
-    const EXPENSE_DISTRIBUTION = getExpenseDistribution(t);
-    const EXPENSE_TYPE_SPLIT = getExpenseTypeSplit(t);
-    const EXPENSE_TABLE = getExpenseTable(t);
-    const RADIAL_DATA = getRadialData(t);
+    // Memoize translated data to prevent re-renders
+    const TOP_KPIS = useMemo(() => getTopKPIs(t), [t]);
+    const SIDE_KPIS = useMemo(() => getSideKPIs(t), [t]);
+    const EXPENSES_BY_CATEGORY = useMemo(() => getExpensesByCategory(t), [t]);
+    const EXPENSES_BY_DEPARTMENT = useMemo(() => getExpensesByDepartment(t), [t]);
+    const EXPENSE_DISTRIBUTION = useMemo(() => getExpenseDistribution(t), [t]);
+    const EXPENSE_TYPE_SPLIT = useMemo(() => getExpenseTypeSplit(t), [t]);
+    const EXPENSE_TABLE = useMemo(() => getExpenseTable(t), [t]);
+    const RADIAL_DATA = useMemo(() => getRadialData(t), [t]);
 
-    // --- ECharts Options ---
+    // --- Memoized ECharts Options ---
 
     // Pie Chart
-    const pieOption: EChartsOption = {
+    const pieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -117,10 +126,10 @@ export const ExpensesOverviewDashboard: React.FC = () => {
             data: EXPENSE_DISTRIBUTION,
             color: ['#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
         }]
-    };
+    }), [EXPENSE_DISTRIBUTION]);
 
     // Expense Type Split Pie
-    const expenseTypePieOption: EChartsOption = {
+    const expenseTypePieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -132,10 +141,66 @@ export const ExpensesOverviewDashboard: React.FC = () => {
             data: EXPENSE_TYPE_SPLIT,
             color: ['#64748b', '#3b82f6']
         }]
-    };
+    }), [EXPENSE_TYPE_SPLIT]);
+
+    // Bar Chart - Expenses by Category
+    const expensesByCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: EXPENSES_BY_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: EXPENSES_BY_CATEGORY.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [EXPENSES_BY_CATEGORY, isRTL]);
+
+    // Bar Chart - Expenses by Department
+    const expensesByDepartmentOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: EXPENSES_BY_DEPARTMENT.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: EXPENSES_BY_DEPARTMENT.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [EXPENSES_BY_DEPARTMENT, isRTL]);
 
     // Radial (Radar) Chart - Using Radar primarily as requested "Radial Expense Density" usually implies radar or polar bar
-    const radarOption: EChartsOption = {
+    const radarOption = useMemo<EChartsOption>(() => ({
         title: { text: t('spend_concentration'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: {},
         radar: {
@@ -158,7 +223,7 @@ export const ExpensesOverviewDashboard: React.FC = () => {
                 }
             ]
         }]
-    };
+    }), [RADIAL_DATA, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -177,9 +242,9 @@ export const ExpensesOverviewDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -217,20 +282,7 @@ export const ExpensesOverviewDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('expenses_by_category')}</h3>
                             <p className="text-xs text-gray-400">{t('top_cost_centers')}</p>
                         </div>
-                        <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={EXPENSES_BY_CATEGORY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={expensesByCategoryOption} style={{ height: '220px', width: '100%' }} />
                     </div>
                 )}
 
@@ -245,20 +297,7 @@ export const ExpensesOverviewDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('expenses_by_department')}</h3>
                             <p className="text-xs text-gray-400">{t('departmental_spending')}</p>
                         </div>
-                        <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={EXPENSES_BY_DEPARTMENT} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={expensesByDepartmentOption} style={{ height: '220px', width: '100%' }} />
                     </div>
                 )}
 

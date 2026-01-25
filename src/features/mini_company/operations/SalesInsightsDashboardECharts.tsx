@@ -58,7 +58,7 @@ const SIDE_KPIS: KPIConfig[] = [
 ];
 
 export const SalesInsightsDashboardECharts: React.FC = memo(() => {
-    const { currency } = useAppContext();
+    const { currency, t } = useAppContext();
     const [showInfo, setShowInfo] = React.useState(false);
     const [isFullScreen, setIsFullScreen] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -206,7 +206,7 @@ export const SalesInsightsDashboardECharts: React.FC = memo(() => {
 
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <ChartLineUp size={28} className="text-indigo-600 dark:text-indigo-400 mt-1" />
+                    <ChartLineUp size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">Sales Insights (ECharts)</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">Comprehensive sales data visualization using ECharts engine</p>
@@ -215,17 +215,17 @@ export const SalesInsightsDashboardECharts: React.FC = memo(() => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                         title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
                     >
                         {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-indigo-500" />
-                        About Dashboard
+                        <Info size={18} className="text-blue-500" />
+                        {t('about_dashboard')}
                     </button>
                 </div>
             </div>
@@ -239,7 +239,7 @@ export const SalesInsightsDashboardECharts: React.FC = memo(() => {
                         <KPICard
                             {...kpi}
                             value={kpi.isCurrency && kpi.rawValue ? formatCurrency(kpi.rawValue, currency.code, currency.symbol) : kpi.value}
-                            color="indigo"
+                            color="blue"
                         />
                     </div>
                 ))}

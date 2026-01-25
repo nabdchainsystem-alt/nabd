@@ -1,15 +1,12 @@
-import React, { useState, useMemo, memo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, memo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
-} from 'recharts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import {
     Funnel as FunnelIcon, Users, Notepad, ShoppingCart, Percent,
-    Info, ArrowsOut,
+    Info, ArrowsOut, ArrowsIn,
     CaretLeft, CaretRight, Warning, CurrencyDollar, TrendDown, ArrowUp, ArrowDown
 } from 'phosphor-react';
 import { SalesFunnelInfo } from './SalesFunnelInfo';
@@ -51,35 +48,26 @@ const TABLE_DATA = [
     { id: 7, name: 'Oceanic Blue', stage: 'Leads Contacted', date: '2026-01-09', value: 9500, status: 'Pending' },
 ];
 
-// --- Sub-components ---
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white dark:bg-monday-dark-surface p-3 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{label}</p>
-                {payload.map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 mt-1">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }}></div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {entry.name}: <span className="font-bold text-gray-900 dark:text-white">{entry.value}%</span>
-                        </p>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    return null;
-};
-
 interface SalesFunnelDashboardProps {
     hideFullscreen?: boolean;
 }
 
 export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hideFullscreen = false }) => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('sales-funnel-dashboard', 800);
+
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // Table State
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' | null }>({ key: 'date', direction: 'desc' });
@@ -118,30 +106,30 @@ export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hide
     };
 
     // KPI Config
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '1', label: t('leads_entered'), subtitle: t('new_potential_leads'), value: '1,248', change: '+12%', trend: 'up', icon: <Users size={18} />, sparklineData: [980, 1020, 1080, 1120, 1180, 1220, 1248] },
-        { id: '2', label: t('leads_contacted'), subtitle: t('first_outreach_made'), value: '984', change: '+8%', trend: 'up', icon: <Notepad size={18} />, sparklineData: [820, 850, 880, 910, 940, 960, 984] },
-        { id: '3', label: t('quotes_sent'), subtitle: t('price_proposals_delivered'), value: '642', change: '+15%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [480, 510, 540, 570, 600, 620, 642] },
-        { id: '4', label: t('orders_placed'), subtitle: t('closed_won_deals'), value: '420', change: '+5%', trend: 'up', icon: <ShoppingCart size={18} />, sparklineData: [360, 375, 385, 395, 405, 415, 420] },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('leads_entered'), subtitle: t('new_potential_leads'), value: '1,248', change: '+12%', trend: 'up' as const, icon: <Users size={18} />, sparklineData: [980, 1020, 1080, 1120, 1180, 1220, 1248] },
+        { id: '2', label: t('leads_contacted'), subtitle: t('first_outreach_made'), value: '984', change: '+8%', trend: 'up' as const, icon: <Notepad size={18} />, sparklineData: [820, 850, 880, 910, 940, 960, 984] },
+        { id: '3', label: t('quotes_sent'), subtitle: t('price_proposals_delivered'), value: '642', change: '+15%', trend: 'up' as const, icon: <CurrencyDollar size={18} />, sparklineData: [480, 510, 540, 570, 600, 620, 642] },
+        { id: '4', label: t('orders_placed'), subtitle: t('closed_won_deals'), value: '420', change: '+5%', trend: 'up' as const, icon: <ShoppingCart size={18} />, sparklineData: [360, 375, 385, 395, 405, 415, 420] },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '5', label: t('conversion_rate'), subtitle: t('leads_to_orders'), value: '33.6%', change: '+2.4%', trend: 'up', icon: <Percent size={18} />, sparklineData: [28, 29.5, 30.5, 31.5, 32.2, 33, 33.6] },
-        { id: '6', label: t('funnel_dropoff'), subtitle: t('avg_stage_leakage'), value: '18.5%', change: '-1.2%', trend: 'up', icon: <TrendDown size={18} />, sparklineData: [22, 21, 20.5, 20, 19.5, 19, 18.5] },
-        { id: '7', label: t('potential_revenue_lost'), subtitle: t('value_in_dropped_deals'), value: '0', rawValue: 184500, isCurrency: true, change: '+4%', trend: 'down', icon: <Warning size={18} />, sparklineData: [165, 170, 175, 178, 180, 182, 184.5] },
-        { id: '8', label: t('avg_deal_size'), subtitle: t('won_deals_value'), value: '0', rawValue: 28500, isCurrency: true, change: '+6%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [24, 25, 26, 26.5, 27, 28, 28.5] },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('conversion_rate'), subtitle: t('leads_to_orders'), value: '33.6%', change: '+2.4%', trend: 'up' as const, icon: <Percent size={18} />, sparklineData: [28, 29.5, 30.5, 31.5, 32.2, 33, 33.6] },
+        { id: '6', label: t('funnel_dropoff'), subtitle: t('avg_stage_leakage'), value: '18.5%', change: '-1.2%', trend: 'up' as const, icon: <TrendDown size={18} />, sparklineData: [22, 21, 20.5, 20, 19.5, 19, 18.5] },
+        { id: '7', label: t('potential_revenue_lost'), subtitle: t('value_in_dropped_deals'), value: '0', rawValue: 184500, isCurrency: true, change: '+4%', trend: 'down' as const, icon: <Warning size={18} />, sparklineData: [165, 170, 175, 178, 180, 182, 184.5] },
+        { id: '8', label: t('avg_deal_size'), subtitle: t('won_deals_value'), value: '0', rawValue: 28500, isCurrency: true, change: '+6%', trend: 'up' as const, icon: <CurrencyDollar size={18} />, sparklineData: [24, 25, 26, 26.5, 27, 28, 28.5] },
+    ], [t]);
 
     // Translated funnel data
-    const translatedFunnelData = [
+    const translatedFunnelData = useMemo(() => [
         { value: 100, name: t('leads_entered') },
         { value: 80, name: t('leads_contacted') },
         { value: 60, name: t('quotes_sent') },
         { value: 42, name: t('orders_placed') },
-    ];
+    ], [t]);
 
     // ECharts Funnel Option
-    const funnelOption: EChartsOption = {
+    const funnelOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: '{b} : {c}%' },
         series: [{
             name: t('sales_funnel'),
@@ -162,10 +150,10 @@ export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hide
             emphasis: { label: { fontSize: 14 } },
             data: translatedFunnelData.map((d, i) => ({ ...d, itemStyle: { color: COLORS[i % COLORS.length] } }))
         }]
-    };
+    }), [translatedFunnelData, t]);
 
     // ECharts Won vs Lost Pie Option
-    const wonLostPieOption: EChartsOption = {
+    const wonLostPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
         legend: { bottom: '0%', left: 'center', textStyle: { fontSize: 10, color: '#94a3b8' } },
         series: [{
@@ -180,10 +168,10 @@ export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hide
                 { value: 58, name: t('lost_dropped'), itemStyle: { color: '#f43f5e' } },
             ]
         }]
-    };
+    }), [t]);
 
     // ECharts Heatmap Option
-    const heatmapOption: EChartsOption = {
+    const heatmapOption: EChartsOption = useMemo(() => ({
         tooltip: { position: 'top' },
         grid: { height: '70%', top: '15%', left: '15%', right: '5%' },
         xAxis: {
@@ -222,7 +210,75 @@ export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hide
             label: { show: true, fontSize: 9 },
             emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.2)' } }
         }]
-    };
+    }), [t]);
+
+    // ECharts Drop-off by Rep Option
+    const dropoffByRepOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: DROPOFF_BY_REP_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            name: t('leakage_percent'),
+            type: 'bar',
+            data: DROPOFF_BY_REP_DATA.map(d => d.dropoff),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL, t]);
+
+    // ECharts Stage Velocity Option
+    const stageVelocityOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, textStyle: { fontSize: 10, color: '#94a3b8' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: [t('lead_to_contact'), t('contact_to_quote'), t('quote_to_order')],
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('avg_days'),
+                type: 'bar',
+                data: [2.5, 4.2, 7.8],
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 16,
+            },
+            {
+                name: t('conv_percent'),
+                type: 'bar',
+                data: [78, 65, 70],
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 16,
+            }
+        ],
+    }), [isRTL, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -243,9 +299,9 @@ export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hide
                         <button
                             onClick={toggleFullScreen}
                             className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                            title={t('full_screen')}
+                            title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                         >
-                            <ArrowsOut size={18} />
+                            {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                         </button>
                     )}
                     <button
@@ -302,15 +358,7 @@ export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hide
                                 <p className="text-xs text-gray-400 mt-1">{t('team_leakage_analysis')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={DROPOFF_BY_REP_DATA} margin={{ left: -20, right: 10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Bar dataKey="dropoff" name={t('leakage_percent')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={dropoffByRepOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -447,21 +495,7 @@ export const SalesFunnelDashboard: React.FC<SalesFunnelDashboardProps> = ({ hide
                                 <p className="text-[10px] text-gray-400 mt-1 italic leading-tight">{t('avg_time_conversion_stage')}</p>
                             </div>
                             <div className="flex-1 min-h-[300px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={[
-                                        { stage: t('lead_to_contact'), days: 2.5, conversion: 78 },
-                                        { stage: t('contact_to_quote'), days: 4.2, conversion: 65 },
-                                        { stage: t('quote_to_order'), days: 7.8, conversion: 70 },
-                                    ]} margin={{ left: 10, right: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="stage" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                        <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar dataKey="days" name={t('avg_days')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={16} />
-                                        <Bar dataKey="conversion" name={t('conv_percent')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={16} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={stageVelocityOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                             <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50">
                                 <p className="text-[10px] text-blue-700 dark:text-blue-400 leading-normal">

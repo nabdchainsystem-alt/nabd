@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useMemo, memo, useRef } from 'react';
 import { MemoizedChart as ReactECharts } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
-import {
-    BarChart, Bar, PieChart, Pie, Cell,
-    XAxis, YAxis, CartesianGrid, Tooltip, Legend
-} from 'recharts';
-import { StableResponsiveContainer as ResponsiveContainer, useStableChartData } from '../../../components/common/StableResponsiveContainer';
+import { useStableChartData } from '../../../components/common/StableResponsiveContainer';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ChartLineUp, CurrencyDollar, ShoppingCart, Users, Receipt, TrendUp, TrendDown, Star, Tag, Package, Info, ArrowsOut } from 'phosphor-react';
+import { ChartLineUp, CurrencyDollar, ShoppingCart, Users, Receipt, TrendUp, TrendDown, Star, Tag, Package, Info, ArrowsOut, ArrowsIn } from 'phosphor-react';
 import { SalesDashboardInfo } from './SalesDashboardInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { formatCurrency } from '../../../utils/formatters';
@@ -16,33 +12,36 @@ import { formatCurrency } from '../../../utils/formatters';
 // --- Visual Constants ---
 const COLORS_SEQUENCE = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#06b6d4'];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white dark:bg-monday-dark-surface p-3 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{label}</p>
-                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                    {payload[0].name}: {payload[0].value}
-                </p>
-            </div>
-        );
-    }
-    return null;
-};
-
-const CustomAxisTick = ({ x, y, payload }: any) => {
-    return (
-        <g transform={`translate(${x},${y})`}>
-            <text x={0} y={0} dy={16} textAnchor="middle" fill="#94a3b8" fontSize={12}>
-                {payload.value}
-            </text>
-        </g>
-    );
-};
-
 // --- Placeholder Data ---
 
-const SALES_OVER_TIME_DATA = [
+const SALES_OVER_TIME_HOURLY = [
+    { name: '12AM', sales: 120 },
+    { name: '1AM', sales: 80 },
+    { name: '2AM', sales: 45 },
+    { name: '3AM', sales: 30 },
+    { name: '4AM', sales: 25 },
+    { name: '5AM', sales: 60 },
+    { name: '6AM', sales: 180 },
+    { name: '7AM', sales: 320 },
+    { name: '8AM', sales: 450 },
+    { name: '9AM', sales: 620 },
+    { name: '10AM', sales: 890 },
+    { name: '11AM', sales: 1100 },
+    { name: '12PM', sales: 1350 },
+    { name: '1PM', sales: 1200 },
+    { name: '2PM', sales: 980 },
+    { name: '3PM', sales: 850 },
+    { name: '4PM', sales: 920 },
+    { name: '5PM', sales: 1150 },
+    { name: '6PM', sales: 1400 },
+    { name: '7PM', sales: 1100 },
+    { name: '8PM', sales: 780 },
+    { name: '9PM', sales: 520 },
+    { name: '10PM', sales: 350 },
+    { name: '11PM', sales: 200 },
+];
+
+const SALES_OVER_TIME_WEEKLY = [
     { name: 'Mon', sales: 4000 },
     { name: 'Tue', sales: 3000 },
     { name: 'Wed', sales: 2000 },
@@ -50,6 +49,28 @@ const SALES_OVER_TIME_DATA = [
     { name: 'Fri', sales: 1890 },
     { name: 'Sat', sales: 2390 },
     { name: 'Sun', sales: 3490 },
+];
+
+const SALES_OVER_TIME_MONTHLY = [
+    { name: 'Week 1', sales: 18500 },
+    { name: 'Week 2', sales: 22300 },
+    { name: 'Week 3', sales: 19800 },
+    { name: 'Week 4', sales: 24100 },
+];
+
+const SALES_OVER_TIME_YEARLY = [
+    { name: 'Jan', sales: 65000 },
+    { name: 'Feb', sales: 59000 },
+    { name: 'Mar', sales: 80000 },
+    { name: 'Apr', sales: 81000 },
+    { name: 'May', sales: 56000 },
+    { name: 'Jun', sales: 55000 },
+    { name: 'Jul', sales: 72000 },
+    { name: 'Aug', sales: 68000 },
+    { name: 'Sep', sales: 78000 },
+    { name: 'Oct', sales: 82000 },
+    { name: 'Nov', sales: 91000 },
+    { name: 'Dec', sales: 105000 },
 ];
 
 const SALES_BY_CHANNEL_DATA = [
@@ -103,7 +124,8 @@ interface SalesInsightsDashboardProps {
 }
 
 export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = memo(({ hideFullscreen = false }) => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
 
     // Track if component has mounted (prevent animation on re-renders)
     const hasAnimatedRef = useRef(false);
@@ -121,11 +143,30 @@ export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = mem
         subtitle: [t('processing_returns'), t('repeat_buyers'), t('net_earnings_ratio'), t('visitor_to_buyer')][index],
     })), [t]);
 
+    // State for sales time period filter (must be declared before useMemo that uses it)
+    const [salesTimePeriod, setSalesTimePeriod] = useState<'hourly' | 'weekly' | 'monthly' | 'yearly'>('hourly');
+
     // Memoize chart data - stable references prevent chart re-renders
-    const translatedSalesOverTimeData = useMemo(() => SALES_OVER_TIME_DATA.map((item, index) => ({
-        ...item,
-        name: [t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat'), t('sun')][index],
-    })), [t]);
+    const translatedSalesOverTimeData = useMemo(() => {
+        if (salesTimePeriod === 'hourly') {
+            return SALES_OVER_TIME_HOURLY;
+        } else if (salesTimePeriod === 'weekly') {
+            return SALES_OVER_TIME_WEEKLY.map((item, index) => ({
+                ...item,
+                name: [t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat'), t('sun')][index],
+            }));
+        } else if (salesTimePeriod === 'monthly') {
+            return SALES_OVER_TIME_MONTHLY.map((item, index) => ({
+                ...item,
+                name: `${t('week')} ${index + 1}`,
+            }));
+        } else {
+            return SALES_OVER_TIME_YEARLY.map((item, index) => ({
+                ...item,
+                name: [t('jan'), t('feb'), t('mar'), t('apr'), t('may'), t('jun'), t('jul'), t('aug'), t('sep'), t('oct'), t('nov'), t('dec')][index],
+            }));
+        }
+    }, [t, salesTimePeriod]);
 
     const translatedSalesByChannelData = useMemo(() => SALES_BY_CHANNEL_DATA.map((item, index) => ({
         ...item,
@@ -164,13 +205,17 @@ export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = mem
         return () => clearTimeout(timer);
     }, []);
 
-    // State to track hovered items for extra animation control
-    const [activeIndex, setActiveIndex] = useState<{ [key: string]: number | null }>({
-        time: null,
-        channel: null
-    });
-
     const [showInfo, setShowInfo] = useState(false);
+
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -269,6 +314,62 @@ export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = mem
         }]
     }), [totalRevenue, currency]);
 
+    // ECharts option for Sales Over Time bar chart
+    const salesOverTimeOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: stableSalesOverTimeData.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            position: isRTL ? 'right' : 'left',
+        },
+        series: [{
+            type: 'bar',
+            data: stableSalesOverTimeData.map(d => d.sales),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barMaxWidth: 50,
+        }],
+    }), [stableSalesOverTimeData, isRTL]);
+
+    // ECharts option for Sales By Channel bar chart
+    const salesByChannelOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: stableSalesByChannelData.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            position: isRTL ? 'right' : 'left',
+        },
+        series: [{
+            type: 'bar',
+            data: stableSalesByChannelData.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barMaxWidth: 40,
+        }],
+    }), [stableSalesByChannelData, isRTL]);
+
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
 
@@ -287,9 +388,9 @@ export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = mem
                         <button
                             onClick={toggleFullScreen}
                             className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                            title={t('full_screen')}
+                            title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                         >
-                            <ArrowsOut size={18} />
+                            {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                         </button>
                     )}
                     <button
@@ -324,34 +425,35 @@ export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = mem
                     {isLoading ? (
                         <ChartSkeleton height="h-[280px]" title={t('sales_over_time')} />
                     ) : (
-                        <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-full min-h-[300px] animate-fade-in-up">
-                            <div className="flex flex-col gap-0.5 mb-5">
-                                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t('sales_over_time')}</h3>
-                                <p className="text-xs text-gray-400 mt-1">{t('weekly_performance_overview')}</p>
+                        <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-full flex flex-col animate-fade-in-up">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex flex-col gap-0.5">
+                                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t('sales_over_time')}</h3>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        {salesTimePeriod === 'hourly' ? t('hourly_performance_overview') :
+                                         salesTimePeriod === 'weekly' ? t('weekly_performance_overview') :
+                                         salesTimePeriod === 'monthly' ? t('monthly_performance_overview') :
+                                         t('yearly_performance_overview')}
+                                    </p>
+                                </div>
+                                <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                                    {(['hourly', 'weekly', 'monthly', 'yearly'] as const).map((period) => (
+                                        <button
+                                            key={period}
+                                            onClick={() => setSalesTimePeriod(period)}
+                                            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                                                salesTimePeriod === period
+                                                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                                            }`}
+                                        >
+                                            {t(period)}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%" debounce={150}>
-                                    <BarChart
-                                        data={stableSalesOverTimeData}
-                                        margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-                                        onMouseMove={(e: any) => {
-                                            if (e.activeTooltipIndex !== undefined) setActiveIndex(prev => ({ ...prev, time: e.activeTooltipIndex }));
-                                        }}
-                                        onMouseLeave={() => setActiveIndex(prev => ({ ...prev, time: null }))}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis
-                                            dataKey="name"
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#94a3b8', fontSize: 12 }}
-                                        />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                        <Tooltip cursor={{ fill: '#f1f5f9', opacity: 0.5 }} content={<CustomTooltip />} />
-
-                                        <Bar dataKey="sales" name={t('daily_sales')} radius={[4, 4, 0, 0]} barSize={50} isAnimationActive={!hasAnimatedRef.current} animationDuration={800} fill="#3b82f6" />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            <div className="flex-1 min-h-0">
+                                <ReactECharts option={salesOverTimeOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -368,18 +470,7 @@ export const SalesInsightsDashboard: React.FC<SalesInsightsDashboardProps> = mem
                                 <p className="text-xs text-gray-400 mt-1">{t('revenue_distribution_source')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%" debounce={150}>
-                                    <BarChart data={stableSalesByChannelData} onMouseMove={(e: any) => {
-                                        if (e.activeTooltipIndex !== undefined) setActiveIndex(prev => ({ ...prev, channel: e.activeTooltipIndex }));
-                                    }} onMouseLeave={() => setActiveIndex(prev => ({ ...prev, channel: null }))}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                                        <YAxis hide />
-                                        <Tooltip cursor={{ fill: '#f1f5f9', opacity: 0.5 }} content={<CustomTooltip />} />
-
-                                        <Bar dataKey="value" name={t('revenue')} radius={[4, 4, 0, 0]} barSize={24} isAnimationActive={!hasAnimatedRef.current} animationDuration={800} fill="#3b82f6" />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <ReactECharts option={salesByChannelOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}

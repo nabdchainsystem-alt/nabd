@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ShoppingCart, TrendUp, Users, Info, ArrowsOut, CurrencyDollar, CalendarCheck, ChartPieSlice, Hash, Globe, Activity, Warning } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { ShoppingCart, TrendUp, Users, Info, ArrowsOut, ArrowsIn, CurrencyDollar, CalendarCheck, ChartPieSlice, Hash, Globe, Activity, Warning } from 'phosphor-react';
 import { PurchaseOverviewInfo } from './PurchaseOverviewInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { formatCurrency } from '../../../utils/formatters';
@@ -54,31 +53,41 @@ const RECENT_ORDERS = [
 ];
 
 export const PurchaseOverviewDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('purchase-overview-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     // --- KPI Data ---
-    const TOP_KPIS: KPIData[] = [
+    const TOP_KPIS = useMemo<KPIData[]>(() => [
         { id: '1', label: t('total_purchase_spend'), subtitle: t('ytd_approved'), value: '$1.2M', rawValue: 1245000, isCurrency: true, change: '+8.5%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [90, 95, 100, 98, 105, 110, 120], color: 'blue' },
         { id: '2', label: t('total_purchase_orders'), subtitle: t('all_time'), value: '145', change: '+12', trend: 'up', icon: <ShoppingCart size={18} />, sparklineData: [120, 125, 130, 128, 135, 140, 145], color: 'blue' },
         { id: '3', label: t('active_suppliers'), subtitle: t('engaged_this_month'), value: '24', change: '+2', trend: 'up', icon: <Users size={18} />, sparklineData: [20, 21, 21, 22, 22, 23, 24], color: 'blue' },
         { id: '4', label: t('avg_purchase_value'), subtitle: t('per_order'), value: '$8.5k', rawValue: 8586, isCurrency: true, change: '-1.2%', trend: 'down', icon: <Hash size={18} />, sparklineData: [8.8, 8.7, 8.6, 8.9, 8.7, 8.6, 8.5], color: 'blue' },
-    ];
+    ], [t]);
 
-    const SIDE_KPIS: KPIData[] = [
+    const SIDE_KPIS = useMemo<KPIData[]>(() => [
         { id: '5', label: t('monthly_spend_change'), subtitle: t('mom_variance'), value: '+5.4%', change: '+1.1%', trend: 'up', icon: <TrendUp size={18} />, sparklineData: [3, 4, 3.5, 4.2, 4.8, 5.0, 5.4], color: 'blue' },
         { id: '6', label: t('top_supplier_spend'), subtitle: t('concentration_risk'), value: '18%', change: '-2%', trend: 'down', icon: <ChartPieSlice size={18} />, sparklineData: [22, 21, 20, 19.5, 19, 18.5, 18], color: 'blue' },
         { id: '7', label: t('purchase_frequency'), subtitle: t('days_between_orders'), value: '3.2d', change: '-0.5d', trend: 'up', icon: <Activity size={18} />, sparklineData: [4, 3.8, 3.6, 3.5, 3.4, 3.3, 3.2], color: 'blue' },
         { id: '8', label: t('unplanned_purchase_rate'), subtitle: t('outside_approved_plan'), value: '12%', change: '-3%', trend: 'up', icon: <Warning size={18} />, sparklineData: [18, 16, 15, 14, 13, 12.5, 12], color: 'blue' },
-    ];
+    ], [t]);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
     // --- ECharts Options ---
-    const pieOption1: EChartsOption = {
+    const pieOption1 = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { orient: 'horizontal', bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10 }, itemGap: 15 },
         series: [{
@@ -91,9 +100,9 @@ export const PurchaseOverviewDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
             data: SPEND_DISTRIBUTION.map((d, i) => ({ ...d, itemStyle: { color: COLORS_SEQUENCE[i % COLORS_SEQUENCE.length] } }))
         }]
-    };
+    }), []);
 
-    const pieOption2: EChartsOption = {
+    const pieOption2 = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { orient: 'horizontal', bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10 }, itemGap: 15 },
         series: [{
@@ -106,70 +115,139 @@ export const PurchaseOverviewDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
             data: SUPPLIER_SHARE.map((d, i) => ({ ...d, itemStyle: { color: COLORS_SEQUENCE[(i + 2) % COLORS_SEQUENCE.length] } }))
         }]
-    };
+    }), []);
 
     // Marimekko Chart Data - shows spend concentration by category and supplier distribution
-    const merimekkoData = [
-        { category: 'IT Hardware', width: 35, segments: [{ name: 'TechCorp', value: 60 }, { name: 'Others', value: 40 }] },
-        { category: 'Operations', width: 28, segments: [{ name: 'LogisticsInc', value: 45 }, { name: 'Others', value: 55 }] },
-        { category: 'Marketing', width: 20, segments: [{ name: 'OfficeMax', value: 35 }, { name: 'Others', value: 65 }] },
-        { category: 'Services', width: 17, segments: [{ name: 'SoftSol', value: 50 }, { name: 'Others', value: 50 }] },
-    ];
+    const marimekkoOption = useMemo<EChartsOption>(() => {
+        const merimekkoData = [
+            { category: 'IT Hardware', width: 35, segments: [{ name: 'TechCorp', value: 60 }, { name: 'Others', value: 40 }] },
+            { category: 'Operations', width: 28, segments: [{ name: 'LogisticsInc', value: 45 }, { name: 'Others', value: 55 }] },
+            { category: 'Marketing', width: 20, segments: [{ name: 'OfficeMax', value: 35 }, { name: 'Others', value: 65 }] },
+            { category: 'Services', width: 17, segments: [{ name: 'SoftSol', value: 50 }, { name: 'Others', value: 50 }] },
+        ];
 
-    // Calculate x positions for Marimekko bars
-    let xOffset = 0;
-    const merimekkoSeries: any[] = [];
-    const xAxisData: string[] = [];
+        // Calculate x positions for Marimekko bars
+        const merimekkoSeries: any[] = [];
+        const xAxisData: string[] = [];
 
-    merimekkoData.forEach((cat, catIndex) => {
-        xAxisData.push(cat.category);
-        cat.segments.forEach((seg, segIndex) => {
-            if (!merimekkoSeries[segIndex]) {
-                merimekkoSeries[segIndex] = {
-                    name: segIndex === 0 ? 'Primary Supplier' : 'Other Suppliers',
-                    type: 'bar',
-                    stack: 'total',
-                    barWidth: '90%',
-                    emphasis: { focus: 'series' },
-                    itemStyle: {
-                        color: segIndex === 0 ? '#3b82f6' : '#e5e7eb'
-                    },
-                    data: []
-                };
-            }
-            merimekkoSeries[segIndex].data.push(seg.value);
+        merimekkoData.forEach((cat) => {
+            xAxisData.push(cat.category);
+            cat.segments.forEach((seg, segIndex) => {
+                if (!merimekkoSeries[segIndex]) {
+                    merimekkoSeries[segIndex] = {
+                        name: segIndex === 0 ? 'Primary Supplier' : 'Other Suppliers',
+                        type: 'bar',
+                        stack: 'total',
+                        barWidth: '90%',
+                        emphasis: { focus: 'series' },
+                        itemStyle: {
+                            color: segIndex === 0 ? '#3b82f6' : '#e5e7eb'
+                        },
+                        data: []
+                    };
+                }
+                merimekkoSeries[segIndex].data.push(seg.value);
+            });
         });
-    });
 
-    const marimekkoOption: EChartsOption = {
+        return {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: (params: any) => {
+                    const cat = merimekkoData[params[0].dataIndex];
+                    let result = `<strong>${cat.category}</strong> (${cat.width}% of total)<br/>`;
+                    params.forEach((p: any) => {
+                        result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`;
+                    });
+                    return result;
+                }
+            },
+            legend: { bottom: 5, left: 'center', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 10 } },
+            grid: { left: '3%', right: '4%', bottom: '15%', top: '5%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: xAxisData,
+                axisLabel: { fontSize: 10, color: '#6b7280', interval: 0 },
+                axisLine: { lineStyle: { color: '#e5e7eb' } }
+            },
+            yAxis: {
+                type: 'value',
+                max: 100,
+                axisLabel: { fontSize: 10, color: '#9ca3af', formatter: '{value}%' },
+                splitLine: { lineStyle: { color: '#f3f4f6' } }
+            },
+            series: merimekkoSeries
+        };
+    }, []);
+
+    // ECharts Spend by Supplier Option
+    const spendBySupplierOption = useMemo<EChartsOption>(() => ({
         tooltip: {
             trigger: 'axis',
-            axisPointer: { type: 'shadow' },
             formatter: (params: any) => {
-                const cat = merimekkoData[params[0].dataIndex];
-                let result = `<strong>${cat.category}</strong> (${cat.width}% of total)<br/>`;
-                params.forEach((p: any) => {
-                    result += `${p.marker} ${p.seriesName}: ${p.value}%<br/>`;
-                });
-                return result;
+                const data = params[0];
+                return `${data.name}: ${formatCurrency(data.value, currency.code, currency.symbol)}`;
             }
         },
-        legend: { bottom: 5, left: 'center', itemWidth: 12, itemHeight: 12, textStyle: { fontSize: 10 } },
-        grid: { left: '3%', right: '4%', bottom: '15%', top: '5%', containLabel: true },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
         xAxis: {
             type: 'category',
-            data: xAxisData,
-            axisLabel: { fontSize: 10, color: '#6b7280', interval: 0 },
-            axisLine: { lineStyle: { color: '#e5e7eb' } }
+            data: SPEND_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
         },
         yAxis: {
             type: 'value',
-            max: 100,
-            axisLabel: { fontSize: 10, color: '#9ca3af', formatter: '{value}%' },
-            splitLine: { lineStyle: { color: '#f3f4f6' } }
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
         },
-        series: merimekkoSeries
-    };
+        series: [{
+            type: 'bar',
+            data: SPEND_BY_SUPPLIER.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL, currency.code, currency.symbol]);
+
+    // ECharts Spend by Category Option
+    const spendByCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: {
+            trigger: 'axis',
+            formatter: (params: any) => {
+                const data = params[0];
+                return `${data.name}: ${formatCurrency(data.value, currency.code, currency.symbol)}`;
+            }
+        },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SPEND_BY_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            type: 'bar',
+            data: SPEND_BY_CATEGORY.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL, currency.code, currency.symbol]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -188,9 +266,9 @@ export const PurchaseOverviewDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -229,19 +307,7 @@ export const PurchaseOverviewDashboard: React.FC = () => {
                                 <p className="text-xs text-gray-400 mt-1">{t('top_suppliers_volume')}</p>
                             </div>
                             <div className="h-[260px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SPEND_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                            formatter={(val: number) => formatCurrency(val, currency.code, currency.symbol)}
-                                        />
-                                        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={spendBySupplierOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -258,19 +324,7 @@ export const PurchaseOverviewDashboard: React.FC = () => {
                                 <p className="text-xs text-gray-400 mt-1">{t('departmental_allocation')}</p>
                             </div>
                             <div className="h-[260px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={SPEND_BY_CATEGORY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                            formatter={(val: number) => formatCurrency(val, currency.code, currency.symbol)}
-                                        />
-                                        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={spendByCategoryOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}

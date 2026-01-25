@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, Clock, Lightning, Warning, TrendUp, Chats, Timer, ChartLineUp, Hourglass, Medal } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, Clock, Lightning, Warning, TrendUp, Chats, Timer, ChartLineUp, Hourglass, Medal } from 'phosphor-react';
 import { SupplierLeadTimeResponsivenessInfo } from './SupplierLeadTimeResponsivenessInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -87,7 +86,17 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
     const { t, dir } = useLanguage();
     const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('supplier-lead-time-responsiveness-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -155,7 +164,7 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart: Lead Time Buckets
-    const bucketsPieOption: EChartsOption = {
+    const bucketsPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10 } },
         series: [{
@@ -168,10 +177,10 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
             data: TRANSLATED_LEAD_TIME_BUCKETS
         }]
-    };
+    }), [TRANSLATED_LEAD_TIME_BUCKETS, t]);
 
     // Pie Chart: Urgency
-    const urgencyPieOption: EChartsOption = {
+    const urgencyPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { show: false },
         series: [{
@@ -182,10 +191,10 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
             data: TRANSLATED_ORDER_URGENCY,
             color: ['#3b82f6', '#f59e0b']
         }]
-    };
+    }), [TRANSLATED_ORDER_URGENCY, t]);
 
     // Performance Tier Pie
-    const performancePieOption: EChartsOption = {
+    const performancePieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -197,10 +206,10 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
             data: TRANSLATED_PERFORMANCE_TIER,
             color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
         }]
-    };
+    }), [TRANSLATED_PERFORMANCE_TIER]);
 
     // Box Plot: Lead Time Variability
-    const boxplotOption: EChartsOption = {
+    const boxplotOption: EChartsOption = useMemo(() => ({
         title: { text: '' },
         tooltip: { trigger: 'item', axisPointer: { type: 'shadow' } },
         grid: { left: '10%', right: '10%', bottom: '15%' },
@@ -228,7 +237,75 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
                 data: BOX_PLOT_DATA.map(item => item.value)
             }
         ]
-    };
+    }), [isRTL, t]);
+
+    // Lead Time by Supplier (Grouped Bar Chart)
+    const leadTimeBarOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10 } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 10, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: LEAD_TIME_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('lead_time_days'),
+                type: 'bar',
+                data: LEAD_TIME_BY_SUPPLIER.map(d => d.LeadTime),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            },
+            {
+                name: t('response_hours'),
+                type: 'bar',
+                data: LEAD_TIME_BY_SUPPLIER.map(d => d.ResponseTime),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            }
+        ],
+    }), [isRTL, t]);
+
+    // Response by Supplier (Bar Chart)
+    const responseBarOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 10, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: RESPONSE_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            name: t('hours'),
+            type: 'bar',
+            data: RESPONSE_BY_SUPPLIER.map(d => d.Hours),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -247,9 +324,9 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -291,22 +368,7 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('speed_analysis')}</h3>
                                 <p className="text-xs text-gray-400">{t('lead_time_vs_response')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={TRANSLATED_LEAD_TIME_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar yAxisId="left" dataKey={t('lead_time')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name={t('lead_time_days')} animationDuration={1000} />
-                                        <Bar yAxisId="right" dataKey={t('response_time')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name={t('response_hours')} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={leadTimeBarOption} style={{ height: '220px', width: '100%' }} />
                         </div>
 
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow animate-fade-in-up">
@@ -314,20 +376,7 @@ export const SupplierLeadTimeResponsivenessDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('response_times')}</h3>
                                 <p className="text-xs text-gray-400">{t('hours_to_rfq_response')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={TRANSLATED_RESPONSE_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey={t('hours')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={responseBarOption} style={{ height: '220px', width: '100%' }} />
                         </div>
                     </>
                 )}

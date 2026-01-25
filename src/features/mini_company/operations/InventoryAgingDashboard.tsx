@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart as ReactECharts } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, Clock, Warning, Hourglass, Coin, Tag, Fire } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, Clock, Warning, Hourglass, Coin, Tag, Fire } from 'phosphor-react';
 import { InventoryAgingInfo } from './InventoryAgingInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -58,24 +57,35 @@ const HEAT_SPIRAL_DATA = [
 ];
 
 export const InventoryAgingDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('inventory-aging-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // --- KPI Data ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
+    const TOP_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[]>(() => [
         { id: '1', label: t('avg_stock_age'), subtitle: t('global_mean'), value: '48d', change: '+2d', trend: 'down', icon: <Clock size={18} />, sparklineData: [45, 45, 46, 47, 48, 48], color: 'blue' },
         { id: '2', label: t('aging_stock_value'), subtitle: t('over_90_days'), value: '$35k', rawValue: 35000, isCurrency: true, change: '+5%', trend: 'down', icon: <Hourglass size={18} />, sparklineData: [30, 31, 32, 33, 34, 35], color: 'blue' },
         { id: '3', label: t('dead_stock_value'), subtitle: t('over_365_days'), value: '$12k', rawValue: 12000, isCurrency: true, change: '+1%', trend: 'down', icon: <Warning size={18} />, sparklineData: [11, 11, 12, 12, 12, 12], color: 'blue' },
         { id: '4', label: t('capital_locked'), subtitle: t('pct_in_dead_stock'), value: '8.5%', change: '+0.2%', trend: 'down', icon: <Coin size={18} />, sparklineData: [8, 8.2, 8.3, 8.4, 8.5, 8.5], color: 'blue' },
-    ];
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
+    const SIDE_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[]>(() => [
         { id: '5', label: t('stock_over_90_days'), subtitle: t('pct_volume'), value: '15%', change: '+1%', trend: 'down', icon: <Hourglass size={18} />, sparklineData: [12, 13, 13, 14, 15, 15], color: 'blue' },
         { id: '6', label: t('slow_moving_skus'), subtitle: t('low_velocity'), value: '85', change: '+5', trend: 'down', icon: <Clock size={18} />, sparklineData: [70, 75, 78, 80, 82, 85], color: 'blue' },
         { id: '7', label: t('clearance_targets'), subtitle: t('recommended'), value: '25', change: '+2', trend: 'up', icon: <Tag size={18} />, sparklineData: [20, 21, 22, 23, 24, 25], color: 'blue' },
         { id: '8', label: t('write_off_risk'), subtitle: t('potential_loss'), value: '$8.2k', change: '-$500', trend: 'up', icon: <Fire size={18} />, sparklineData: [10, 9.5, 9.2, 8.8, 8.5, 8.2], color: 'blue' },
-    ];
+    ], [t]);
 
 
     const toggleFullScreen = () => {
@@ -85,7 +95,7 @@ export const InventoryAgingDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart - Age Distribution
-    const pieOption: EChartsOption = {
+    const pieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -96,10 +106,66 @@ export const InventoryAgingDashboard: React.FC = () => {
             label: { show: false },
             data: AGE_DISTRIBUTION
         }]
-    };
+    }), []);
+
+    // Bar Chart - Aging Buckets
+    const agingBucketsOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: AGING_BUCKETS.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: AGING_BUCKETS.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL]);
+
+    // Bar Chart - Aging by Warehouse
+    const agingByWarehouseOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: AGING_BY_WAREHOUSE.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: AGING_BY_WAREHOUSE.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL]);
 
     // Pie Chart - Velocity Status
-    const velocityPieOption: EChartsOption = {
+    const velocityPieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -111,10 +177,10 @@ export const InventoryAgingDashboard: React.FC = () => {
             data: VELOCITY_STATUS,
             color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
         }]
-    };
+    }), []);
 
     // Heat Spiral
-    const spiralOption: EChartsOption = {
+    const spiralOption = useMemo<EChartsOption>(() => ({
         title: { text: t('aging_spiral'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         polar: {},
         angleAxis: { min: 0, max: 360, interval: 30, axisLabel: { show: false } },
@@ -133,7 +199,7 @@ export const InventoryAgingDashboard: React.FC = () => {
                 }
             }
         }]
-    };
+    }), [t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -142,7 +208,7 @@ export const InventoryAgingDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <Clock size={28} className="text-orange-600 dark:text-orange-400 mt-1" />
+                    <Clock size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div className="text-start">
                         <h1 className="text-2xl font-bold">{t('inventory_aging_dead_stock')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('identify_slow_moving_aging')}</p>
@@ -151,16 +217,16 @@ export const InventoryAgingDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-orange-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -181,7 +247,7 @@ export const InventoryAgingDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts: Aging Buckets */}
+                {/* ECharts: Aging Buckets */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('aging_buckets')} />
@@ -193,23 +259,12 @@ export const InventoryAgingDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('value_by_age_group')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={AGING_BUCKETS} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ReactECharts option={agingBucketsOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts: Aging by Warehouse */}
+                {/* ECharts: Aging by Warehouse */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('aging_by_warehouse')} />
@@ -221,18 +276,7 @@ export const InventoryAgingDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('value_by_location')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={AGING_BY_WAREHOUSE} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ReactECharts option={agingByWarehouseOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

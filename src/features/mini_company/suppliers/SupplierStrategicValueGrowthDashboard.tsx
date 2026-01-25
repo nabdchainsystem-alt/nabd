@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, Handshake, TrendUp, Star, Lightbulb, Users, Crown, Rocket } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, Handshake, TrendUp, Star, Lightbulb, Users, Crown, Rocket } from 'phosphor-react';
 import { SupplierStrategicValueGrowthInfo } from './SupplierStrategicValueGrowthInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -99,7 +98,17 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
     const { t, dir } = useLanguage();
     const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('supplier-strategic-value-growth-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -166,7 +175,7 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie: Strategic Mix
-    const strategicPieOption: EChartsOption = {
+    const strategicPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10 } },
         series: [{
@@ -179,10 +188,10 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
             data: TRANSLATED_STRATEGIC_SPLIT
         }]
-    };
+    }), [TRANSLATED_STRATEGIC_SPLIT, t]);
 
     // Pie: Contract Types
-    const contractPieOption: EChartsOption = {
+    const contractPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { show: false },
         series: [{
@@ -193,10 +202,10 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
             data: TRANSLATED_CONTRACT_TYPES,
             color: ['#059669', '#3b82f6', '#f59e0b']
         }]
-    };
+    }), [TRANSLATED_CONTRACT_TYPES, t]);
 
     // Innovation Index Pie
-    const innovationPieOption: EChartsOption = {
+    const innovationPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -208,10 +217,10 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
             data: TRANSLATED_INNOVATION_INDEX,
             color: ['#8b5cf6', '#3b82f6', '#9ca3af']
         }]
-    };
+    }), [TRANSLATED_INNOVATION_INDEX]);
 
     // Scatter: Growth vs Value
-    const scatterOption: EChartsOption = {
+    const scatterOption: EChartsOption = useMemo(() => ({
         tooltip: {
             formatter: (params: any) => {
                 return `<b>${params.value[3]}</b><br/>${t('growth')}: ${params.value[0]}%<br/>${t('value')}: ${params.value[1]}`;
@@ -236,7 +245,91 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
                 itemStyle: SCATTER_DATA[1].itemStyle
             }
         ]
-    };
+    }), [isRTL, t]);
+
+    // Spend Growth (Grouped Bar Chart)
+    const spendGrowthOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10 } },
+        grid: { left: isRTL ? 50 : 50, right: isRTL ? 50 : 50, top: 10, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: SPEND_GROWTH.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: [
+            {
+                type: 'value',
+                name: t('growth_pct'),
+                position: isRTL ? 'right' : 'left',
+                axisLine: { show: true, lineStyle: { color: '#3b82f6' } },
+                axisTick: { show: false },
+                splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+                axisLabel: { color: '#9ca3af', fontSize: 10 },
+            },
+            {
+                type: 'value',
+                name: t('term_years'),
+                position: isRTL ? 'left' : 'right',
+                axisLine: { show: true, lineStyle: { color: '#93c5fd' } },
+                axisTick: { show: false },
+                splitLine: { show: false },
+                axisLabel: { color: '#9ca3af', fontSize: 10 },
+            }
+        ],
+        series: [
+            {
+                name: t('growth_pct'),
+                type: 'bar',
+                yAxisIndex: 0,
+                data: SPEND_GROWTH.map(d => d.Growth),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            },
+            {
+                name: t('term_years'),
+                type: 'bar',
+                yAxisIndex: 1,
+                data: SPEND_GROWTH.map(d => d.Duration),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            }
+        ],
+    }), [isRTL, t]);
+
+    // Value by Supplier (Bar Chart)
+    const valueBarOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 10, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: VALUE_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            min: 0,
+            max: 100,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            name: t('value'),
+            type: 'bar',
+            data: VALUE_BY_SUPPLIER.map(d => d.Value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -255,9 +348,9 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -299,23 +392,7 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('growth_term')}</h3>
                                 <p className="text-xs text-gray-400">{t('spend_growth_vs_duration')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={TRANSLATED_SPEND_GROWTH} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis yAxisId="left" orientation={isRTL ? 'right' : 'left'} stroke="#10b981" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis yAxisId="right" orientation={isRTL ? 'left' : 'right'} stroke="#8b5cf6" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar yAxisId="left" dataKey={t('growth')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name={t('growth_pct')} animationDuration={1000} />
-                                        <Bar yAxisId="right" dataKey={t('duration')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name={t('term_years')} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={spendGrowthOption} style={{ height: '220px', width: '100%' }} />
                         </div>
 
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow animate-fade-in-up">
@@ -323,20 +400,7 @@ export const SupplierStrategicValueGrowthDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('value_scores')}</h3>
                                 <p className="text-xs text-gray-400">{t('strategic_value_index')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={TRANSLATED_VALUE_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} domain={[0, 100]} orientation={isRTL ? 'right' : 'left'} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey={t('value')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={valueBarOption} style={{ height: '220px', width: '100%' }} />
                         </div>
                     </>
                 )}

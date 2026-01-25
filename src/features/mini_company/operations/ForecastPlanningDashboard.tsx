@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Warning, Target, ListChecks, CurrencyDollar, ArrowRight } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Warning, Target, ListChecks, CurrencyDollar, ArrowRight } from 'phosphor-react';
 import { ForecastPlanningInfo } from './ForecastPlanningInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -63,24 +62,34 @@ const CONE_DATA = {
 };
 
 export const ForecastPlanningDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('forecast-planning-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     // --- KPI Data (inside component for translations) ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '1', label: t('forecasted_spend'), subtitle: t('next_30_days'), value: '$42k', change: '+5%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [38, 39, 40, 40, 41, 41, 42] },
-        { id: '2', label: t('forecast_accuracy'), subtitle: t('last_period'), value: '92%', change: '+1%', trend: 'up', icon: <Target size={18} />, sparklineData: [88, 89, 90, 90, 91, 91, 92] },
-        { id: '3', label: t('est_cat_growth'), subtitle: t('highest_office'), value: '+12%', change: '+2%', trend: 'up', icon: <TrendUp size={18} />, sparklineData: [8, 9, 10, 10, 11, 11, 12] },
-        { id: '4', label: t('confidence_level'), subtitle: t('model_certainty'), value: t('high'), change: '', trend: 'neutral', icon: <Target size={18} />, sparklineData: [0, 0, 0, 0, 0, 0, 0] },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('forecasted_spend'), subtitle: t('next_30_days'), value: '$42k', change: '+5%', trend: 'up' as const, icon: <CurrencyDollar size={18} />, sparklineData: [38, 39, 40, 40, 41, 41, 42] },
+        { id: '2', label: t('forecast_accuracy'), subtitle: t('last_period'), value: '92%', change: '+1%', trend: 'up' as const, icon: <Target size={18} />, sparklineData: [88, 89, 90, 90, 91, 91, 92] },
+        { id: '3', label: t('est_cat_growth'), subtitle: t('highest_office'), value: '+12%', change: '+2%', trend: 'up' as const, icon: <TrendUp size={18} />, sparklineData: [8, 9, 10, 10, 11, 11, 12] },
+        { id: '4', label: t('confidence_level'), subtitle: t('model_certainty'), value: t('high'), change: '', trend: 'neutral' as const, icon: <Target size={18} />, sparklineData: [0, 0, 0, 0, 0, 0, 0] },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '5', label: t('supply_risk_ahead'), subtitle: t('potential_issues'), value: t('low'), change: '', trend: 'neutral', icon: <Warning size={18} />, sparklineData: [0, 1, 1, 1, 0, 0, 0] },
-        { id: '6', label: t('planned_orders'), subtitle: t('drafted'), value: '8', change: '+2', trend: 'up', icon: <ListChecks size={18} />, sparklineData: [5, 6, 6, 7, 7, 8, 8] },
-        { id: '7', label: t('budget_impact'), subtitle: t('pct_of_annual_limit'), value: '15%', change: '+1%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [12, 13, 13, 14, 14, 14, 15] },
-        { id: '8', label: t('variance_trend'), subtitle: t('forecast_vs_actual'), value: '-2.1%', change: '-0.5%', trend: 'up', icon: <TrendUp size={18} />, sparklineData: [4, 3.5, 3.2, 2.8, 2.5, 2.3, 2.1] },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('supply_risk_ahead'), subtitle: t('potential_issues'), value: t('low'), change: '', trend: 'neutral' as const, icon: <Warning size={18} />, sparklineData: [0, 1, 1, 1, 0, 0, 0] },
+        { id: '6', label: t('planned_orders'), subtitle: t('drafted'), value: '8', change: '+2', trend: 'up' as const, icon: <ListChecks size={18} />, sparklineData: [5, 6, 6, 7, 7, 8, 8] },
+        { id: '7', label: t('budget_impact'), subtitle: t('pct_of_annual_limit'), value: '15%', change: '+1%', trend: 'up' as const, icon: <CurrencyDollar size={18} />, sparklineData: [12, 13, 13, 14, 14, 14, 15] },
+        { id: '8', label: t('variance_trend'), subtitle: t('forecast_vs_actual'), value: '-2.1%', change: '-0.5%', trend: 'up' as const, icon: <TrendUp size={18} />, sparklineData: [4, 3.5, 3.2, 2.8, 2.5, 2.3, 2.1] },
+    ], [t]);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -88,8 +97,75 @@ export const ForecastPlanningDashboard: React.FC = () => {
 
     // --- ECharts Options ---
 
+    // Bar Chart - Forecast per Category (grouped)
+    const forecastByCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, data: [t('last_period'), t('forecast')] },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: FORECAST_VS_LAST.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('last_period'),
+                type: 'bar',
+                data: FORECAST_VS_LAST.map(d => d.last),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+            {
+                name: t('forecast'),
+                type: 'bar',
+                data: FORECAST_VS_LAST.map(d => d.forecast),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+        ],
+    }), [isRTL, t]);
+
+    // Bar Chart - Spend Projection
+    const spendProjectionOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SPEND_PROJECTION.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: SPEND_PROJECTION.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL]);
+
     // Pie Chart - Future Allocation
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -101,10 +177,10 @@ export const ForecastPlanningDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
             data: FUTURE_ALLOCATION
         }]
-    };
+    }), []);
 
     // Pie Chart - Budget Utilization
-    const budgetPieOption: EChartsOption = {
+    const budgetPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -117,10 +193,10 @@ export const ForecastPlanningDashboard: React.FC = () => {
             data: BUDGET_UTILIZATION,
             color: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe']
         }]
-    };
+    }), []);
 
     // Confidence Cone Chart
-    const coneOption: EChartsOption = {
+    const coneOption: EChartsOption = useMemo(() => ({
         title: { text: t('spend_projection_k'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { trigger: 'axis' },
         grid: { top: 30, right: 20, bottom: 20, left: 30, containLabel: true },
@@ -163,7 +239,7 @@ export const ForecastPlanningDashboard: React.FC = () => {
                 symbol: 'none'
             }
         ]
-    };
+    }), [t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -182,9 +258,9 @@ export const ForecastPlanningDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -211,7 +287,7 @@ export const ForecastPlanningDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts - Forecast per Category */}
+                {/* ECharts - Forecast per Category */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('forecast_per_category')} />
@@ -223,25 +299,12 @@ export const ForecastPlanningDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('previous_vs_projected')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={FORECAST_VS_LAST} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="last" name={t('last_period')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                    <Bar dataKey="forecast" name={t('forecast')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={forecastByCategoryOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts - Spend Projection */}
+                {/* ECharts - Spend Projection */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('spend_projection')} />
@@ -253,18 +316,7 @@ export const ForecastPlanningDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('monthly_forecast_k')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={SPEND_PROJECTION} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={spendProjectionOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

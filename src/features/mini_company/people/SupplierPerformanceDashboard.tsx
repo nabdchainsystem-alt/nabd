@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import { ArrowsOut, Info, TrendUp, ChartLine, Star, Clock, CheckCircle, Warning, Medal, Target } from 'phosphor-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import { SupplierPerformanceInfo } from './SupplierPerformanceInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -71,13 +70,13 @@ export const SupplierPerformanceDashboard: React.FC = () => {
         { value: 85, name: t('services') }
     ], [t]);
 
-    const isLoading = useFirstMountLoading('supplier-performance-dashboard', 1200);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
-    const distributionPieOption: EChartsOption = {
+    const distributionPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -90,9 +89,9 @@ export const SupplierPerformanceDashboard: React.FC = () => {
             data: SCORE_DISTRIBUTION,
             color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
         }]
-    };
+    }), [SCORE_DISTRIBUTION]);
 
-    const categoryGaugeOption: EChartsOption = {
+    const categoryGaugeOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         series: [{
             type: 'gauge',
@@ -122,7 +121,53 @@ export const SupplierPerformanceDashboard: React.FC = () => {
             },
             data: [{ value: 91.2, name: t('overall_score') }]
         }]
-    };
+    }), [t]);
+
+    const performanceTrendOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['Quality', 'Delivery', 'Cost', 'Response'], itemWidth: 10, itemHeight: 10 },
+        grid: { left: isRTL ? 20 : 40, right: isRTL ? 40 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: PERFORMANCE_TREND.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            min: 80,
+            max: 100,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            { type: 'line', name: 'Quality', data: PERFORMANCE_TREND.map(d => d.Quality), smooth: true, lineStyle: { color: '#3b82f6', width: 2 }, itemStyle: { color: '#3b82f6' }, symbol: 'circle', symbolSize: 8 },
+            { type: 'line', name: 'Delivery', data: PERFORMANCE_TREND.map(d => d.Delivery), smooth: true, lineStyle: { color: '#10b981', width: 2 }, itemStyle: { color: '#10b981' }, symbol: 'circle', symbolSize: 8 },
+            { type: 'line', name: 'Cost', data: PERFORMANCE_TREND.map(d => d.Cost), smooth: true, lineStyle: { color: '#f59e0b', width: 2 }, itemStyle: { color: '#f59e0b' }, symbol: 'circle', symbolSize: 8 },
+            { type: 'line', name: 'Response', data: PERFORMANCE_TREND.map(d => d.Response), smooth: true, lineStyle: { color: '#6366f1', width: 2 }, itemStyle: { color: '#6366f1' }, symbol: 'circle', symbolSize: 8 },
+        ],
+    }), [PERFORMANCE_TREND, isRTL]);
+
+    const radarOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, data: [t('current'), t('target')], itemWidth: 10, itemHeight: 10 },
+        radar: {
+            indicator: RADAR_DATA.map(d => ({ name: d.subject, max: 100 })),
+            axisName: { color: '#6b7280', fontSize: 10 },
+        },
+        series: [{
+            type: 'radar',
+            data: [
+                { value: RADAR_DATA.map(d => d.A), name: t('current'), areaStyle: { color: 'rgba(59, 130, 246, 0.5)' }, lineStyle: { color: '#3b82f6' }, itemStyle: { color: '#3b82f6' } },
+                { value: RADAR_DATA.map(d => d.B), name: t('target'), areaStyle: { color: 'rgba(16, 185, 129, 0.3)' }, lineStyle: { color: '#10b981' }, itemStyle: { color: '#10b981' } },
+            ],
+        }],
+    }), [RADAR_DATA, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative" dir={dir}>
@@ -131,7 +176,7 @@ export const SupplierPerformanceDashboard: React.FC = () => {
             {/* Header */}
             <div className={`flex items-center justify-between mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className={`flex items-start gap-2 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                    <ChartLine size={28} className="text-indigo-600 dark:text-indigo-400 mt-1" />
+                    <ChartLine size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('supplier_performance')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('supplier_performance_desc')}</p>
@@ -140,16 +185,16 @@ export const SupplierPerformanceDashboard: React.FC = () => {
                 <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                         title={t('full_screen')}
                     >
                         <ArrowsOut size={18} />
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className={`flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md ${isRTL ? 'flex-row-reverse' : ''}`}
+                        className={`flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md ${isRTL ? 'flex-row-reverse' : ''}`}
                     >
-                        <Info size={18} className="text-indigo-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -179,22 +224,7 @@ export const SupplierPerformanceDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('performance_trend')}</h3>
                             <p className="text-xs text-gray-400">{t('monthly_metrics')}</p>
                         </div>
-                        <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={PERFORMANCE_TREND} margin={{ top: 5, right: isRTL ? 10 : 30, left: isRTL ? 30 : 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} domain={[80, 100]} orientation={isRTL ? 'right' : 'left'} />
-                                    <Tooltip
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Line type="monotone" dataKey="Quality" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} animationDuration={1000} />
-                                    <Line type="monotone" dataKey="Delivery" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 4 }} animationDuration={1000} />
-                                    <Line type="monotone" dataKey="Cost" stroke="#f59e0b" strokeWidth={2} dot={{ fill: '#f59e0b', r: 4 }} animationDuration={1000} />
-                                    <Line type="monotone" dataKey="Response" stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1', r: 4 }} animationDuration={1000} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={performanceTrendOption} style={{ height: '220px', width: '100%' }} />
                     </div>
                 )}
 
@@ -223,18 +253,7 @@ export const SupplierPerformanceDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('performance_radar')}</h3>
                             <p className="text-xs text-gray-400">{t('current_vs_target')}</p>
                         </div>
-                        <div className="h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={RADAR_DATA}>
-                                    <PolarGrid stroke="#e5e7eb" />
-                                    <PolarAngleAxis dataKey="subject" fontSize={10} tick={{ fill: '#6b7280' }} />
-                                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#9ca3af' }} fontSize={8} />
-                                    <Radar name={t('current')} dataKey="A" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.5} />
-                                    <Radar name={t('target')} dataKey="B" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
-                                    <Tooltip />
-                                </RadarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={radarOption} style={{ height: '200px', width: '100%' }} />
                     </div>
                 )}
 

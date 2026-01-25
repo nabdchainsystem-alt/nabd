@@ -18,6 +18,7 @@ export type StorageKey =
   | 'app-unsynced-boards'
   | 'app-deleted-boards'
   | 'app-theme'
+  | 'ai-chat-history'
   | `room-table-columns-v4-${string}`
   | `room-items-v3-${string}`
   | `board-tasks-${string}`

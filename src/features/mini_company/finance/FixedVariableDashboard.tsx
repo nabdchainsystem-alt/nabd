@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Warning, Receipt, ChartBar, Lock, ArrowDown } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Warning, Receipt, ChartBar, Lock, ArrowDown } from 'phosphor-react';
 import { FixedVariableInfo } from './FixedVariableInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -85,28 +84,38 @@ const getVariableBreakdown = (t: (key: string) => string) => [
 
 export const FixedVariableDashboard: React.FC = () => {
     const { currency } = useAppContext();
-    const { t } = useLanguage();
+    const { t, dir } = useLanguage();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('fixed-variable-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
     // Get translated data
-    const TOP_KPIS = getTopKPIs(t);
-    const SIDE_KPIS = getSideKPIs(t);
-    const FIXED_VAR_TREND = getFixedVarTrend(t);
-    const COST_STRUCTURE = getCostStructure(t);
-    const EXPENSE_CLASSIFICATION = getExpenseClassification(t);
-    const MATRIX_DATA = getMatrixData(t);
-    const FIXED_BY_CATEGORY = getFixedByCategory(t);
-    const VARIABLE_BREAKDOWN = getVariableBreakdown(t);
+    const TOP_KPIS = useMemo(() => getTopKPIs(t), [t]);
+    const SIDE_KPIS = useMemo(() => getSideKPIs(t), [t]);
+    const FIXED_VAR_TREND = useMemo(() => getFixedVarTrend(t), [t]);
+    const COST_STRUCTURE = useMemo(() => getCostStructure(t), [t]);
+    const EXPENSE_CLASSIFICATION = useMemo(() => getExpenseClassification(t), [t]);
+    const MATRIX_DATA = useMemo(() => getMatrixData(t), [t]);
+    const FIXED_BY_CATEGORY = useMemo(() => getFixedByCategory(t), [t]);
+    const VARIABLE_BREAKDOWN = useMemo(() => getVariableBreakdown(t), [t]);
 
     // --- ECharts Options ---
 
     // Pie Chart
-    const pieOption: EChartsOption = {
+    const pieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -118,10 +127,10 @@ export const FixedVariableDashboard: React.FC = () => {
             data: COST_STRUCTURE,
             color: ['#64748b', '#3b82f6'] // Slate for Fixed, Blue for Variable
         }]
-    };
+    }), [COST_STRUCTURE]);
 
     // Variable Breakdown Pie
-    const variablePieOption: EChartsOption = {
+    const variablePieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -133,10 +142,65 @@ export const FixedVariableDashboard: React.FC = () => {
             data: VARIABLE_BREAKDOWN,
             color: ['#3b82f6', '#0ea5e9', '#8b5cf6', '#10b981']
         }]
-    };
+    }), [VARIABLE_BREAKDOWN]);
+
+    // Bar Chart - Cost Structure Trend (stacked)
+    const costStructureTrendOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['Fixed', 'Variable'], itemWidth: 10, itemHeight: 10 },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: FIXED_VAR_TREND.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            { type: 'bar', name: 'Fixed', stack: 'total', data: FIXED_VAR_TREND.map(d => d.Fixed), itemStyle: { color: '#dbeafe' }, barWidth: 24 },
+            { type: 'bar', name: 'Variable', stack: 'total', data: FIXED_VAR_TREND.map(d => d.Variable), itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] }, barWidth: 24 },
+        ],
+    }), [FIXED_VAR_TREND, isRTL]);
+
+    // Bar Chart - Fixed Cost Breakdown
+    const fixedByCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: FIXED_BY_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: FIXED_BY_CATEGORY.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [FIXED_BY_CATEGORY, isRTL]);
 
     // Matrix Chart (Scatter)
-    const matrixOption: EChartsOption = {
+    const matrixOption = useMemo<EChartsOption>(() => ({
         title: { text: t('cost_rigidity_matrix'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         grid: { top: 30, right: 30, bottom: 20, left: 30, containLabel: true },
         tooltip: {
@@ -159,7 +223,7 @@ export const FixedVariableDashboard: React.FC = () => {
                 }
             }
         }]
-    };
+    }), [MATRIX_DATA, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -168,7 +232,7 @@ export const FixedVariableDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <Receipt size={28} className="text-slate-600 dark:text-slate-400 mt-1" />
+                    <Receipt size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('fixed_variable')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('fixed_variable_desc')}</p>
@@ -177,16 +241,16 @@ export const FixedVariableDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-slate-600 dark:text-gray-400 dark:hover:text-slate-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-slate-600 dark:text-gray-400 dark:hover:text-slate-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-slate-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -214,22 +278,7 @@ export const FixedVariableDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('cost_structure_trend')}</h3>
                                 <p className="text-xs text-gray-400">{t('fixed_slate_variable_blue')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={FIXED_VAR_TREND} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Legend iconType="circle" fontSize={10} />
-                                        <Bar dataKey="Fixed" stackId="a" fill="#dbeafe" radius={[0, 0, 0, 0]} barSize={24} animationDuration={1000} />
-                                        <Bar dataKey="Variable" stackId="a" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={costStructureTrendOption} style={{ height: '220px', width: '100%' }} />
                         </>
                     )}
                 </div>
@@ -243,20 +292,7 @@ export const FixedVariableDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('fixed_cost_breakdown')}</h3>
                                 <p className="text-xs text-gray-400">{t('major_fixed_expenses')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={FIXED_BY_CATEGORY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={fixedByCategoryOption} style={{ height: '220px', width: '100%' }} />
                         </>
                     )}
                 </div>

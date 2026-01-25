@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Warning, UsersThree, Buildings, Target, Trophy, ChartPieSlice } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Warning, UsersThree, Buildings, Target, Trophy, ChartPieSlice } from 'phosphor-react';
 import { DeptAccountabilityInfo } from './DeptAccountabilityInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -87,21 +86,31 @@ const getVarianceStatus = (t: (key: string) => string) => [
 
 export const DeptAccountabilityDashboard: React.FC = () => {
     const { currency } = useAppContext();
-    const { t } = useLanguage();
+    const { t, dir } = useLanguage();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('dept-accountability-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     // Get translated KPIs
-    const TOP_KPIS = getTopKPIs(t);
-    const SIDE_KPIS = getSideKPIs(t);
+    const TOP_KPIS = useMemo(() => getTopKPIs(t), [t]);
+    const SIDE_KPIS = useMemo(() => getSideKPIs(t), [t]);
 
     // Get translated chart/table data
-    const SPEND_PER_DEPT = getSpendPerDept(t);
-    const DEPT_SHARE = getDeptShare(t);
-    const DEPT_PERFORMANCE = getDeptPerformance(t);
-    const NETWORK_NODES = getNetworkNodes(t);
-    const BUDGET_VS_ACTUAL = getBudgetVsActual(t);
-    const VARIANCE_STATUS = getVarianceStatus(t);
+    const SPEND_PER_DEPT = useMemo(() => getSpendPerDept(t), [t]);
+    const DEPT_SHARE = useMemo(() => getDeptShare(t), [t]);
+    const DEPT_PERFORMANCE = useMemo(() => getDeptPerformance(t), [t]);
+    const NETWORK_NODES = useMemo(() => getNetworkNodes(t), [t]);
+    const BUDGET_VS_ACTUAL = useMemo(() => getBudgetVsActual(t), [t]);
+    const VARIANCE_STATUS = useMemo(() => getVarianceStatus(t), [t]);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -110,7 +119,7 @@ export const DeptAccountabilityDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart
-    const pieOption: EChartsOption = {
+    const pieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -123,10 +132,10 @@ export const DeptAccountabilityDashboard: React.FC = () => {
             data: DEPT_SHARE,
             color: ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#6366f1', '#ec4899']
         }]
-    };
+    }), [DEPT_SHARE]);
 
     // Variance Status Pie
-    const variancePieOption: EChartsOption = {
+    const variancePieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -138,10 +147,65 @@ export const DeptAccountabilityDashboard: React.FC = () => {
             data: VARIANCE_STATUS,
             color: ['#ef4444', '#3b82f6', '#10b981']
         }]
-    };
+    }), [VARIANCE_STATUS]);
+
+    // Bar Chart - Spend per Dept
+    const spendPerDeptOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SPEND_PER_DEPT.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: SPEND_PER_DEPT.map(d => d.Amount),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [SPEND_PER_DEPT, isRTL]);
+
+    // Bar Chart - Budget vs Actual (grouped)
+    const budgetVsActualOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['Budget', 'Actual'], itemWidth: 10, itemHeight: 10 },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: BUDGET_VS_ACTUAL.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            { type: 'bar', name: 'Budget', data: BUDGET_VS_ACTUAL.map(d => d.Budget), itemStyle: { color: '#dbeafe', borderRadius: [4, 4, 0, 0] }, barWidth: 12 },
+            { type: 'bar', name: 'Actual', data: BUDGET_VS_ACTUAL.map(d => d.Actual), itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] }, barWidth: 12 },
+        ],
+    }), [BUDGET_VS_ACTUAL, isRTL]);
 
     // Graph Chart
-    const graphOption: EChartsOption = {
+    const graphOption = useMemo<EChartsOption>(() => ({
         title: { text: 'Cost Network', left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: {},
         series: [
@@ -159,7 +223,7 @@ export const DeptAccountabilityDashboard: React.FC = () => {
                 lineStyle: { opacity: 0.9, width: 2, curveness: 0 }
             }
         ]
-    };
+    }), [NETWORK_NODES]);
 
     if (isLoading) {
         return (
@@ -167,7 +231,7 @@ export const DeptAccountabilityDashboard: React.FC = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-start gap-2">
-                        <Buildings size={28} className="text-orange-600 dark:text-orange-400 mt-1" />
+                        <Buildings size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                         <div>
                             <h1 className="text-2xl font-bold">{t('dept_accountability')}</h1>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('da_subtitle')}</p>
@@ -178,7 +242,7 @@ export const DeptAccountabilityDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {/* Row 1: 4 KPI Skeletons */}
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="col-span-1 h-[120px] bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+                        <div key={i} className="col-span-1 h-[120px] rounded-xl shimmer" />
                     ))}
 
                     {/* Row 2: Two bar chart skeletons */}
@@ -196,7 +260,7 @@ export const DeptAccountabilityDashboard: React.FC = () => {
                     </div>
                     <div className="col-span-2 min-h-[250px] grid grid-cols-2 gap-4">
                         {[...Array(4)].map((_, i) => (
-                            <div key={i} className="h-[120px] bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+                            <div key={i} className="h-[120px] rounded-xl shimmer" />
                         ))}
                     </div>
 
@@ -219,7 +283,7 @@ export const DeptAccountabilityDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <Buildings size={28} className="text-orange-600 dark:text-orange-400 mt-1" />
+                    <Buildings size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('dept_accountability')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('da_subtitle')}</p>
@@ -228,16 +292,16 @@ export const DeptAccountabilityDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-orange-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -257,50 +321,22 @@ export const DeptAccountabilityDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Bar Charts Side by Side --- */}
 
-                {/* Recharts: Spend per Dept (Bar) */}
+                {/* ECharts: Spend per Dept (Bar) */}
                 <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
                     <div className="mb-4">
                         <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('spend_per_department')}</h3>
                         <p className="text-xs text-gray-400">{t('total_spend')}</p>
                     </div>
-                    <div className="h-[220px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={SPEND_PER_DEPT} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                <Tooltip
-                                    cursor={{ fill: '#f9fafb' }}
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                />
-                                <Bar dataKey="Amount" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <MemoizedChart option={spendPerDeptOption} style={{ height: '220px', width: '100%' }} />
                 </div>
 
-                {/* Recharts: Budget vs Actual (Bar) */}
+                {/* ECharts: Budget vs Actual (Bar) */}
                 <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
                     <div className="mb-4">
                         <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('budget_vs_actual')}</h3>
                         <p className="text-xs text-gray-400">{t('performance_comparison')}</p>
                     </div>
-                    <div className="h-[220px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={BUDGET_VS_ACTUAL} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                <Tooltip
-                                    cursor={{ fill: '#f9fafb' }}
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                />
-                                <Legend iconType="circle" fontSize={10} />
-                                <Bar dataKey="Budget" fill="#dbeafe" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                <Bar dataKey="Actual" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                    <MemoizedChart option={budgetVsActualOption} style={{ height: '220px', width: '100%' }} />
                 </div>
 
                 {/* --- Row 3: Two Pie Charts (col-span-2) + 4 KPIs in 2x2 grid (col-span-2) --- */}

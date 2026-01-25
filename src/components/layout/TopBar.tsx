@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Bell, MagnifyingGlass, Question, SquaresFour, DownloadSimple, Moon, Sun, Play, Pause, ArrowCounterClockwise, X, SignOut, Gear, EyeClosed, User as UserIcon, Kanban, CheckSquare, GameController, Note, VideoCamera } from 'phosphor-react';
+import { Bell, MagnifyingGlass, Question, SquaresFour, DownloadSimple, Moon, Sun, Play, Pause, ArrowCounterClockwise, X, SignOut, Gear, EyeClosed, User as UserIcon, Kanban, CheckSquare, GameController, Note, VideoCamera, ChatCircleText, Lock } from 'phosphor-react';
 import { useAppContext } from '../../contexts/AppContext';
 // import { useAuth } from '../../contexts/AuthContext';
 import { useUser, useClerk, useAuth } from '../../auth-adapter';
@@ -367,6 +367,35 @@ export const TopBar: React.FC<TopBarProps> = ({ onNavigate, boards = [], onCreat
             className="text-gray-500 dark:text-monday-dark-text-secondary hover:text-[#323338] dark:hover:text-monday-dark-text transition-colors p-1.5 rounded hover:bg-gray-100 dark:hover:bg-monday-dark-hover w-8 h-8 flex items-center justify-center"
           >
             <GameController size={21} weight="light" />
+          </button>
+
+          <div className="w-px h-5 bg-gray-300 dark:bg-monday-dark-border mx-2 hidden md:block"></div>
+
+          {/* My Work */}
+          <button
+            onClick={() => onNavigate('my_work')}
+            title={t('my_work')}
+            className="text-gray-500 dark:text-monday-dark-text-secondary hover:text-[#323338] dark:hover:text-monday-dark-text transition-colors p-1.5 rounded hover:bg-gray-100 dark:hover:bg-monday-dark-hover w-8 h-8 flex items-center justify-center"
+          >
+            <SquaresFour size={21} weight="light" />
+          </button>
+
+          {/* Talk */}
+          <button
+            onClick={() => onNavigate('talk')}
+            title={t('talk')}
+            className="text-gray-500 dark:text-monday-dark-text-secondary hover:text-[#323338] dark:hover:text-monday-dark-text transition-colors p-1.5 rounded hover:bg-gray-100 dark:hover:bg-monday-dark-hover w-8 h-8 flex items-center justify-center"
+          >
+            <ChatCircleText size={21} weight="light" />
+          </button>
+
+          {/* Vault */}
+          <button
+            onClick={() => onNavigate('vault')}
+            title={t('vault')}
+            className="text-gray-500 dark:text-monday-dark-text-secondary hover:text-[#323338] dark:hover:text-monday-dark-text transition-colors p-1.5 rounded hover:bg-gray-100 dark:hover:bg-monday-dark-hover w-8 h-8 flex items-center justify-center"
+          >
+            <Lock size={21} weight="light" />
           </button>
 
           <div className="w-px h-5 bg-gray-300 dark:bg-monday-dark-border mx-2 hidden md:block"></div>

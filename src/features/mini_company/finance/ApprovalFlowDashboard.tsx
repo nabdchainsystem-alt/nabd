@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Warning, CheckCircle, Clock, XCircle, TreeStructure, Hourglass } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Warning, CheckCircle, Clock, XCircle, TreeStructure, Hourglass } from 'phosphor-react';
 import { ApprovalFlowInfo } from './ApprovalFlowInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -82,29 +81,39 @@ const getApprovalOutcome = (t: (key: string) => string) => [
 
 export const ApprovalFlowDashboard: React.FC = () => {
     const { currency } = useAppContext();
-    const { t } = useLanguage();
+    const { t, dir } = useLanguage();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('approval-flow-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
     // Get translated KPI data
-    const TOP_KPIS = getTopKPIs(t);
-    const SIDE_KPIS = getSideKPIs(t);
+    const TOP_KPIS = useMemo(() => getTopKPIs(t), [t]);
+    const SIDE_KPIS = useMemo(() => getSideKPIs(t), [t]);
 
     // Get translated chart/table data
-    const DELAY_PER_STAGE = getDelayPerStage(t);
-    const FUNNEL_DATA = getFunnelData(t);
-    const APPROVAL_QUEUE = getApprovalQueue(t);
-    const APPROVALS_BY_TYPE = getApprovalsByType(t);
-    const APPROVAL_OUTCOME = getApprovalOutcome(t);
+    const DELAY_PER_STAGE = useMemo(() => getDelayPerStage(t), [t]);
+    const FUNNEL_DATA = useMemo(() => getFunnelData(t), [t]);
+    const APPROVAL_QUEUE = useMemo(() => getApprovalQueue(t), [t]);
+    const APPROVALS_BY_TYPE = useMemo(() => getApprovalsByType(t), [t]);
+    const APPROVAL_OUTCOME = useMemo(() => getApprovalOutcome(t), [t]);
 
     // --- ECharts Options ---
 
     // Funnel Chart
-    const funnelOption: EChartsOption = {
+    const funnelOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item', formatter: '{a} <br/>{b} : {c}%' },
         series: [
             {
@@ -128,10 +137,10 @@ export const ApprovalFlowDashboard: React.FC = () => {
                 color: ['#3b82f6', '#0ea5e9', '#10b981', '#6366f1']
             }
         ]
-    };
+    }), [FUNNEL_DATA]);
 
     // Approval Outcome Pie
-    const outcomePieOption: EChartsOption = {
+    const outcomePieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -143,10 +152,10 @@ export const ApprovalFlowDashboard: React.FC = () => {
             data: APPROVAL_OUTCOME,
             color: ['#10b981', '#ef4444', '#f59e0b']
         }]
-    };
+    }), [APPROVAL_OUTCOME]);
 
     // Sankey Chart
-    const sankeyOption: EChartsOption = {
+    const sankeyOption = useMemo<EChartsOption>(() => ({
         title: { text: t('approval_flow'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { trigger: 'item', triggerOn: 'mousemove' },
         series: [
@@ -163,7 +172,62 @@ export const ApprovalFlowDashboard: React.FC = () => {
                 right: '5%'
             }
         ]
-    };
+    }), [t]);
+
+    // Bar Chart - Delay Per Stage
+    const delayPerStageOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: DELAY_PER_STAGE.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: DELAY_PER_STAGE.map(d => d.Days),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [DELAY_PER_STAGE, isRTL]);
+
+    // Bar Chart - Approvals By Type (grouped)
+    const approvalsByTypeOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['Approved', 'Rejected'], itemWidth: 10, itemHeight: 10 },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: APPROVALS_BY_TYPE.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            { type: 'bar', name: 'Approved', data: APPROVALS_BY_TYPE.map(d => d.Approved), itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] }, barWidth: 12 },
+            { type: 'bar', name: 'Rejected', data: APPROVALS_BY_TYPE.map(d => d.Rejected), itemStyle: { color: '#ef4444', borderRadius: [4, 4, 0, 0] }, barWidth: 12 },
+        ],
+    }), [APPROVALS_BY_TYPE, isRTL]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -172,7 +236,7 @@ export const ApprovalFlowDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <CheckCircle size={28} className="text-green-600 dark:text-green-400 mt-1" />
+                    <CheckCircle size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('approval_control')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('af_subtitle')}</p>
@@ -181,16 +245,16 @@ export const ApprovalFlowDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-green-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -218,20 +282,7 @@ export const ApprovalFlowDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('avg_delay_per_stage')}</h3>
                                 <p className="text-xs text-gray-400">{t('in_days')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={DELAY_PER_STAGE} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="Days" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={delayPerStageOption} style={{ height: '220px', width: '100%' }} />
                         </>
                     )}
                 </div>
@@ -245,22 +296,7 @@ export const ApprovalFlowDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('approvals_by_type')}</h3>
                                 <p className="text-xs text-gray-400">{t('approved_vs_rejected')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={APPROVALS_BY_TYPE} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Legend iconType="circle" fontSize={10} />
-                                        <Bar dataKey="Approved" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                        <Bar dataKey="Rejected" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={approvalsByTypeOption} style={{ height: '220px', width: '100%' }} />
                         </>
                     )}
                 </div>

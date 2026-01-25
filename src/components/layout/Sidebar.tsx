@@ -810,22 +810,6 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('home')}</span>
                                 </button>
                             </SidebarTooltip>
-                            {pageVisibility['my_work'] !== false && (
-                                <SidebarTooltip content={t('my_work')} enabled={isCollapsed}>
-                                    <button
-                                        onClick={() => onNavigate('my_work')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 
-                                        ${activeView === 'my_work'
-                                                ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                        `}
-                                    >
-                                        <SquaresFour size={17} weight="light" className="flex-shrink-0" />
-                                        <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('my_work')}</span>
-                                    </button>
-                                </SidebarTooltip>
-                            )}
-
                             {/* New Pages */}
                             {pageVisibility['inbox'] !== false && (
                                 <SidebarTooltip content={t('inbox')} enabled={isCollapsed}>
@@ -842,22 +826,6 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     </button>
                                 </SidebarTooltip>
                             )}
-                            {pageVisibility['talk'] !== false && (
-                                <SidebarTooltip content={t('talk')} enabled={isCollapsed}>
-                                    <button
-                                        onClick={() => onNavigate('talk')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100 
-                                        ${activeView === 'talk'
-                                                ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'} 
-                                        `}
-                                    >
-                                        <ChatCircleText size={17} weight="light" className="flex-shrink-0" />
-                                        <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('talk')}</span>
-                                    </button>
-                                </SidebarTooltip>
-                            )}
-
                             {pageVisibility['teams'] !== false && (
                                 <SidebarTooltip content={t('teams')} enabled={isCollapsed}>
                                     <button
@@ -870,21 +838,6 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                     >
                                         <Users size={17} weight="light" className="flex-shrink-0" />
                                         <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('teams')}</span>
-                                    </button>
-                                </SidebarTooltip>
-                            )}
-                            {pageVisibility['vault'] !== false && (
-                                <SidebarTooltip content={t('vault')} enabled={isCollapsed}>
-                                    <button
-                                        onClick={() => onNavigate('vault')}
-                                        className={`flex items-center ${!isCollapsed ? 'gap-3 px-3 w-full' : 'gap-0 px-3 w-fit mx-auto'} py-1.5 rounded-sm transition-colors duration-100
-                                        ${activeView === 'vault'
-                                                ? 'bg-gradient-to-br from-[#e9ecef] to-[#dee2e6] text-[#212529] shadow-sm border border-white/60 dark:from-[#495057] dark:to-[#343a40] dark:text-[#f8f9fa] dark:border-white/10'
-                                                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-[#323338] dark:text-[#dcdde2]'}
-                                        `}
-                                    >
-                                        <Lock size={17} weight="light" className="flex-shrink-0" />
-                                        <span key={dir} className={`font-normal text-[14px] truncate min-w-0 flex-1 text-start leading-5 ${textBase} ${textVisibility}`}>{t('vault')}</span>
                                     </button>
                                 </SidebarTooltip>
                             )}

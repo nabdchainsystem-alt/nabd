@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart as ReactECharts } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, ArrowUpRight, ArrowDownLeft, ArrowsLeftRight, Activity, Warning, TrendUp, Clock } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, ArrowUpRight, ArrowDownLeft, ArrowsLeftRight, Activity, Warning, TrendUp, Clock } from 'phosphor-react';
 import { StockMovementInfo } from './StockMovementInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -70,24 +69,35 @@ const SANKEY_LINKS = [
 ];
 
 export const StockMovementDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('stock-movement-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // --- KPI Data ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
+    const TOP_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[]>(() => [
         { id: '1', label: t('stock_in_qty'), subtitle: t('received'), value: '4,500', change: '+12%', trend: 'up', icon: <ArrowDownLeft size={18} />, sparklineData: [3500, 3800, 4000, 4100, 4300, 4500], color: 'blue' },
         { id: '2', label: t('stock_out_qty'), subtitle: t('shipped'), value: '4,100', change: '+8%', trend: 'up', icon: <ArrowUpRight size={18} />, sparklineData: [3800, 3900, 3950, 4000, 4050, 4100], color: 'blue' },
         { id: '3', label: t('net_movement'), subtitle: t('balance'), value: '+400', change: '+20%', trend: 'up', icon: <ArrowsLeftRight size={18} />, sparklineData: [200, 250, 300, 350, 380, 400], color: 'blue' },
         { id: '4', label: t('movement_frequency'), subtitle: t('trans_per_day'), value: '145', change: '-5', trend: 'down', icon: <Activity size={18} />, sparklineData: [150, 155, 148, 146, 142, 145], color: 'blue' },
-    ];
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
+    const SIDE_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[]>(() => [
         { id: '5', label: t('bottleneck_items'), subtitle: t('slow_processing'), value: '12', change: '+2', trend: 'down', icon: <Clock size={18} />, sparklineData: [10, 10, 11, 11, 12, 12], color: 'blue' },
         { id: '6', label: t('avg_daily_movement'), subtitle: t('unit_volume'), value: '850', change: '+50', trend: 'up', icon: <TrendUp size={18} />, sparklineData: [750, 780, 800, 820, 840, 850], color: 'blue' },
         { id: '7', label: t('movement_volatility'), subtitle: t('std_dev'), value: t('high'), change: '', trend: 'neutral', icon: <Warning size={18} />, sparklineData: [10, 20, 15, 25, 10, 30], color: 'blue' },
         { id: '8', label: t('transfer_efficiency'), subtitle: t('on_time_pct'), value: '94.5%', change: '+1.2%', trend: 'up', icon: <Activity size={18} />, sparklineData: [91, 92, 92.5, 93, 93.8, 94.5], color: 'blue' },
-    ];
+    ], [t]);
 
     const getTypeLabel = (type: string) => {
         switch (type) {
@@ -107,7 +117,7 @@ export const StockMovementDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart - Movement Type Distribution
-    const pieOption: EChartsOption = {
+    const pieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -118,10 +128,88 @@ export const StockMovementDashboard: React.FC = () => {
             label: { show: false },
             data: MOVEMENT_TYPE_DISTRIBUTION
         }]
-    };
+    }), []);
+
+    // Bar Chart - In vs Out per Category
+    const inOutByCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, data: [t('stock_in'), t('stock_out')] },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: IN_OUT_BY_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('stock_in'),
+                type: 'bar',
+                data: IN_OUT_BY_CATEGORY.map(d => d.in),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+            {
+                name: t('stock_out'),
+                type: 'bar',
+                data: IN_OUT_BY_CATEGORY.map(d => d.out),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+        ],
+    }), [isRTL, t]);
+
+    // Bar Chart - Daily Movement Trend
+    const dailyMovementTrendOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, data: [t('inbound'), t('outbound')] },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: DAILY_MOVEMENT_TREND.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('inbound'),
+                type: 'bar',
+                data: DAILY_MOVEMENT_TREND.map(d => d.inbound),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+            {
+                name: t('outbound'),
+                type: 'bar',
+                data: DAILY_MOVEMENT_TREND.map(d => d.outbound),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+        ],
+    }), [isRTL, t]);
 
     // Pie Chart - Movement by Warehouse
-    const warehousePieOption: EChartsOption = {
+    const warehousePieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -133,10 +221,10 @@ export const StockMovementDashboard: React.FC = () => {
             data: MOVEMENT_BY_WAREHOUSE,
             color: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe']
         }]
-    };
+    }), []);
 
     // Sankey Chart for Flow
-    const sankeyOption: EChartsOption = {
+    const sankeyOption = useMemo<EChartsOption>(() => ({
         title: { text: t('inventory_flow_path'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { trigger: 'item', triggerOn: 'mousemove' },
         series: [{
@@ -148,7 +236,7 @@ export const StockMovementDashboard: React.FC = () => {
             label: { color: '#666', fontSize: 10 },
             left: 20, right: 20, top: 40, bottom: 20
         }]
-    };
+    }), [t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -167,9 +255,9 @@ export const StockMovementDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -196,7 +284,7 @@ export const StockMovementDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts: In vs Out per Category */}
+                {/* ECharts: In vs Out per Category */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('in_vs_out_category')} />
@@ -208,25 +296,12 @@ export const StockMovementDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('volume_comparison')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={IN_OUT_BY_CATEGORY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="in" name={t('stock_in')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                    <Bar dataKey="out" name={t('stock_out')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ReactECharts option={inOutByCategoryOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts: Daily Movement Trend */}
+                {/* ECharts: Daily Movement Trend */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('daily_movement_trend')} />
@@ -238,20 +313,7 @@ export const StockMovementDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('weekly_in_out_volume')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={DAILY_MOVEMENT_TREND} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="inbound" name={t('inbound')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                    <Bar dataKey="outbound" name={t('outbound')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ReactECharts option={dailyMovementTrendOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

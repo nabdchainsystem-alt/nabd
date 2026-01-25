@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import { ArrowsOut, Info, Shield, Warning, CheckCircle, FileText, Medal, Scales, ShieldCheck, Clock } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { SupplierRiskComplianceInfo } from './SupplierRiskComplianceInfo';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
@@ -59,13 +58,13 @@ export const SupplierRiskComplianceDashboard: React.FC = () => {
         { name: t('jun'), High: 8, Medium: 24, Low: 124 },
     ], [t]);
 
-    const isLoading = useFirstMountLoading('supplier-risk-compliance-dashboard', 1200);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
-    const riskPieOption: EChartsOption = {
+    const riskPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -77,9 +76,64 @@ export const SupplierRiskComplianceDashboard: React.FC = () => {
             data: RISK_DISTRIBUTION,
             color: ['#ef4444', '#f59e0b', '#10b981']
         }]
-    };
+    }), [RISK_DISTRIBUTION]);
 
-    const complianceColors = ['#10b981', '#3b82f6', '#6366f1', '#f59e0b', '#ef4444'];
+    const riskTrendOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['High', 'Medium', 'Low'], itemWidth: 10, itemHeight: 10 },
+        grid: { left: isRTL ? 20 : 40, right: isRTL ? 40 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: RISK_TREND.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            { type: 'bar', name: 'High', stack: 'total', data: RISK_TREND.map(d => d.High), itemStyle: { color: '#ef4444' } },
+            { type: 'bar', name: 'Medium', stack: 'total', data: RISK_TREND.map(d => d.Medium), itemStyle: { color: '#f59e0b' } },
+            { type: 'bar', name: 'Low', stack: 'total', data: RISK_TREND.map(d => d.Low), itemStyle: { color: '#10b981', borderRadius: [4, 4, 0, 0] } },
+        ],
+    }), [RISK_TREND, isRTL]);
+
+    const complianceByCategoryOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: isRTL ? 20 : 90, right: isRTL ? 90 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'value',
+            min: 0,
+            max: 100,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        yAxis: {
+            type: 'category',
+            data: COMPLIANCE_BY_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: !isRTL,
+        },
+        series: [{
+            type: 'bar',
+            data: COMPLIANCE_BY_CATEGORY.map((d, i) => ({
+                value: d.value,
+                itemStyle: { color: ['#10b981', '#3b82f6', '#6366f1', '#f59e0b', '#ef4444'][i], borderRadius: [0, 4, 4, 0] }
+            })),
+            barWidth: 20,
+        }],
+    }), [COMPLIANCE_BY_CATEGORY, isRTL]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative" dir={dir}>
@@ -88,18 +142,18 @@ export const SupplierRiskComplianceDashboard: React.FC = () => {
             {/* Header */}
             <div className={`flex items-center justify-between mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className={`flex items-start gap-2 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                    <Shield size={28} className="text-indigo-600 dark:text-indigo-400 mt-1" />
+                    <Shield size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('risk_compliance')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('risk_compliance_desc')}</p>
                     </div>
                 </div>
                 <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <button onClick={toggleFullScreen} className="p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md" title={t('full_screen')}>
+                    <button onClick={toggleFullScreen} className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md" title={t('full_screen')}>
                         <ArrowsOut size={18} />
                     </button>
-                    <button onClick={() => setShowInfo(true)} className={`flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <Info size={18} className="text-indigo-500" />
+                    <button onClick={() => setShowInfo(true)} className={`flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -122,19 +176,7 @@ export const SupplierRiskComplianceDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('risk_trend')}</h3>
                             <p className="text-xs text-gray-400">{t('suppliers_by_risk_level')}</p>
                         </div>
-                        <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={RISK_TREND} margin={{ top: 5, right: isRTL ? 10 : 30, left: isRTL ? 30 : 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
-                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                    <Bar dataKey="High" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
-                                    <Bar dataKey="Medium" stackId="a" fill="#f59e0b" radius={[0, 0, 0, 0]} />
-                                    <Bar dataKey="Low" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={riskTrendOption} style={{ height: '220px', width: '100%' }} />
                     </div>
                 )}
 
@@ -147,21 +189,7 @@ export const SupplierRiskComplianceDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('compliance_by_category')}</h3>
                             <p className="text-xs text-gray-400">{t('compliance_percentage')}</p>
                         </div>
-                        <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={COMPLIANCE_BY_CATEGORY} layout="vertical" margin={{ top: 5, right: isRTL ? 10 : 30, left: isRTL ? 30 : 80, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
-                                    <XAxis type="number" domain={[0, 100]} fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis dataKey="name" type="category" fontSize={10} tick={{ fill: '#9ca3af' }} width={70} />
-                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
-                                        {COMPLIANCE_BY_CATEGORY.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={complianceColors[index % complianceColors.length]} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={complianceByCategoryOption} style={{ height: '220px', width: '100%' }} />
                     </div>
                 )}
 

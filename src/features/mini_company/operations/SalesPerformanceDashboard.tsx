@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import { Gauge, TrendUp, Users, Info, ArrowsOut, Percent, Warning, Clock, ShareNetwork, ArrowsIn } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { SalesPerformanceInfo } from './SalesPerformanceInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { formatCurrency } from '../../../utils/formatters';
@@ -69,43 +68,55 @@ interface SalesPerformanceDashboardProps {
 }
 
 export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps> = ({ hideFullscreen = false }) => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
 
     // Translated KPIs
-    const translatedPerformanceKPIs = PERFORMANCE_KPIS.map((kpi, index) => ({
+    const translatedPerformanceKPIs = useMemo(() => PERFORMANCE_KPIS.map((kpi, index) => ({
         ...kpi,
         label: [t('sales_growth'), t('conversion_rate'), t('rev_per_customer'), t('repeat_cust_percent')][index],
         subtitle: [t('vs_previous_period'), t('global_conversion'), t('customer_value'), t('retention_rate')][index],
-    }));
+    })), [t]);
 
-    const translatedEfficiencyKPIs = EFFICIENCY_KPIS.map((kpi, index) => ({
+    const translatedEfficiencyKPIs = useMemo(() => EFFICIENCY_KPIS.map((kpi, index) => ({
         ...kpi,
         label: [t('discount_impact'), t('avg_fulfillment'), t('cancelled_percent'), t('return_rate')][index],
         subtitle: [t('revenue_foregone'), t('hours_to_ship'), t('order_failure_rate'), t('product_returns')][index],
-    }));
+    })), [t]);
 
     // Translated chart data
-    const translatedOrdersData = ORDERS_VS_COMPLETED_DATA.map((item, index) => ({
+    const translatedOrdersData = useMemo(() => ORDERS_VS_COMPLETED_DATA.map((item, index) => ({
         ...item,
         name: [t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat'), t('sun')][index],
-    }));
+    })), [t]);
 
-    const translatedRevenueChannelData = REVENUE_CHANNEL_DATA.map((item, index) => ({
+    const translatedRevenueChannelData = useMemo(() => REVENUE_CHANNEL_DATA.map((item, index) => ({
         ...item,
         name: [t('online_store'), t('marketplace'), t('retail_pos'), t('social_whatsapp')][index],
-    }));
+    })), [t]);
 
-    const translatedNewVsReturningData = NEW_VS_RETURNING_DATA.map((item, index) => ({
+    const translatedNewVsReturningData = useMemo(() => NEW_VS_RETURNING_DATA.map((item, index) => ({
         ...item,
         name: [t('new_customers'), t('returning')][index],
-    }));
+    })), [t]);
 
-    const translatedDiscountData = DISCOUNT_VS_FULL_DATA.map((item, index) => ({
+    const translatedDiscountData = useMemo(() => DISCOUNT_VS_FULL_DATA.map((item, index) => ({
         ...item,
         name: [t('full_price'), t('discounted')][index],
-    }));
+    })), [t]);
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('sales-performance-dashboard', 800);
+
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -113,7 +124,7 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
 
 
     // --- Chart Options (ECharts used for specific complex or pie visualizations) ---
-    const newVsReturningOption: EChartsOption = {
+    const newVsReturningOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { orient: 'vertical', right: 0, top: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -127,9 +138,9 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
             label: { show: false },
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } }
         }]
-    };
+    }), [translatedNewVsReturningData]);
 
-    const discountPieOption: EChartsOption = {
+    const discountPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { orient: 'vertical', right: 0, top: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -143,10 +154,91 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
             label: { show: false },
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } }
         }]
-    };
+    }), [translatedDiscountData]);
+
+    // ECharts option for Orders vs Completed bar chart
+    const ordersVsCompletedOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { data: [t('total_orders'), t('completed')], bottom: 0 },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: translatedOrdersData.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 12 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 12 },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            position: isRTL ? 'right' : 'left',
+        },
+        series: [
+            {
+                name: t('total_orders'),
+                type: 'bar',
+                data: translatedOrdersData.map(d => d.orders),
+                itemStyle: { color: '#dbeafe', borderRadius: [4, 4, 0, 0] },
+                barMaxWidth: 30,
+            },
+            {
+                name: t('completed'),
+                type: 'bar',
+                data: translatedOrdersData.map(d => d.completed),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barMaxWidth: 30,
+            }
+        ],
+    }), [translatedOrdersData, isRTL, t]);
+
+    // ECharts option for Revenue by Channel bar chart
+    const revenueByChannelOption: EChartsOption = useMemo(() => ({
+        tooltip: {
+            trigger: 'axis',
+            formatter: (params: any) => {
+                const data = params[0];
+                return `${data.name}: ${formatCurrency(data.value, currency.code, currency.symbol)}`;
+            }
+        },
+        grid: { left: isRTL ? 80 : 50, right: isRTL ? 20 : 80, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: translatedRevenueChannelData.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#6b7280', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            position: isRTL ? 'right' : 'left',
+        },
+        series: [{
+            type: 'bar',
+            data: translatedRevenueChannelData.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barMaxWidth: 32,
+            label: {
+                show: true,
+                position: isRTL ? 'left' : 'right',
+                formatter: (params: any) => formatCurrency(params.value, currency.code, currency.symbol),
+                color: '#6b7280',
+                fontSize: 12,
+                fontWeight: 600,
+            }
+        }],
+    }), [translatedRevenueChannelData, isRTL, currency.code, currency.symbol]);
 
     // Parallel Coordinates Option for "Hidden Story"
-    const parallelChartOption: EChartsOption = {
+    const parallelChartOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: '{b}' },
         parallelAxis: [
             { dim: 0, name: 'Product', type: 'category', data: LOW_PERFORMANCE_PRODUCTS.map(p => p.name), axisLabel: { rotate: 45, interval: 0, fontSize: 10, width: 80, overflow: 'truncate' } },
@@ -176,7 +268,7 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
                 }))
             }
         ]
-    };
+    }), []);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -197,9 +289,9 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
                         <button
                             onClick={toggleFullScreen}
                             className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                            title={t('full_screen')}
+                            title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                         >
-                            <ArrowsOut size={18} />
+                            {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                         </button>
                     )}
                     <button
@@ -240,29 +332,7 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
                                 <p className="text-xs text-gray-400 mt-1">{t('operational_leakage')}</p>
                             </div>
                             <div className="h-[240px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={translatedOrdersData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis
-                                            dataKey="name"
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                        />
-                                        <YAxis
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#9ca3af', fontSize: 12 }}
-                                        />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-
-                                        <Bar dataKey="orders" name={t('total_orders')} fill="#dbeafe" radius={[4, 4, 0, 0]} barSize={30} />
-                                        <Bar dataKey="completed" name={t('completed')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={30} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={ordersVsCompletedOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -279,42 +349,7 @@ export const SalesPerformanceDashboard: React.FC<SalesPerformanceDashboardProps>
                                 <p className="text-xs text-gray-400 mt-1">{t('where_sales_coming')}</p>
                             </div>
                             <div className="h-[240px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={translatedRevenueChannelData}
-                                        margin={{ top: 10, right: 40, left: 10, bottom: 0 }}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis
-                                            dataKey="name"
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fill: '#6b7280', fontSize: 11 }}
-                                        />
-                                        <YAxis hide />
-                                        <Tooltip
-                                            cursor={{ fill: 'transparent' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                            formatter={(value: number) => [formatCurrency(value, currency.code, currency.symbol), t('revenue')]}
-                                        />
-
-                                        <Bar
-                                            name={t('revenue')}
-                                            dataKey="value"
-                                            radius={[0, 6, 6, 0]}
-                                            barSize={32}
-                                            label={{
-                                                position: 'right',
-                                                fill: '#6b7280',
-                                                fontSize: 12,
-                                                fontWeight: 600,
-                                                formatter: (val: number) => formatCurrency(val, currency.code, currency.symbol),
-                                                dx: 5
-                                            }}
-                                            fill="#3b82f6"
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={revenueByChannelOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}

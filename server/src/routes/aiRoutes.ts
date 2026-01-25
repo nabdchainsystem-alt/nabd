@@ -107,7 +107,7 @@ router.post('/process', async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        const { prompt, context, forceDeepMode, promptType, conversationId, includeHistory } = req.body;
+        const { prompt, context, forceDeepMode, promptType, conversationId, includeHistory, language } = req.body;
 
         if (!prompt || typeof prompt !== 'string') {
             return res.status(400).json({ error: 'Prompt is required' });
@@ -121,6 +121,7 @@ router.post('/process', async (req: AuthRequest, res: Response) => {
             promptType: promptType || 'general',
             conversationId,
             includeHistory,
+            language: language || 'en', // Default to English, pass 'ar' for Arabic responses
         };
 
         // Analyze complexity for transparency

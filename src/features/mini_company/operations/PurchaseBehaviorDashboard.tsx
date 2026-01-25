@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, ChartBar, Timer, Lightning, ChartPie, Calendar as CalendarIcon, Waves, TrendUp } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, ChartBar, Timer, Lightning, ChartPie, Calendar as CalendarIcon, Waves, TrendUp } from 'phosphor-react';
 import { PurchaseBehaviorInfo } from './PurchaseBehaviorInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { formatCurrency } from '../../../utils/formatters';
@@ -71,24 +70,34 @@ const generateHeatmapData = () => {
 const HEATMAP_DATA = generateHeatmapData();
 
 export const PurchaseBehaviorDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('purchase-behavior-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     // --- KPI Data ---
-    const TOP_KPIS: KPIData[] = [
+    const TOP_KPIS = useMemo<KPIData[]>(() => [
         { id: '1', label: t('purchase_frequency'), subtitle: t('orders_per_month'), value: '18.5', change: '+2.1', trend: 'up', icon: <Timer size={18} color="#3b82f6" />, sparklineData: [15, 16, 16, 17, 18, 18, 18.5] },
         { id: '2', label: t('repeat_purchase_rate'), subtitle: t('recurring_items'), value: '42%', change: '+5%', trend: 'up', icon: <ArrowsOut size={18} color="#3b82f6" />, sparklineData: [35, 36, 38, 40, 41, 41, 42] },
         { id: '3', label: t('seasonal_index'), subtitle: t('peak_deviation'), value: '1.2x', change: '0', trend: 'neutral', icon: <CalendarIcon size={18} color="#3b82f6" />, sparklineData: [1, 1, 1.1, 1.2, 1.2, 1.1, 1.2] },
         { id: '4', label: t('category_concentration'), subtitle: t('top_3_share'), value: '68%', change: '-2%', trend: 'down', icon: <ChartPie size={18} color="#3b82f6" />, sparklineData: [72, 71, 70, 70, 69, 68, 68] },
-    ];
+    ], [t]);
 
-    const SIDE_KPIS: KPIData[] = [
+    const SIDE_KPIS = useMemo<KPIData[]>(() => [
         { id: '5', label: t('avg_order_gap'), subtitle: t('days_between'), value: '4.2d', change: '-0.3d', trend: 'up', icon: <Timer size={18} color="#3b82f6" />, sparklineData: [5, 4.8, 4.6, 4.5, 4.3, 4.2, 4.2] },
         { id: '6', label: t('spike_detection'), subtitle: t('anomalies'), value: '3', change: '+1', trend: 'down', icon: <Lightning size={18} color="#3b82f6" />, sparklineData: [1, 1, 2, 0, 1, 2, 3] },
         { id: '7', label: t('irregular_purchases'), subtitle: t('out_of_pattern'), value: '5.4%', change: '-1.1%', trend: 'up', icon: <Waves size={18} color="#3b82f6" />, sparklineData: [7, 6.5, 6, 5.8, 5.5, 5.4, 5.4] },
         { id: '8', label: t('peak_purchase_day'), subtitle: t('highest_activity'), value: t('tuesday'), change: t('consistent'), trend: 'neutral', icon: <CalendarIcon size={18} color="#3b82f6" />, sparklineData: [8, 12, 15, 10, 9, 7, 5] },
-    ];
+    ], [t]);
 
 
     const toggleFullScreen = () => {
@@ -98,7 +107,7 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart - Category Mix
-    const pieOption: EChartsOption = {
+    const pieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item', formatter: (params: any) => `${params.name}: ${formatCurrency(params.value, currency.code, currency.symbol)} (${params.percent}%)` },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -110,10 +119,10 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold' } },
             data: CATEGORY_MIX.map(d => ({ ...d, itemStyle: { color: d.name === 'Services' ? '#3b82f6' : undefined } })) // Highlight Services
         }]
-    };
+    }), [currency.code, currency.symbol]);
 
     // Pie Chart - Order Source Mix
-    const orderSourcePieOption: EChartsOption = {
+    const orderSourcePieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -126,10 +135,10 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
             data: ORDER_SOURCE_MIX,
             color: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe']
         }]
-    };
+    }), []);
 
     // Calendar Heatmap (Temporal Wave)
-    const heatmapOption: EChartsOption = {
+    const heatmapOption = useMemo<EChartsOption>(() => ({
         title: { text: 'Weekly Purchasing Intensity', left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { position: 'top' },
         grid: { height: '50%', top: '10%' },
@@ -151,7 +160,63 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
             label: { show: false },
             emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
         }]
-    };
+    }), []);
+
+    // ECharts Orders per Category Option
+    const ordersPerCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: ORDERS_PER_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            type: 'bar',
+            data: ORDERS_PER_CATEGORY.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL]);
+
+    // ECharts Purchase Velocity Option
+    const purchaseVelocityOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: PURCHASE_VELOCITY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            type: 'bar',
+            data: PURCHASE_VELOCITY.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -171,9 +236,9 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -212,18 +277,7 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
                                 <p className="text-xs text-gray-400 mt-1">{t('volume_breakdown')}</p>
                             </div>
                             <div className="h-[260px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={ORDERS_PER_CATEGORY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={ordersPerCategoryOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -240,18 +294,7 @@ export const PurchaseBehaviorDashboard: React.FC = () => {
                                 <p className="text-xs text-gray-400 mt-1">{t('monthly_order_frequency')}</p>
                             </div>
                             <div className="h-[260px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={PURCHASE_VELOCITY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={purchaseVelocityOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}

@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, Funnel, CheckCircle, XCircle, Timer, Warning, TrendUp } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, Funnel, CheckCircle, XCircle, Timer, Warning, TrendUp } from 'phosphor-react';
 import { PurchaseFunnelInfo } from './PurchaseFunnelInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -59,12 +58,22 @@ const REQUEST_STATUS = [
 // SANKEY_DATA moved inside component for translation support
 
 export const PurchaseFunnelDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('purchase-funnel-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     // Translated Sankey Data
-    const SANKEY_DATA = {
+    const SANKEY_DATA = useMemo(() => ({
         nodes: [
             { name: t('sankey_submitted') },
             { name: t('sankey_manager_approved') },
@@ -83,22 +92,22 @@ export const PurchaseFunnelDashboard: React.FC = () => {
             { source: t('sankey_finance_approved'), target: t('sankey_ordered'), value: 68 },
             { source: t('sankey_finance_approved'), target: t('sankey_cancelled'), value: 2 },
         ]
-    };
+    }), [t]);
 
     // --- KPI Data ---
-    const TOP_KPIS: KPIData[] = [
+    const TOP_KPIS = useMemo<KPIData[]>(() => [
         { id: '1', label: t('requests_submitted'), subtitle: t('total_intake'), value: '142', change: '+12', trend: 'up', icon: <Funnel size={18} />, sparklineData: [100, 110, 115, 120, 130, 135, 142] },
         { id: '2', label: t('approved_requests'), subtitle: t('completed'), value: '89', change: '+8', trend: 'up', icon: <CheckCircle size={18} />, sparklineData: [60, 65, 70, 75, 80, 85, 89] },
         { id: '3', label: t('avg_approval_time'), subtitle: t('end_to_end'), value: '42h', change: '-4h', trend: 'up', icon: <Timer size={18} />, sparklineData: [50, 48, 46, 45, 44, 43, 42] },
         { id: '4', label: t('approval_rate'), subtitle: t('conversion'), value: '78%', change: '+2%', trend: 'up', icon: <TrendUp size={18} />, sparklineData: [70, 72, 74, 75, 76, 77, 78] },
-    ];
+    ], [t]);
 
-    const SIDE_KPIS: KPIData[] = [
+    const SIDE_KPIS = useMemo<KPIData[]>(() => [
         { id: '5', label: t('bottleneck_stage'), subtitle: t('highest_delay'), value: t('finance'), change: '', trend: 'neutral', icon: <Warning size={18} />, sparklineData: [0, 0, 0, 0, 0, 0, 0] },
         { id: '6', label: t('delayed_requests'), subtitle: t('over_sla'), value: '14', change: '+3', trend: 'down', icon: <Timer size={18} />, sparklineData: [10, 11, 12, 11, 12, 13, 14] },
         { id: '7', label: t('rejected_requests'), subtitle: t('denied'), value: '25', change: '-2', trend: 'up', icon: <XCircle size={18} />, sparklineData: [28, 27, 26, 26, 25, 25, 25] },
         { id: '8', label: t('sla_compliance'), subtitle: t('on_time_rate'), value: '86%', change: '+3%', trend: 'up', icon: <CheckCircle size={18} />, sparklineData: [80, 81, 82, 83, 84, 85, 86] },
-    ];
+    ], [t]);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -107,7 +116,7 @@ export const PurchaseFunnelDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Funnel Chart
-    const funnelOption: EChartsOption = {
+    const funnelOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item', formatter: '{b} : {c}%' },
         series: [
             {
@@ -131,10 +140,10 @@ export const PurchaseFunnelDashboard: React.FC = () => {
                 color: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe']
             }
         ]
-    };
+    }), []);
 
     // Pie Chart - Stage Status Distribution
-    const stageStatusPieOption: EChartsOption = {
+    const stageStatusPieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -147,10 +156,10 @@ export const PurchaseFunnelDashboard: React.FC = () => {
             data: STAGE_STATUS_MIX,
             color: ['#10b981', '#f59e0b', '#ef4444', '#6b7280']
         }]
-    };
+    }), []);
 
     // Sankey Chart
-    const sankeyOption: EChartsOption = {
+    const sankeyOption = useMemo<EChartsOption>(() => ({
         title: { text: t('approval_flow_analysis'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { trigger: 'item', triggerOn: 'mousemove' },
         series: [
@@ -168,7 +177,64 @@ export const PurchaseFunnelDashboard: React.FC = () => {
                 label: { position: 'right', fontSize: 10 }
             }
         ]
-    };
+    }), [t, SANKEY_DATA]);
+
+    // ECharts Request Volume Trend Option
+    const requestVolumeTrendOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: REQUEST_VOLUME_TREND.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            type: 'bar',
+            data: REQUEST_VOLUME_TREND.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL]);
+
+    // ECharts Avg Hours per Stage Option
+    const avgHoursPerStageOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: DELAYS_PER_STAGE.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            name: 'Hours',
+            type: 'bar',
+            data: DELAYS_PER_STAGE.map(d => d.count),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -187,9 +253,9 @@ export const PurchaseFunnelDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -227,18 +293,7 @@ export const PurchaseFunnelDashboard: React.FC = () => {
                                 <p className="text-xs text-gray-400 mt-1">{t('monthly_submission_patterns')}</p>
                             </div>
                             <div className="h-[260px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={REQUEST_VOLUME_TREND} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={requestVolumeTrendOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -255,18 +310,7 @@ export const PurchaseFunnelDashboard: React.FC = () => {
                                 <p className="text-xs text-gray-400 mt-1">{t('identifying_bottlenecks')}</p>
                             </div>
                             <div className="h-[260px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={DELAYS_PER_STAGE} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f1f5f9', opacity: 0.5 }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey="count" name="Hours" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={avgHoursPerStageOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}

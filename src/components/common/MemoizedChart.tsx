@@ -35,24 +35,41 @@ if (typeof document !== 'undefined') {
     });
 }
 
+// WeakMap cache for stringified options - avoids expensive JSON.stringify on every render
+const optionStringCache = new WeakMap<object, string>();
+
+function getOptionString(option: any): string {
+    if (option === null || typeof option !== 'object') {
+        return JSON.stringify(option);
+    }
+    let cached = optionStringCache.get(option);
+    if (!cached) {
+        cached = JSON.stringify(option);
+        optionStringCache.set(option, cached);
+    }
+    return cached;
+}
+
 // Custom comparison function for memo
 const arePropsEqual = (prevProps: MemoizedChartProps, nextProps: MemoizedChartProps): boolean => {
-    // Quick reference checks first
+    // Quick reference checks first - most common case
+    if (prevProps.option === nextProps.option &&
+        prevProps.className === nextProps.className &&
+        prevProps.style === nextProps.style &&
+        prevProps.showLoading === nextProps.showLoading &&
+        prevProps.theme === nextProps.theme) {
+        return true;
+    }
+
+    // If references differ, check other props first (cheaper)
     if (prevProps.className !== nextProps.className) return false;
     if (prevProps.showLoading !== nextProps.showLoading) return false;
     if (prevProps.theme !== nextProps.theme) return false;
-    if (prevProps.skipAnimation !== nextProps.skipAnimation) return false;
+    if (prevProps.style !== nextProps.style) return false;
 
-    // Deep compare style
-    if (JSON.stringify(prevProps.style) !== JSON.stringify(nextProps.style)) return false;
-
-    // Deep compare opts
-    if (JSON.stringify(prevProps.opts) !== JSON.stringify(nextProps.opts)) return false;
-
-    // Deep compare option (the most important one)
-    if (JSON.stringify(prevProps.option) !== JSON.stringify(nextProps.option)) return false;
-
-    return true;
+    // Deep compare option only if reference differs - use cached strings
+    if (prevProps.option === nextProps.option) return true;
+    return getOptionString(prevProps.option) === getOptionString(nextProps.option);
 };
 
 /**
@@ -87,8 +104,8 @@ export const MemoizedChart: React.FC<MemoizedChartProps> = memo(({
     // Check if we're in stability window (recently returned from hidden)
     const inStabilityWindow = Date.now() - lastVisibilityChange < STABILITY_WINDOW;
 
-    // Cache the option and apply animation settings
-    const optionStr = JSON.stringify(option);
+    // Use cached string comparison - avoids expensive JSON.stringify
+    const optionStr = getOptionString(option);
     if (optionRef.current !== optionStr) {
         optionRef.current = optionStr;
 

@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import { ArrowsOut, Info, ShoppingCart, Truck, Clock, Package, CurrencyDollar, CheckCircle, Warning, Hourglass } from 'phosphor-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { SupplierOrdersInfo } from './SupplierOrdersInfo';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
@@ -61,13 +60,13 @@ export const SupplierOrdersDashboard: React.FC = () => {
         { name: 'MetalWorks', Orders: 22 },
     ], []);
 
-    const isLoading = useFirstMountLoading('supplier-orders-dashboard', 1200);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
-    const statusPieOption: EChartsOption = {
+    const statusPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -79,7 +78,56 @@ export const SupplierOrdersDashboard: React.FC = () => {
             data: ORDER_STATUS,
             color: ['#10b981', '#3b82f6', '#6366f1', '#f59e0b', '#ef4444']
         }]
-    };
+    }), [ORDER_STATUS]);
+
+    const ordersTrendOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, data: ['Orders', 'Value'], itemWidth: 10, itemHeight: 10 },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 50, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: ORDERS_TREND.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: [
+            { type: 'value', position: isRTL ? 'right' : 'left', axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } }, axisLabel: { color: '#9ca3af', fontSize: 10 } },
+            { type: 'value', position: isRTL ? 'left' : 'right', axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false }, axisLabel: { color: '#9ca3af', fontSize: 10 } },
+        ],
+        series: [
+            { type: 'line', name: 'Orders', yAxisIndex: 0, data: ORDERS_TREND.map(d => d.Orders), smooth: true, lineStyle: { color: '#3b82f6', width: 2 }, itemStyle: { color: '#3b82f6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(59, 130, 246, 0.3)' }, { offset: 1, color: 'rgba(59, 130, 246, 0)' }] } } },
+            { type: 'line', name: 'Value', yAxisIndex: 1, data: ORDERS_TREND.map(d => d.Value), smooth: true, lineStyle: { color: '#10b981', width: 2 }, itemStyle: { color: '#10b981' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(16, 185, 129, 0.3)' }, { offset: 1, color: 'rgba(16, 185, 129, 0)' }] } } },
+        ],
+    }), [ORDERS_TREND, isRTL]);
+
+    const ordersBySupplierOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 40, right: isRTL ? 40 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: ORDERS_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: ORDERS_BY_SUPPLIER.map(d => d.Orders),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [ORDERS_BY_SUPPLIER, isRTL]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative" dir={dir}>
@@ -88,18 +136,18 @@ export const SupplierOrdersDashboard: React.FC = () => {
             {/* Header */}
             <div className={`flex items-center justify-between mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <div className={`flex items-start gap-2 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
-                    <ShoppingCart size={28} className="text-indigo-600 dark:text-indigo-400 mt-1" />
+                    <ShoppingCart size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('supplier_orders')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('supplier_orders_desc')}</p>
                     </div>
                 </div>
                 <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <button onClick={toggleFullScreen} className="p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md" title={t('full_screen')}>
+                    <button onClick={toggleFullScreen} className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md" title={t('full_screen')}>
                         <ArrowsOut size={18} />
                     </button>
-                    <button onClick={() => setShowInfo(true)} className={`flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <Info size={18} className="text-indigo-500" />
+                    <button onClick={() => setShowInfo(true)} className={`flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -122,29 +170,7 @@ export const SupplierOrdersDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('orders_trend')}</h3>
                             <p className="text-xs text-gray-400">{t('monthly_orders_value')}</p>
                         </div>
-                        <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={ORDERS_TREND} margin={{ top: 5, right: isRTL ? 10 : 30, left: isRTL ? 30 : 10, bottom: 5 }}>
-                                    <defs>
-                                        <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                        </linearGradient>
-                                        <linearGradient id="valueGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                    <YAxis yAxisId="left" fontSize={10} tick={{ fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
-                                    <YAxis yAxisId="right" fontSize={10} tick={{ fill: '#9ca3af' }} orientation={isRTL ? 'left' : 'right'} />
-                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                    <Area yAxisId="left" type="monotone" dataKey="Orders" stroke="#3b82f6" fill="url(#ordersGradient)" strokeWidth={2} />
-                                    <Area yAxisId="right" type="monotone" dataKey="Value" stroke="#10b981" fill="url(#valueGradient)" strokeWidth={2} />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={ordersTrendOption} style={{ height: '220px', width: '100%' }} />
                     </div>
                 )}
 
@@ -170,17 +196,7 @@ export const SupplierOrdersDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('orders_by_supplier')}</h3>
                             <p className="text-xs text-gray-400">{t('top_suppliers')}</p>
                         </div>
-                        <div className="h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={ORDERS_BY_SUPPLIER} margin={{ top: 5, right: isRTL ? 10 : 30, left: isRTL ? 30 : 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
-                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
-                                    <Bar dataKey="Orders" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={ordersBySupplierOption} style={{ height: '200px', width: '100%' }} />
                     </div>
                 )}
 
@@ -217,7 +233,7 @@ export const SupplierOrdersDashboard: React.FC = () => {
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {ORDERS_TABLE_DATA.map((row) => (
                                         <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                            <td className={`px-5 py-3 font-medium text-indigo-600 dark:text-indigo-400 ${isRTL ? 'text-right' : ''}`}>{row.id}</td>
+                                            <td className={`px-5 py-3 font-medium text-blue-600 dark:text-blue-400 ${isRTL ? 'text-right' : ''}`}>{row.id}</td>
                                             <td className={`px-5 py-3 text-gray-900 dark:text-gray-100 ${isRTL ? 'text-right' : ''}`}>{row.supplier}</td>
                                             <td className={`px-5 py-3 text-gray-600 dark:text-gray-400 ${isRTL ? 'text-start' : 'text-end'}`}>{row.items}</td>
                                             <td className={`px-5 py-3 text-green-600 font-medium ${isRTL ? 'text-start' : 'text-end'}`}>{row.value}</td>

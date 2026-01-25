@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, Warning, ShieldCheck, Bug, CheckCircle, Binoculars, ChartPie, ChartBar, FileText } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, Warning, ShieldCheck, Bug, CheckCircle, Binoculars, ChartPie, ChartBar, FileText } from 'phosphor-react';
 import { SupplierQualityComplianceInfo } from './SupplierQualityComplianceInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -102,7 +101,17 @@ export const SupplierQualityComplianceDashboard: React.FC = () => {
     const { t, dir } = useLanguage();
     const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('supplier-quality-compliance-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -186,7 +195,7 @@ export const SupplierQualityComplianceDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart: Passed vs Failed
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 10 } },
         series: [{
@@ -199,10 +208,10 @@ export const SupplierQualityComplianceDashboard: React.FC = () => {
             emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
             data: TRANSLATED_INSPECTION_OUTCOMES
         }]
-    };
+    }), [TRANSLATED_INSPECTION_OUTCOMES, t]);
 
     // Pie Chart: Defect Categories
-    const defectPieOption: EChartsOption = {
+    const defectPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -215,10 +224,10 @@ export const SupplierQualityComplianceDashboard: React.FC = () => {
             data: TRANSLATED_DEFECT_CATEGORIES,
             color: ['#3b82f6', '#8b5cf6', '#ef4444', '#f59e0b', '#6b7280']
         }]
-    };
+    }), [TRANSLATED_DEFECT_CATEGORIES, t]);
 
     // Compliance Status Pie
-    const compliancePieOption: EChartsOption = {
+    const compliancePieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -230,10 +239,10 @@ export const SupplierQualityComplianceDashboard: React.FC = () => {
             data: TRANSLATED_COMPLIANCE_STATUS,
             color: ['#10b981', '#f59e0b', '#ef4444']
         }]
-    };
+    }), [TRANSLATED_COMPLIANCE_STATUS]);
 
     // Radar Chart
-    const radarOption: EChartsOption = {
+    const radarOption: EChartsOption = useMemo(() => ({
         title: { text: '' },
         tooltip: {},
         legend: { data: [t('strategic'), t('tactical')], bottom: 0, show: true },
@@ -247,7 +256,91 @@ export const SupplierQualityComplianceDashboard: React.FC = () => {
             data: TRANSLATED_RADAR_DATA,
             areaStyle: { opacity: 0.2 }
         }]
-    };
+    }), [TRANSLATED_RADAR_INDICATORS, TRANSLATED_RADAR_DATA, t]);
+
+    // Defects & Inspections (Dual Y-Axis Bar Chart)
+    const defectsBarOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10 } },
+        grid: { left: isRTL ? 50 : 50, right: isRTL ? 50 : 50, top: 10, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: DEFECTS_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: [
+            {
+                type: 'value',
+                name: t('defects'),
+                position: isRTL ? 'right' : 'left',
+                axisLine: { show: true, lineStyle: { color: '#3b82f6' } },
+                axisTick: { show: false },
+                splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+                axisLabel: { color: '#9ca3af', fontSize: 10 },
+            },
+            {
+                type: 'value',
+                name: t('inspections'),
+                position: isRTL ? 'left' : 'right',
+                axisLine: { show: true, lineStyle: { color: '#93c5fd' } },
+                axisTick: { show: false },
+                splitLine: { show: false },
+                axisLabel: { color: '#9ca3af', fontSize: 10 },
+            }
+        ],
+        series: [
+            {
+                name: t('defects'),
+                type: 'bar',
+                yAxisIndex: 0,
+                data: DEFECTS_BY_SUPPLIER.map(d => d.Defects),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            },
+            {
+                name: t('inspections'),
+                type: 'bar',
+                yAxisIndex: 1,
+                data: DEFECTS_BY_SUPPLIER.map(d => d.Inspections),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            }
+        ],
+    }), [isRTL, t]);
+
+    // Quality by Supplier (Bar Chart)
+    const qualityBarOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 10, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: QUALITY_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            min: 0,
+            max: 100,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            name: t('score'),
+            type: 'bar',
+            data: QUALITY_BY_SUPPLIER.map(d => d.Score),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -266,9 +359,9 @@ export const SupplierQualityComplianceDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -305,51 +398,22 @@ export const SupplierQualityComplianceDashboard: React.FC = () => {
                     </>
                 ) : (
                     <>
-                        {/* Recharts: Defects & Inspections (Bar) */}
+                        {/* ECharts: Defects & Inspections (Dual Y-Axis Bar) */}
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow animate-fade-in-up">
                             <div className={`mb-4 ${isRTL ? 'text-right' : ''}`}>
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('defect_analysis')}</h3>
                                 <p className="text-xs text-gray-400">{t('by_supplier')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={TRANSLATED_DEFECTS_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis yAxisId="left" orientation={isRTL ? 'right' : 'left'} stroke="#8884d8" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <YAxis yAxisId="right" orientation={isRTL ? 'left' : 'right'} stroke="#82ca9d" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar yAxisId="left" dataKey={t('defects')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name={t('defects')} animationDuration={1000} />
-                                        <Bar yAxisId="right" dataKey={t('inspections')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name={t('inspections')} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={defectsBarOption} style={{ height: '220px', width: '100%' }} />
                         </div>
 
-                        {/* Recharts: Quality by Supplier (Bar) */}
+                        {/* ECharts: Quality by Supplier (Bar) */}
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow animate-fade-in-up">
                             <div className={`mb-4 ${isRTL ? 'text-right' : ''}`}>
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('quality_scores')}</h3>
                                 <p className="text-xs text-gray-400">{t('by_supplier')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={TRANSLATED_QUALITY_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} domain={[0, 100]} orientation={isRTL ? 'right' : 'left'} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey={t('score')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={qualityBarOption} style={{ height: '220px', width: '100%' }} />
                         </div>
                     </>
                 )}

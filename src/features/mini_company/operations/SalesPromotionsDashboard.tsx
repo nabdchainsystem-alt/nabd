@@ -1,15 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
-} from 'recharts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import {
     Megaphone, CurrencyDollar, ChartBar, Users, TrendUp, Warning,
-    Info, ArrowsOut,
+    Info, ArrowsOut, ArrowsIn,
     CaretLeft, CaretRight, RocketLaunch, Tag, Calendar, Percent
 } from 'phosphor-react';
 import { SalesPromotionsInfo } from './SalesPromotionsInfo';
@@ -45,37 +42,26 @@ const TABLE_DATA = [
     { id: 6, name: 'Launch Event 2', type: 'Event', start: '2026-02-01', end: '2026-02-05', budget: 30000, revenue: 0, roi: 0, status: 'Pending' },
 ];
 
-// --- Sub-components ---
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white dark:bg-monday-dark-surface p-3 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{label}</p>
-                {payload.map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 mt-1">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }}></div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {entry.name}: <span className="font-bold text-gray-900 dark:text-white">
-                                {entry.name.includes('%') || entry.name === 'Conversion' ? `${entry.value}%` : formatCurrency(entry.value, 'USD', '$')}
-                            </span>
-                        </p>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    return null;
-};
-
 interface SalesPromotionsDashboardProps {
     hideFullscreen?: boolean;
 }
 
 export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> = ({ hideFullscreen = false }) => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('sales-promotions-dashboard', 800);
+
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // Table State
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' | null }>({ key: 'roi', direction: 'desc' });
@@ -114,36 +100,36 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
     };
 
     // Translated data arrays
-    const translatedRevenueTypeData = [
+    const translatedRevenueTypeData = useMemo(() => [
         { value: 45, name: t('direct_discount') },
         { value: 25, name: t('coupon_code') },
         { value: 20, name: t('bogo') },
         { value: 10, name: t('free_shipping') },
-    ];
+    ], [t]);
 
-    const statusTranslations: Record<string, string> = {
+    const statusTranslations: Record<string, string> = useMemo(() => ({
         'Active': t('active'),
         'Completed': t('completed'),
         'Pending': t('pending'),
-    };
+    }), [t]);
 
     // KPI Config
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '1', label: t('campaigns_active'), subtitle: t('live_promotional_events'), value: '4', change: t('stable'), trend: 'neutral', icon: <Megaphone size={18} />, sparklineData: [3, 4, 5, 4, 3, 4, 4] },
-        { id: '2', label: t('total_spend'), subtitle: t('marketing_budget_used'), value: '0', rawValue: 42500, isCurrency: true, change: '+12%', trend: 'down', icon: <Tag size={18} />, sparklineData: [32, 35, 38, 40, 41, 42, 42.5] },
-        { id: '3', label: t('revenue_from_promo'), subtitle: t('attributed_gross_volume'), value: '0', rawValue: 284500, isCurrency: true, change: '+24%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [180, 200, 220, 245, 260, 275, 284.5] },
-        { id: '4', label: t('overall_roi'), subtitle: t('campaign_profitability'), value: '569%', change: '+45%', trend: 'up', icon: <TrendUp size={18} />, sparklineData: [380, 420, 460, 500, 530, 550, 569] },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('campaigns_active'), subtitle: t('live_promotional_events'), value: '4', change: t('stable'), trend: 'neutral' as const, icon: <Megaphone size={18} />, sparklineData: [3, 4, 5, 4, 3, 4, 4] },
+        { id: '2', label: t('total_spend'), subtitle: t('marketing_budget_used'), value: '0', rawValue: 42500, isCurrency: true, change: '+12%', trend: 'down' as const, icon: <Tag size={18} />, sparklineData: [32, 35, 38, 40, 41, 42, 42.5] },
+        { id: '3', label: t('revenue_from_promo'), subtitle: t('attributed_gross_volume'), value: '0', rawValue: 284500, isCurrency: true, change: '+24%', trend: 'up' as const, icon: <CurrencyDollar size={18} />, sparklineData: [180, 200, 220, 245, 260, 275, 284.5] },
+        { id: '4', label: t('overall_roi'), subtitle: t('campaign_profitability'), value: '569%', change: '+45%', trend: 'up' as const, icon: <TrendUp size={18} />, sparklineData: [380, 420, 460, 500, 530, 550, 569] },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '5', label: t('promo_conversion'), subtitle: t('engaged_vs_purchased'), value: '18.4%', change: '+3.2%', trend: 'up', icon: <Percent size={18} />, sparklineData: [12, 13.5, 15, 16, 17, 17.8, 18.4] },
-        { id: '6', label: t('incremental_sales'), subtitle: t('above_organic_baseline'), value: '0', rawValue: 105000, isCurrency: true, change: '+18%', trend: 'up', icon: <RocketLaunch size={18} />, sparklineData: [75, 80, 85, 90, 95, 100, 105] },
-        { id: '7', label: t('engagement_rate'), subtitle: t('clicks_engagement_avg'), value: '4.2%', change: '+1.1%', trend: 'up', icon: <Users size={18} />, sparklineData: [2.8, 3.2, 3.5, 3.8, 4, 4.1, 4.2] },
-        { id: '8', label: t('coupon_redemption'), subtitle: t('codes_used_issued'), value: '32.5%', change: '+5.2%', trend: 'up', icon: <Tag size={18} />, sparklineData: [22, 24, 26, 28, 30, 31, 32.5] },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('promo_conversion'), subtitle: t('engaged_vs_purchased'), value: '18.4%', change: '+3.2%', trend: 'up' as const, icon: <Percent size={18} />, sparklineData: [12, 13.5, 15, 16, 17, 17.8, 18.4] },
+        { id: '6', label: t('incremental_sales'), subtitle: t('above_organic_baseline'), value: '0', rawValue: 105000, isCurrency: true, change: '+18%', trend: 'up' as const, icon: <RocketLaunch size={18} />, sparklineData: [75, 80, 85, 90, 95, 100, 105] },
+        { id: '7', label: t('engagement_rate'), subtitle: t('clicks_engagement_avg'), value: '4.2%', change: '+1.1%', trend: 'up' as const, icon: <Users size={18} />, sparklineData: [2.8, 3.2, 3.5, 3.8, 4, 4.1, 4.2] },
+        { id: '8', label: t('coupon_redemption'), subtitle: t('codes_used_issued'), value: '32.5%', change: '+5.2%', trend: 'up' as const, icon: <Tag size={18} />, sparklineData: [22, 24, 26, 28, 30, 31, 32.5] },
+    ], [t]);
 
     // ECharts Revenue Type Pie Option
-    const typePieOption: EChartsOption = {
+    const typePieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
         legend: { bottom: '0%', left: 'center', textStyle: { fontSize: 10, color: '#94a3b8' } },
         series: [{
@@ -155,10 +141,10 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
             emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
             data: translatedRevenueTypeData.map((d, i) => ({ ...d, itemStyle: { color: COLORS[i % COLORS.length] } }))
         }]
-    };
+    }), [translatedRevenueTypeData]);
 
     // ECharts Impact Bubble Option
-    const impactBubbleOption: EChartsOption = {
+    const impactBubbleOption: EChartsOption = useMemo(() => ({
         tooltip: {
             trigger: 'item',
             formatter: (params: any) => {
@@ -184,7 +170,104 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
             type: 'scatter',
             itemStyle: { color: '#f43f5e' }
         }]
-    };
+    }), [t]);
+
+    // ECharts Campaign Performance Option
+    const campaignPerformanceOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: REVENUE_PER_CAMPAIGN_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            name: t('revenue'),
+            type: 'bar',
+            data: REVENUE_PER_CAMPAIGN_DATA.map(d => d.revenue),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL, t]);
+
+    // ECharts Conversion by Campaign Option
+    const conversionByCampaignOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: REVENUE_PER_CAMPAIGN_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            name: t('conv_percent'),
+            type: 'bar',
+            data: REVENUE_PER_CAMPAIGN_DATA.map(d => d.conversion),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL, t]);
+
+    // ECharts Campaign ROI Analysis Option
+    const campaignRoiOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, textStyle: { fontSize: 10, color: '#94a3b8' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: REVENUE_PER_CAMPAIGN_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 9 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('revenue'),
+                type: 'bar',
+                data: REVENUE_PER_CAMPAIGN_DATA.map(d => d.revenue),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            },
+            {
+                name: t('conv_percent'),
+                type: 'bar',
+                data: REVENUE_PER_CAMPAIGN_DATA.map(d => d.conversion),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            }
+        ],
+    }), [isRTL, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -205,9 +288,9 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
                         <button
                             onClick={toggleFullScreen}
                             className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                            title={t('full_screen')}
+                            title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                         >
-                            <ArrowsOut size={18} />
+                            {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                         </button>
                     )}
                     <button
@@ -247,15 +330,7 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
                                 <p className="text-xs text-gray-400 mt-1">{t('revenue_per_campaign')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={REVENUE_PER_CAMPAIGN_DATA} margin={{ left: -15, right: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={campaignPerformanceOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -272,15 +347,7 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
                                 <p className="text-xs text-gray-400 mt-1">{t('conversion_efficiency')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={REVENUE_PER_CAMPAIGN_DATA} margin={{ left: 10, right: 20 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" fontSize={11} tick={{ fill: '#94a3b8' }} />
-                                        <YAxis fontSize={12} tick={{ fill: '#94a3b8' }} />
-                                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Bar dataKey="conversion" name="Conv %" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={conversionByCampaignOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -417,17 +484,7 @@ export const SalesPromotionsDashboard: React.FC<SalesPromotionsDashboardProps> =
                                 <p className="text-[10px] text-gray-400 mt-1 italic leading-tight">{t('budget_vs_revenue')}</p>
                             </div>
                             <div className="flex-1 min-h-[300px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={REVENUE_PER_CAMPAIGN_DATA} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
-                                        <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar dataKey="revenue" name={t('revenue')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
-                                        <Bar dataKey="conversion" name={t('conv_percent')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={campaignRoiOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                             <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50">
                                 <p className="text-[10px] text-blue-700 dark:text-blue-400 leading-normal text-start">

@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, TrendUp, Users, UserPlus, Warning, Activity, User, Wallet } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, TrendUp, Users, UserPlus, Warning, Activity, User, Wallet } from 'phosphor-react';
 import { CustomerOverviewInfo } from './CustomerOverviewInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -22,7 +21,17 @@ const CUSTOMER_LIST_DATA = [
 export const CustomerOverviewDashboard: React.FC = () => {
     const { currency } = useAppContext();
     const { t, dir } = useLanguage();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
 
     // --- Translated KPI Data ---
     const TOP_KPIS = useMemo(() => [
@@ -84,7 +93,7 @@ export const CustomerOverviewDashboard: React.FC = () => {
     })), [t]);
 
     // Loading state for smooth entrance animation
-    const isLoading = useFirstMountLoading('customer-overview-dashboard', 1200);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -93,7 +102,7 @@ export const CustomerOverviewDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -106,10 +115,10 @@ export const CustomerOverviewDashboard: React.FC = () => {
             data: CUSTOMER_DISTRIBUTION,
             color: ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#ef4444']
         }]
-    };
+    }), [CUSTOMER_DISTRIBUTION]);
 
     // Engagement Status Pie
-    const engagementPieOption: EChartsOption = {
+    const engagementPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -121,10 +130,10 @@ export const CustomerOverviewDashboard: React.FC = () => {
             data: ENGAGEMENT_STATUS,
             color: ['#10b981', '#3b82f6', '#ef4444']
         }]
-    };
+    }), [ENGAGEMENT_STATUS]);
 
     // Sunburst (Radial Map)
-    const sunburstOption: EChartsOption = {
+    const sunburstOption: EChartsOption = useMemo(() => ({
         title: { text: 'Value Density', left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { trigger: 'item' },
         series: {
@@ -134,7 +143,73 @@ export const CustomerOverviewDashboard: React.FC = () => {
             label: { rotate: 'radial' },
             itemStyle: { borderRadius: 4, borderWidth: 2 }
         }
-    };
+    }), [RADIAL_DATA]);
+
+    // Customer Growth Bar Chart
+    const customerGrowthOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: CUSTOMERS_BY_MONTH.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [
+            {
+                name: 'Total',
+                type: 'bar',
+                data: CUSTOMERS_BY_MONTH.map(d => d.Total),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            },
+            {
+                name: 'New',
+                type: 'bar',
+                data: CUSTOMERS_BY_MONTH.map(d => d.New),
+                itemStyle: { color: '#dbeafe', borderRadius: [4, 4, 0, 0] },
+                barWidth: 20,
+            },
+        ],
+    }), [CUSTOMERS_BY_MONTH, isRTL]);
+
+    // Revenue by Segment Bar Chart
+    const revenueBySegmentOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 60, right: isRTL ? 60 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: REVENUE_BY_SEGMENT.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: REVENUE_BY_SEGMENT.map(d => d.Revenue),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [REVENUE_BY_SEGMENT, isRTL]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -143,7 +218,7 @@ export const CustomerOverviewDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <Users size={28} className="text-indigo-600 dark:text-indigo-400 mt-1" />
+                    <Users size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('customer_overview')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('customer_overview_desc')}</p>
@@ -152,16 +227,16 @@ export const CustomerOverviewDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-indigo-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -191,21 +266,7 @@ export const CustomerOverviewDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('customer_growth')}</h3>
                             <p className="text-xs text-gray-400">{t('total_vs_new')}</p>
                         </div>
-                        <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={CUSTOMERS_BY_MONTH} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="Total" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} animationDuration={1000} />
-                                    <Bar dataKey="New" fill="#dbeafe" radius={[4, 4, 0, 0]} barSize={20} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={customerGrowthOption} style={{ height: '220px', width: '100%' }} />
                     </div>
                 )}
 
@@ -219,20 +280,7 @@ export const CustomerOverviewDashboard: React.FC = () => {
                             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('revenue_by_segment')}</h3>
                             <p className="text-xs text-gray-400">{t('total_revenue')}</p>
                         </div>
-                        <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={REVENUE_BY_SEGMENT} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <MemoizedChart option={revenueBySegmentOption} style={{ height: '220px', width: '100%' }} />
                     </div>
                 )}
 

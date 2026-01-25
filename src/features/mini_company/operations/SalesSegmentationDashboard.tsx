@@ -1,15 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
-} from 'recharts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
 import {
     Users, Medal, ChartLine, CurrencyDollar, TrendUp, Warning,
-    Info, ArrowsOut,
+    Info, ArrowsOut, ArrowsIn,
     CaretLeft, CaretRight, Star, Heart, Repeat, UserPlus
 } from 'phosphor-react';
 import { SalesSegmentationInfo } from './SalesSegmentationInfo';
@@ -52,35 +49,26 @@ const TABLE_DATA = [
     { id: 7, name: 'Michael Chen', segment: 'High Value', orders: 28, revenue: 18900, lastDate: '2026-01-14', score: 92 },
 ];
 
-// --- Sub-components ---
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white dark:bg-monday-dark-surface p-3 border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{label}</p>
-                {payload.map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 mt-1 px-1">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }}></div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {entry.name}: <span className="font-bold text-gray-900 dark:text-white">{entry.value}</span>
-                        </p>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    return null;
-};
-
 interface SalesSegmentationDashboardProps {
     hideFullscreen?: boolean;
 }
 
 export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProps> = ({ hideFullscreen = false }) => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('sales-segmentation-dashboard', 800);
+
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // Table State
     const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' | null }>({ key: 'revenue', direction: 'desc' });
@@ -119,29 +107,29 @@ export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProp
     };
 
     // KPI Config
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '1', label: t('total_customers'), subtitle: t('lifetime_registered_base'), value: '4,850', change: '+3.2%', trend: 'up', icon: <Users size={18} />, sparklineData: [4200, 4350, 4480, 4580, 4680, 4780, 4850] },
-        { id: '2', label: t('active_customers'), subtitle: t('last_90_days_activity'), value: '3,240', change: '+5.4%', trend: 'up', icon: <Star size={18} />, sparklineData: [2800, 2920, 3020, 3080, 3140, 3200, 3240] },
-        { id: '3', label: t('repeat_customer_percent'), subtitle: t('loyalty_retention_rate'), value: '64.2%', change: '+1.5%', trend: 'up', icon: <Repeat size={18} />, sparklineData: [58, 59.5, 60.8, 62, 63, 63.8, 64.2] },
-        { id: '4', label: t('avg_clv'), subtitle: t('est_lifetime_value'), value: '0', rawValue: 12450, isCurrency: true, change: '+8.4%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [10.2, 10.8, 11.2, 11.6, 12, 12.2, 12.45] },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('total_customers'), subtitle: t('lifetime_registered_base'), value: '4,850', change: '+3.2%', trend: 'up' as const, icon: <Users size={18} />, sparklineData: [4200, 4350, 4480, 4580, 4680, 4780, 4850] },
+        { id: '2', label: t('active_customers'), subtitle: t('last_90_days_activity'), value: '3,240', change: '+5.4%', trend: 'up' as const, icon: <Star size={18} />, sparklineData: [2800, 2920, 3020, 3080, 3140, 3200, 3240] },
+        { id: '3', label: t('repeat_customer_percent'), subtitle: t('loyalty_retention_rate'), value: '64.2%', change: '+1.5%', trend: 'up' as const, icon: <Repeat size={18} />, sparklineData: [58, 59.5, 60.8, 62, 63, 63.8, 64.2] },
+        { id: '4', label: t('avg_clv'), subtitle: t('est_lifetime_value'), value: '0', rawValue: 12450, isCurrency: true, change: '+8.4%', trend: 'up' as const, icon: <CurrencyDollar size={18} />, sparklineData: [10.2, 10.8, 11.2, 11.6, 12, 12.2, 12.45] },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '5', label: t('avg_orders'), subtitle: t('per_customer_frequency'), value: '4.2', change: '+0.5', trend: 'up', icon: <ChartLine size={18} />, sparklineData: [3.5, 3.7, 3.8, 3.9, 4, 4.1, 4.2] },
-        { id: '6', label: t('churn_rate_percent'), subtitle: t('lost_customer_ratio'), value: '12.4%', change: '-0.8%', trend: 'up', icon: <Warning size={18} />, sparklineData: [15, 14.5, 14, 13.5, 13, 12.8, 12.4] },
-        { id: '7', label: t('engagement_score'), subtitle: t('rfv_avg'), value: '78/100', change: '+4%', trend: 'up', icon: <Heart size={18} />, sparklineData: [68, 70, 72, 74, 75, 77, 78] },
-        { id: '8', label: t('new_customers'), subtitle: t('monthly_acquisitions'), value: '186', change: '+12%', trend: 'up', icon: <UserPlus size={18} />, sparklineData: [145, 152, 160, 168, 175, 180, 186] },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('avg_orders'), subtitle: t('per_customer_frequency'), value: '4.2', change: '+0.5', trend: 'up' as const, icon: <ChartLine size={18} />, sparklineData: [3.5, 3.7, 3.8, 3.9, 4, 4.1, 4.2] },
+        { id: '6', label: t('churn_rate_percent'), subtitle: t('lost_customer_ratio'), value: '12.4%', change: '-0.8%', trend: 'up' as const, icon: <Warning size={18} />, sparklineData: [15, 14.5, 14, 13.5, 13, 12.8, 12.4] },
+        { id: '7', label: t('engagement_score'), subtitle: t('rfv_avg'), value: '78/100', change: '+4%', trend: 'up' as const, icon: <Heart size={18} />, sparklineData: [68, 70, 72, 74, 75, 77, 78] },
+        { id: '8', label: t('new_customers'), subtitle: t('monthly_acquisitions'), value: '186', change: '+12%', trend: 'up' as const, icon: <UserPlus size={18} />, sparklineData: [145, 152, 160, 168, 175, 180, 186] },
+    ], [t]);
 
     // ECharts Revenue Pie Option with translations
-    const translatedRevenueData = [
+    const translatedRevenueData = useMemo(() => [
         { value: 55, name: t('high_value') },
         { value: 25, name: t('medium_value') },
         { value: 12, name: t('low_value') },
         { value: 8, name: t('at_risk') },
-    ];
+    ], [t]);
 
-    const revenuePieOption: EChartsOption = {
+    const revenuePieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
         legend: { bottom: '0%', left: 'center', textStyle: { fontSize: 10, color: '#94a3b8' } },
         series: [{
@@ -153,10 +141,10 @@ export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProp
             emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
             data: translatedRevenueData.map((d, i) => ({ ...d, itemStyle: { color: COLORS[i % COLORS.length] } }))
         }]
-    };
+    }), [translatedRevenueData]);
 
     // ECharts Loyalty Curve Scatter Option
-    const loyaltyScatterOption: EChartsOption = {
+    const loyaltyScatterOption: EChartsOption = useMemo(() => ({
         tooltip: {
             trigger: 'item',
             formatter: (params: any) => {
@@ -181,7 +169,102 @@ export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProp
             type: 'scatter',
             itemStyle: { color: '#8b5cf6' }
         }]
-    };
+    }), [t, currency.code, currency.symbol]);
+
+    // ECharts Customer Segmentation Option
+    const customerSegmentationOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: CUSTOMERS_PER_SEGMENT_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 11 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+        },
+        series: [{
+            type: 'bar',
+            data: CUSTOMERS_PER_SEGMENT_DATA.map(d => d.count),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 50,
+        }],
+    }), [isRTL]);
+
+    // ECharts Repeat vs One-Time Option (Stacked Bar)
+    const repeatVsOnetimeOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, textStyle: { fontSize: 10, color: '#94a3b8' } },
+        grid: { left: isRTL ? 20 : 30, right: isRTL ? 30 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: REPEAT_VS_ONETIME_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 12 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            show: false,
+        },
+        series: [
+            {
+                name: t('repeat_percent'),
+                type: 'bar',
+                stack: 'total',
+                data: REPEAT_VS_ONETIME_DATA.map(d => d.repeat),
+                itemStyle: { color: '#3b82f6', borderRadius: [0, 0, 0, 0] },
+                barWidth: 24,
+            },
+            {
+                name: t('onetime_percent'),
+                type: 'bar',
+                stack: 'total',
+                data: REPEAT_VS_ONETIME_DATA.map(d => d.onetime),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 24,
+            }
+        ],
+    }), [isRTL, t]);
+
+    // ECharts Customer Value Distribution Option
+    const customerValueOption: EChartsOption = useMemo(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, textStyle: { fontSize: 10, color: '#94a3b8' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 50 },
+        xAxis: {
+            type: 'category',
+            data: CUSTOMERS_PER_SEGMENT_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            name: t('revenue'),
+            type: 'bar',
+            data: CUSTOMERS_PER_SEGMENT_DATA.map(d => d.revenue),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -202,9 +285,9 @@ export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProp
                         <button
                             onClick={toggleFullScreen}
                             className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                            title={t('full_screen')}
+                            title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                         >
-                            <ArrowsOut size={18} />
+                            {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                         </button>
                     )}
                     <button
@@ -244,15 +327,7 @@ export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProp
                                 <p className="text-xs text-gray-400 mt-1">{t('count_per_segment')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={CUSTOMERS_PER_SEGMENT_DATA} margin={{ left: -10, right: 10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Bar dataKey="count" name={t('customers')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={50} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={customerSegmentationOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -269,17 +344,7 @@ export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProp
                                 <p className="text-xs text-gray-400 mt-1">{t('loyalty_depth_segment')}</p>
                             </div>
                             <div className="h-[260px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={REPEAT_VS_ONETIME_DATA} margin={{ left: 10, right: 10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                                        <YAxis hide />
-                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                                        <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                        <Bar dataKey="repeat" name={t('repeat_percent')} stackId="a" fill="#3b82f6" barSize={24} animationDuration={1000} />
-                                        <Bar dataKey="onetime" name={t('onetime_percent')} stackId="a" fill="#3b82f6" barSize={24} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                <MemoizedChart option={repeatVsOnetimeOption} style={{ height: '100%', width: '100%' }} />
                             </div>
                         </div>
                     )}
@@ -412,16 +477,7 @@ export const SalesSegmentationDashboard: React.FC<SalesSegmentationDashboardProp
                             <p className="text-[10px] text-gray-400 mt-1 italic leading-tight">{t('revenue_contribution_tier')}</p>
                         </div>
                         <div className="flex-1 min-h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={CUSTOMERS_PER_SEGMENT_DATA} margin={{ left: -10, right: 10 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
-                                    <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="revenue" name={t('revenue')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={customerValueOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                         <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50">
                             <p className="text-[10px] text-blue-700 dark:text-blue-400 leading-normal">

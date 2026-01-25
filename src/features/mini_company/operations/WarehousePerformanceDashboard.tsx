@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, Buildings, Cube, Clock, Lightning, Warning, ChartBar, CheckCircle } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, Buildings, Cube, Clock, Lightning, Warning, ChartBar, CheckCircle } from 'phosphor-react';
 import { WarehousePerformanceInfo } from './WarehousePerformanceInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 
@@ -57,24 +56,35 @@ const UTILIZATION_GRID = [
 ];
 
 export const WarehousePerformanceDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('warehouse-performance-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // --- KPI Data ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
-        { id: '1', label: t('warehouses_count'), subtitle: t('active_facilities'), value: '4', change: '0', trend: 'neutral', icon: <Buildings size={18} />, sparklineData: [4, 4, 4, 4, 4, 4], color: 'blue' },
-        { id: '2', label: t('total_utilization'), subtitle: t('capacity_used'), value: '78%', change: '+3%', trend: 'up', icon: <Cube size={18} />, sparklineData: [70, 72, 75, 76, 77, 78], color: 'blue' },
-        { id: '3', label: t('picking_time_avg'), subtitle: t('per_order'), value: '14m', change: '-2m', trend: 'up', icon: <Clock size={18} />, sparklineData: [18, 17, 16, 15, 15, 14], color: 'blue' },
-        { id: '4', label: t('fulfillment_speed'), subtitle: t('orders_per_hour'), value: '45', change: '+5', trend: 'up', icon: <Lightning size={18} />, sparklineData: [35, 38, 40, 42, 44, 45], color: 'blue' },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('warehouses_count'), subtitle: t('active_facilities'), value: '4', change: '0', trend: 'neutral' as const, icon: <Buildings size={18} />, sparklineData: [4, 4, 4, 4, 4, 4], color: 'blue' },
+        { id: '2', label: t('total_utilization'), subtitle: t('capacity_used'), value: '78%', change: '+3%', trend: 'up' as const, icon: <Cube size={18} />, sparklineData: [70, 72, 75, 76, 77, 78], color: 'blue' },
+        { id: '3', label: t('picking_time_avg'), subtitle: t('per_order'), value: '14m', change: '-2m', trend: 'up' as const, icon: <Clock size={18} />, sparklineData: [18, 17, 16, 15, 15, 14], color: 'blue' },
+        { id: '4', label: t('fulfillment_speed'), subtitle: t('orders_per_hour'), value: '45', change: '+5', trend: 'up' as const, icon: <Lightning size={18} />, sparklineData: [35, 38, 40, 42, 44, 45], color: 'blue' },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
-        { id: '5', label: t('storage_efficiency'), subtitle: t('cubic_usage'), value: '88%', change: '+2%', trend: 'up', icon: <ChartBar size={18} />, sparklineData: [84, 85, 86, 87, 88, 88], color: 'blue' },
-        { id: '6', label: t('error_rate'), subtitle: t('pick_pack'), value: '0.8%', change: '-0.1%', trend: 'up', icon: <Warning size={18} />, sparklineData: [1.2, 1.1, 1.0, 0.9, 0.9, 0.8], color: 'blue' },
-        { id: '7', label: t('capacity_alerts'), subtitle: t('near_full'), value: '1', change: '0', trend: 'down', icon: <Warning size={18} />, sparklineData: [2, 2, 1, 1, 1, 1], color: 'blue' },
-        { id: '8', label: t('on_time_ship'), subtitle: t('fulfillment_pct'), value: '96.5%', change: '+1.2%', trend: 'up', icon: <CheckCircle size={18} />, sparklineData: [93, 94, 94.5, 95, 95.8, 96.5], color: 'blue' },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('storage_efficiency'), subtitle: t('cubic_usage'), value: '88%', change: '+2%', trend: 'up' as const, icon: <ChartBar size={18} />, sparklineData: [84, 85, 86, 87, 88, 88], color: 'blue' },
+        { id: '6', label: t('error_rate'), subtitle: t('pick_pack'), value: '0.8%', change: '-0.1%', trend: 'up' as const, icon: <Warning size={18} />, sparklineData: [1.2, 1.1, 1.0, 0.9, 0.9, 0.8], color: 'blue' },
+        { id: '7', label: t('capacity_alerts'), subtitle: t('near_full'), value: '1', change: '0', trend: 'down' as const, icon: <Warning size={18} />, sparklineData: [2, 2, 1, 1, 1, 1], color: 'blue' },
+        { id: '8', label: t('on_time_ship'), subtitle: t('fulfillment_pct'), value: '96.5%', change: '+1.2%', trend: 'up' as const, icon: <CheckCircle size={18} />, sparklineData: [93, 94, 94.5, 95, 95.8, 96.5], color: 'blue' },
+    ], [t]);
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -82,8 +92,82 @@ export const WarehousePerformanceDashboard: React.FC = () => {
 
     // --- ECharts Options ---
 
+    // Bar Chart - Warehouse Performance (grouped)
+    const warehousePerformanceOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, data: [t('picking'), t('shipping'), t('storage')] },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: WAREHOUSE_PERFORMANCE.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('picking'),
+                type: 'bar',
+                data: WAREHOUSE_PERFORMANCE.map(d => d.picking),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 10,
+            },
+            {
+                name: t('shipping'),
+                type: 'bar',
+                data: WAREHOUSE_PERFORMANCE.map(d => d.shipping),
+                itemStyle: { color: '#60a5fa', borderRadius: [4, 4, 0, 0] },
+                barWidth: 10,
+            },
+            {
+                name: t('storage'),
+                type: 'bar',
+                data: WAREHOUSE_PERFORMANCE.map(d => d.storage),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 10,
+            },
+        ],
+    }), [isRTL, t]);
+
+    // Bar Chart - Daily Throughput
+    const dailyThroughputOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: DAILY_THROUGHPUT.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: DAILY_THROUGHPUT.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL]);
+
     // Pie Chart - Capacity Usage
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -95,10 +179,10 @@ export const WarehousePerformanceDashboard: React.FC = () => {
             data: CAPACITY_USAGE,
             color: ['#8b5cf6', '#e5e7eb']
         }]
-    };
+    }), []);
 
     // Pie Chart - Order Status
-    const orderStatusPieOption: EChartsOption = {
+    const orderStatusPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -110,10 +194,10 @@ export const WarehousePerformanceDashboard: React.FC = () => {
             data: ORDER_STATUS,
             color: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444']
         }]
-    };
+    }), []);
 
     // Heatmap (Grid)
-    const gridOption: EChartsOption = {
+    const gridOption: EChartsOption = useMemo(() => ({
         title: { text: 'Zone Efficiency', left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         tooltip: { position: 'top' },
         grid: { height: '70%', top: '15%' },
@@ -130,7 +214,7 @@ export const WarehousePerformanceDashboard: React.FC = () => {
             label: { show: true },
             emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
         }]
-    };
+    }), []);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -139,7 +223,7 @@ export const WarehousePerformanceDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <Buildings size={28} className="text-violet-600 dark:text-violet-400 mt-1" />
+                    <Buildings size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div>
                         <h1 className="text-2xl font-bold">{t('warehouse_perf')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('warehouse_perf_desc')}</p>
@@ -148,16 +232,16 @@ export const WarehousePerformanceDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-violet-600 dark:text-gray-400 dark:hover:text-violet-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title="Full Screen"
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-violet-600 dark:text-gray-400 dark:hover:text-violet-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-violet-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -178,7 +262,7 @@ export const WarehousePerformanceDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts: Performance per Warehouse */}
+                {/* ECharts: Performance per Warehouse */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title="Facility Throughput" />
@@ -190,26 +274,12 @@ export const WarehousePerformanceDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('activity_scores')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={WAREHOUSE_PERFORMANCE} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="picking" name="Picking" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={10} animationDuration={1000} />
-                                    <Bar dataKey="shipping" name="Shipping" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={10} animationDuration={1000} />
-                                    <Bar dataKey="storage" name="Storage" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={10} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={warehousePerformanceOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts: Daily Throughput */}
+                {/* ECharts: Daily Throughput */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title="Daily Throughput" />
@@ -221,18 +291,7 @@ export const WarehousePerformanceDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('orders_processed_per_day')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={DAILY_THROUGHPUT} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={dailyThroughputOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

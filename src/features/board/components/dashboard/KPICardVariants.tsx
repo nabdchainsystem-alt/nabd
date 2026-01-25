@@ -5,8 +5,8 @@ import { LineChart, Line, BarChart, Bar, AreaChart, Area, ResponsiveContainer, X
 // ============================================
 // SHARED SKELETON COMPONENTS
 // ============================================
-const ShimmerBox: React.FC<{ className?: string }> = ({ className = '' }) => (
-    <div className={`shimmer bg-zinc-200 dark:bg-monday-dark-hover rounded ${className}`} />
+const ShimmerBox: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className = '', style }) => (
+    <div className={`shimmer rounded ${className}`} style={style} />
 );
 
 // ============================================
@@ -419,7 +419,7 @@ const RadialKPICardSkeleton: React.FC = () => (
     <div className="flex flex-col items-center p-4 bg-white dark:bg-monday-dark-surface border border-zinc-200 dark:border-monday-dark-border rounded-xl shadow-sm">
         <ShimmerBox className="h-3 w-20 mb-3" />
         <div className="relative w-24 h-24">
-            <div className="w-full h-full rounded-full shimmer bg-zinc-200 dark:bg-monday-dark-hover" />
+            <div className="w-full h-full rounded-full shimmer" />
         </div>
         <div className="text-center mt-3">
             <ShimmerBox className="h-5 w-16 mb-1 mx-auto" />
@@ -836,6 +836,8 @@ export interface ChartSkeletonProps {
     showLegend?: boolean;
 }
 
+const BAR_HEIGHTS = [65, 45, 80, 55, 70, 40, 75, 50]; // Fixed heights for consistent skeleton
+
 export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({
     height = 'h-64',
     title,
@@ -849,14 +851,11 @@ export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({
             </div>
         )}
         <div className="flex-1 flex items-end justify-between gap-2 pb-4">
-            {[...Array(8)].map((_, i) => (
-                <div key={i} className="flex-1 flex flex-col justify-end">
-                    <ShimmerBox
-                        className="w-full rounded-t animate-pulse-subtle"
-                        style={{
-                            height: `${Math.random() * 60 + 30}%`,
-                            animationDelay: `${i * 100}ms`
-                        }}
+            {BAR_HEIGHTS.map((h, i) => (
+                <div key={i} className="flex-1 flex flex-col justify-end" style={{ height: '100%' }}>
+                    <div
+                        className="w-full rounded-t shimmer"
+                        style={{ height: `${h}%` }}
                     />
                 </div>
             ))}
@@ -919,7 +918,7 @@ export const PieChartSkeleton: React.FC<{ size?: number; title?: string }> = ({
     <div className="flex flex-col items-center p-4 bg-white dark:bg-monday-dark-surface border border-zinc-200 dark:border-monday-dark-border rounded-xl shadow-sm">
         {title && <ShimmerBox className="h-4 w-24 mb-4" />}
         <div
-            className="rounded-full shimmer bg-zinc-200 dark:bg-monday-dark-hover animate-pulse-subtle"
+            className="rounded-full shimmer"
             style={{ width: size, height: size }}
         />
         <div className="flex items-center gap-4 mt-4">
@@ -951,15 +950,15 @@ export const LineChartSkeleton: React.FC<{ height?: string; title?: string }> = 
                     <ShimmerBox key={i} className="h-3 w-8" />
                 ))}
             </div>
-            {/* Chart area with wave pattern */}
-            <div className="ml-12 h-full flex items-center">
-                <svg className="w-full h-3/4" viewBox="0 0 100 50" preserveAspectRatio="none">
+            {/* Chart area - shimmer box with line overlay */}
+            <div className="ml-12 h-full flex items-center relative overflow-hidden rounded-lg shimmer">
+                <svg className="w-full h-3/4 relative z-10" viewBox="0 0 100 50" preserveAspectRatio="none">
                     <path
                         d="M0,40 Q10,35 20,38 T40,30 T60,35 T80,25 T100,30"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="2"
-                        className="text-stone-200 dark:text-zinc-700 dark:text-monday-dark-text animate-pulse-subtle"
+                        className="text-zinc-400 dark:text-zinc-500"
                     />
                 </svg>
             </div>

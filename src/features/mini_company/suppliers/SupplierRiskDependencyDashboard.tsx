@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, Warning, ShieldWarning, LinkBreak, TreeStructure, Users, Prohibit, Scales } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, Warning, ShieldWarning, LinkBreak, TreeStructure, Users, Prohibit, Scales } from 'phosphor-react';
 import { SupplierRiskDependencyInfo } from './SupplierRiskDependencyInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { useLanguage } from '../../../contexts/LanguageContext';
@@ -98,7 +97,17 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
     const { t, dir } = useLanguage();
     const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('supplier-risk-dependency-dashboard', 1200);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
@@ -176,7 +185,7 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie: Dependency
-    const dependencyPieOption: EChartsOption = {
+    const dependencyPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { show: false },
         series: [{
@@ -188,10 +197,10 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
             label: { show: false },
             data: TRANSLATED_DEPENDENCY_LEVELS
         }]
-    };
+    }), [TRANSLATED_DEPENDENCY_LEVELS, t]);
 
     // Pie: Risk Categories
-    const riskPieOption: EChartsOption = {
+    const riskPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { show: false },
         series: [{
@@ -201,10 +210,10 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
             center: ['50%', '50%'],
             data: TRANSLATED_RISK_CATEGORIES
         }]
-    };
+    }), [TRANSLATED_RISK_CATEGORIES, t]);
 
     // Mitigation Status Pie
-    const mitigationPieOption: EChartsOption = {
+    const mitigationPieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -216,10 +225,10 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
             data: TRANSLATED_MITIGATION_STATUS,
             color: ['#10b981', '#3b82f6', '#f59e0b']
         }]
-    };
+    }), [TRANSLATED_MITIGATION_STATUS]);
 
     // Network Graph
-    const networkOption: EChartsOption = {
+    const networkOption: EChartsOption = useMemo(() => ({
         tooltip: {},
         legend: {
             data: [t('company'), t('tier_1'), t('tier_2')],
@@ -259,7 +268,67 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
                 edgeLength: [50, 100]
             }
         }]
-    };
+    }), [TRANSLATED_NETWORK_NODES, isRTL, t]);
+
+    // Spend Concentration (Bar Chart)
+    const spendConcentrationOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 10, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SPEND_CONCENTRATION.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            name: t('dependency_pct'),
+            type: 'bar',
+            data: SPEND_CONCENTRATION.map(d => d.Spend),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL, t]);
+
+    // Risk Score by Supplier (Bar Chart)
+    const riskScoreOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 10, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: RISK_SCORE_BY_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            min: 0,
+            max: 100,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f3f4f6' } },
+            axisLabel: { color: '#9ca3af', fontSize: 10 },
+        },
+        series: [{
+            name: t('score'),
+            type: 'bar',
+            data: RISK_SCORE_BY_SUPPLIER.map(d => d.Score),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 28,
+        }],
+    }), [isRTL, t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -278,9 +347,9 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -322,17 +391,7 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('exposure_analysis')}</h3>
                                 <p className="text-xs text-gray-400">{t('dependency_vs_risk')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={TRANSLATED_SPEND_CONCENTRATION} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
-                                        <Tooltip cursor={{ fill: '#f9fafb' }} />
-                                        <Bar dataKey={t('spend')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} name={t('dependency_pct')} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={spendConcentrationOption} style={{ height: '220px', width: '100%' }} />
                         </div>
 
                         <div className="col-span-2 min-h-[300px] bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow animate-fade-in-up">
@@ -340,20 +399,7 @@ export const SupplierRiskDependencyDashboard: React.FC = () => {
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 uppercase tracking-wider">{t('risk_scores')}</h3>
                                 <p className="text-xs text-gray-400">{t('by_supplier')}</p>
                             </div>
-                            <div className="h-[220px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={TRANSLATED_RISK_SCORE_BY_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} reversed={isRTL} />
-                                        <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} domain={[0, 100]} orientation={isRTL ? 'right' : 'left'} />
-                                        <Tooltip
-                                            cursor={{ fill: '#f9fafb' }}
-                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        />
-                                        <Bar dataKey={t('score')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={28} animationDuration={1000} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <MemoizedChart option={riskScoreOption} style={{ height: '220px', width: '100%' }} />
                         </div>
                     </>
                 )}

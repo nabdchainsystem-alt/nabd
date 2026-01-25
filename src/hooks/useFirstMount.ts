@@ -74,4 +74,27 @@ export function useFirstMountLoading(dashboardId: string, loadingDuration: numbe
     return isLoading;
 }
 
+/**
+ * Hook to manage loading state that shows on every mount.
+ *
+ * @param loadingDuration How long to show loading state (default: 0ms - disabled)
+ * @returns isLoading state - always false when duration is 0
+ */
+export function useLoadingAnimation(loadingDuration: number = 0): boolean {
+    // Always call hooks unconditionally to follow Rules of Hooks
+    const [isLoading, setIsLoading] = useState(loadingDuration > 0);
+
+    useEffect(() => {
+        // Skip timer if duration is 0 (disabled)
+        if (loadingDuration === 0) return;
+        const timer = setTimeout(() => setIsLoading(false), loadingDuration);
+        return () => clearTimeout(timer);
+    }, [loadingDuration]);
+
+    // Return false immediately when disabled
+    if (loadingDuration === 0) return false;
+
+    return isLoading;
+}
+
 export default useFirstMount;

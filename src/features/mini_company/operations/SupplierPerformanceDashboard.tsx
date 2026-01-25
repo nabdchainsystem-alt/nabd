@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { Users, Truck, Clock, CurrencyDollar, ShieldWarning, Warning, Star, Info, ArrowsOut, ChartPieSlice } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Users, Truck, Clock, CurrencyDollar, ShieldWarning, Warning, Star, Info, ArrowsOut, ArrowsIn, ChartPieSlice } from 'phosphor-react';
 import { SupplierPerformanceInfo } from './SupplierPerformanceInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { formatCurrency } from '../../../utils/formatters';
@@ -43,39 +42,111 @@ const SUPPLIER_DETAILS = [
 ];
 
 export const SupplierPerformanceDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('operations-supplier-performance-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+    const isLoading = useLoadingAnimation();
 
     const toggleFullScreen = () => {
         window.dispatchEvent(new Event('dashboard-toggle-fullscreen'));
     };
 
     // --- KPI Data ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '1', label: t('total_suppliers'), subtitle: t('active_suppliers'), value: '38', change: '+2', trend: 'up', icon: <Users size={18} />, sparklineData: [32, 34, 34, 35, 36, 37, 38] },
-        { id: '2', label: t('on_time_delivery_pct'), subtitle: t('performance'), value: '92.4%', change: '-1.2%', trend: 'down', icon: <Truck size={18} />, sparklineData: [95, 94, 93, 94, 93, 92, 92.4] },
-        { id: '3', label: t('avg_lead_time'), subtitle: t('days_to_deliver'), value: '14.2d', change: '-0.5d', trend: 'up', icon: <Clock size={18} />, sparklineData: [16, 15.5, 15, 14.8, 14.5, 14.3, 14.2] },
-        { id: '4', label: t('cost_variance'), subtitle: t('actual_vs_std'), value: '+3.5%', change: '+0.5%', trend: 'down', icon: <CurrencyDollar size={18} />, sparklineData: [2, 2.5, 3, 2.8, 3.2, 3.4, 3.5] },
-    ];
+    const TOP_KPIS = useMemo(() => [
+        { id: '1', label: t('total_suppliers'), subtitle: t('active_suppliers'), value: '38', change: '+2', trend: 'up' as const, icon: <Users size={18} />, sparklineData: [32, 34, 34, 35, 36, 37, 38] },
+        { id: '2', label: t('on_time_delivery_pct'), subtitle: t('performance'), value: '92.4%', change: '-1.2%', trend: 'down' as const, icon: <Truck size={18} />, sparklineData: [95, 94, 93, 94, 93, 92, 92.4] },
+        { id: '3', label: t('avg_lead_time'), subtitle: t('days_to_deliver'), value: '14.2d', change: '-0.5d', trend: 'up' as const, icon: <Clock size={18} />, sparklineData: [16, 15.5, 15, 14.8, 14.5, 14.3, 14.2] },
+        { id: '4', label: t('cost_variance'), subtitle: t('actual_vs_std'), value: '+3.5%', change: '+0.5%', trend: 'down' as const, icon: <CurrencyDollar size={18} />, sparklineData: [2, 2.5, 3, 2.8, 3.2, 3.4, 3.5] },
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean })[] = [
-        { id: '5', label: t('dependency_index'), subtitle: t('risk_0_100'), value: '65', change: '+5', trend: 'down', icon: <ShieldWarning size={18} />, sparklineData: [55, 58, 60, 62, 63, 64, 65] },
-        { id: '6', label: t('dispute_rate'), subtitle: t('issues_per_orders'), value: '2.1%', change: '-0.4%', trend: 'up', icon: <Warning size={18} />, sparklineData: [3.5, 3, 2.8, 2.5, 2.4, 2.2, 2.1] },
-        { id: '7', label: t('preferred_suppliers'), subtitle: t('strategic_partners'), value: '8', change: '0', trend: 'neutral', icon: <Star size={18} />, sparklineData: [6, 6, 7, 7, 8, 8, 8] },
-        { id: '8', label: t('supplier_concentration'), subtitle: t('top_3_spend_pct'), value: '73%', change: '-2%', trend: 'up', icon: <ChartPieSlice size={18} />, sparklineData: [78, 77, 76, 75, 74, 73.5, 73] },
-    ];
+    const SIDE_KPIS = useMemo(() => [
+        { id: '5', label: t('dependency_index'), subtitle: t('risk_0_100'), value: '65', change: '+5', trend: 'down' as const, icon: <ShieldWarning size={18} />, sparklineData: [55, 58, 60, 62, 63, 64, 65] },
+        { id: '6', label: t('dispute_rate'), subtitle: t('issues_per_orders'), value: '2.1%', change: '-0.4%', trend: 'up' as const, icon: <Warning size={18} />, sparklineData: [3.5, 3, 2.8, 2.5, 2.4, 2.2, 2.1] },
+        { id: '7', label: t('preferred_suppliers'), subtitle: t('strategic_partners'), value: '8', change: '0', trend: 'neutral' as const, icon: <Star size={18} />, sparklineData: [6, 6, 7, 7, 8, 8, 8] },
+        { id: '8', label: t('supplier_concentration'), subtitle: t('top_3_spend_pct'), value: '73%', change: '-2%', trend: 'up' as const, icon: <ChartPieSlice size={18} />, sparklineData: [78, 77, 76, 75, 74, 73.5, 73] },
+    ], [t]);
 
-    const RISK_DISTRIBUTION = [
+    const RISK_DISTRIBUTION = useMemo(() => [
         { name: t('low_risk'), value: 25 },
         { name: t('medium_risk'), value: 10 },
         { name: t('high_risk'), value: 3 },
-    ];
+    ], [t]);
 
     // --- ECharts Options ---
 
+    // Bar Chart - Spend per Supplier
+    const spendPerSupplierOption = useMemo<EChartsOption>(() => ({
+        tooltip: {
+            trigger: 'axis',
+            formatter: (params: any) => {
+                const p = params[0];
+                return `${p.name}<br/>${p.marker} ${formatCurrency(p.value, currency.code, currency.symbol)}`;
+            }
+        },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: SPEND_PER_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: SPEND_PER_SUPPLIER.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL, currency.code, currency.symbol]);
+
+    // Bar Chart - Lead Time per Supplier
+    const leadTimePerSupplierOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: LEAD_TIME_PER_SUPPLIER.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: LEAD_TIME_PER_SUPPLIER.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL]);
+
     // Pie Chart: Risk Distribution
-    const pieOption: EChartsOption = {
+    const pieOption: EChartsOption = useMemo(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -94,10 +165,10 @@ export const SupplierPerformanceDashboard: React.FC = () => {
                 }
             }))
         }]
-    };
+    }), [RISK_DISTRIBUTION, t]);
 
     // Scatter Matrix: Spend (X) vs Lead Time (Y) vs Risk (Bubble Size/Color)
-    const scatterOption: EChartsOption = {
+    const scatterOption: EChartsOption = useMemo(() => ({
         tooltip: {
             trigger: 'item',
             formatter: (params: any) => {
@@ -126,7 +197,7 @@ export const SupplierPerformanceDashboard: React.FC = () => {
                 shadowColor: 'rgba(0, 0, 0, 0.2)'
             }
         }]
-    };
+    }), [t, currency.code, currency.symbol]);
 
     const getRiskLabel = (risk: string) => {
         switch (risk) {
@@ -154,9 +225,9 @@ export const SupplierPerformanceDashboard: React.FC = () => {
                     <button
                         onClick={toggleFullScreen}
                         className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
@@ -184,7 +255,7 @@ export const SupplierPerformanceDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts: Spend per Supplier */}
+                {/* ECharts: Spend per Supplier */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('spend_per_supplier')} />
@@ -196,24 +267,12 @@ export const SupplierPerformanceDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('total_volume_by_partner')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={SPEND_PER_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                        formatter={(val: number) => formatCurrency(val, currency.code, currency.symbol)}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={spendPerSupplierOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts: Lead Time per Supplier */}
+                {/* ECharts: Lead Time per Supplier */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('lead_time_days')} />
@@ -225,18 +284,7 @@ export const SupplierPerformanceDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('speed_of_delivery_breakdown')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={LEAD_TIME_PER_SUPPLIER} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <MemoizedChart option={leadTimePerSupplierOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

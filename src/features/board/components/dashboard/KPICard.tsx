@@ -1,6 +1,50 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState, useRef, useEffect } from 'react';
 import { ArrowUp, ArrowDown, Minus } from 'phosphor-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+
+// Lazy sparkline - only renders chart when visible in viewport
+const LazySparkline: React.FC<{ data: number[] }> = memo(({ data }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
+
+    const chartData = useMemo(() => data.map((v, i) => ({ value: v, i })), [data]);
+
+    return (
+        <div ref={ref} className="h-10 w-20 opacity-50 mb-1">
+            {isVisible ? (
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                        <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#94a3b8"
+                            strokeWidth={2}
+                            fill="#e2e8f0"
+                            isAnimationActive={false}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+            ) : (
+                <div className="w-full h-full bg-zinc-100 dark:bg-monday-dark-elevated rounded" />
+            )}
+        </div>
+    );
+});
 
 export interface KPIConfig {
     id: string;
@@ -72,22 +116,7 @@ export const KPICard: React.FC<KPIConfig> = memo(({ label, subtitle, value, chan
                     </div>
                 </div>
 
-                {sparklineData && (
-                    <div className="h-10 w-20 opacity-50 mb-1">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={sparklineData.map((v, i) => ({ value: v, i }))}>
-                                <Area
-                                    type="monotone"
-                                    dataKey="value"
-                                    stroke="#94a3b8"
-                                    strokeWidth={2}
-                                    fill="#e2e8f0"
-                                    isAnimationActive={false}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                )}
+                {sparklineData && <LazySparkline data={sparklineData} />}
             </div>
         </div>
     );

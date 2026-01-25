@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { useFirstMountLoading } from '../../../hooks/useFirstMount';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLoadingAnimation } from '../../../hooks/useFirstMount';
 import { MemoizedChart as ReactECharts } from '../../../components/common/MemoizedChart';
 import type { EChartsOption } from 'echarts';
 import { KPICard, KPIConfig } from '../../board/components/dashboard/KPICard';
 import { ChartSkeleton, TableSkeleton, PieChartSkeleton } from '../../board/components/dashboard/KPICardVariants';
-import { ArrowsOut, Info, Package, Warning, CheckCircle, Clock, ChartBar, CurrencyDollar, Archive } from 'phosphor-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ArrowsOut, ArrowsIn, Info, Package, Warning, CheckCircle, Clock, ChartBar, CurrencyDollar, Archive } from 'phosphor-react';
 import { InventoryOverviewInfo } from './InventoryOverviewInfo';
 import { useAppContext } from '../../../contexts/AppContext';
 import { formatCurrency } from '../../../utils/formatters';
@@ -52,24 +51,35 @@ const INVENTORY_ITEMS = [
 ];
 
 export const InventoryOverviewDashboard: React.FC = () => {
-    const { currency, t } = useAppContext();
+    const { currency, t, dir } = useAppContext();
+    const isRTL = dir === 'rtl';
     const [showInfo, setShowInfo] = useState(false);
-    const isLoading = useFirstMountLoading('inventory-overview-dashboard', 800);
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    }, []);
+
+    const isLoading = useLoadingAnimation();
 
     // --- KPI Data ---
-    const TOP_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
+    const TOP_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[]>(() => [
         { id: '1', label: t('total_stock_value'), subtitle: t('current_holdings'), value: '$245k', rawValue: 245000, isCurrency: true, change: '+2.4%', trend: 'up', icon: <CurrencyDollar size={18} />, sparklineData: [230, 235, 238, 240, 242, 245], color: 'blue' },
         { id: '2', label: t('total_skus'), subtitle: t('active_items'), value: '1,240', change: '+12', trend: 'up', icon: <Package size={18} />, sparklineData: [1200, 1210, 1220, 1230, 1235, 1240], color: 'blue' },
         { id: '3', label: t('in_stock_rate'), subtitle: t('availability'), value: '98.5%', change: '-0.2%', trend: 'down', icon: <CheckCircle size={18} />, sparklineData: [99, 99, 98.8, 98.6, 98.5, 98.5], color: 'blue' },
         { id: '4', label: t('out_of_stock_items'), subtitle: t('stockouts'), value: '18', change: '+3', trend: 'down', icon: <Warning size={18} />, sparklineData: [15, 15, 16, 17, 18, 18], color: 'blue' },
-    ];
+    ], [t]);
 
-    const SIDE_KPIS: (KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[] = [
+    const SIDE_KPIS = useMemo<(KPIConfig & { rawValue?: number, isCurrency?: boolean, color?: string })[]>(() => [
         { id: '5', label: t('low_stock_alerts'), subtitle: t('below_reorder_point'), value: '42', change: '-5', trend: 'up', icon: <Warning size={18} />, sparklineData: [50, 48, 46, 45, 43, 42], color: 'blue' },
         { id: '6', label: t('avg_inventory_age'), subtitle: t('days_held'), value: '45d', change: '+2d', trend: 'down', icon: <Clock size={18} />, sparklineData: [40, 41, 42, 43, 44, 45], color: 'blue' },
         { id: '7', label: t('inventory_turnover'), subtitle: t('turns_per_year'), value: '4.2', change: '+0.1', trend: 'up', icon: <ChartBar size={18} />, sparklineData: [3.8, 3.9, 4.0, 4.1, 4.1, 4.2], color: 'blue' },
         { id: '8', label: t('carrying_cost'), subtitle: t('pct_of_value'), value: '12.5%', change: '-0.5%', trend: 'up', icon: <Archive size={18} />, sparklineData: [14, 13.5, 13.2, 12.8, 12.6, 12.5], color: 'blue' },
-    ];
+    ], [t]);
 
 
     const toggleFullScreen = () => {
@@ -88,7 +98,7 @@ export const InventoryOverviewDashboard: React.FC = () => {
     // --- ECharts Options ---
 
     // Pie Chart - Warehouse Distribution
-    const pieOption: EChartsOption = {
+    const pieOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -99,10 +109,10 @@ export const InventoryOverviewDashboard: React.FC = () => {
             label: { show: false },
             data: STOCK_DISTRIBUTION
         }]
-    };
+    }), []);
 
     // Pie Chart - Stock Status
-    const stockStatusOption: EChartsOption = {
+    const stockStatusOption = useMemo<EChartsOption>(() => ({
         tooltip: { trigger: 'item' },
         legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10 },
         series: [{
@@ -113,10 +123,77 @@ export const InventoryOverviewDashboard: React.FC = () => {
             label: { show: false },
             data: STOCK_STATUS
         }]
-    };
+    }), []);
+
+    // Bar Chart - Stock by Category
+    const stockByCategoryOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        xAxis: {
+            type: 'category',
+            data: STOCK_BY_CATEGORY.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [{
+            type: 'bar',
+            data: STOCK_BY_CATEGORY.map(d => d.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+            barWidth: 24,
+        }],
+    }), [isRTL]);
+
+    // Bar Chart - Stock Levels (Optimal vs Actual)
+    const stockLevelsOption = useMemo<EChartsOption>(() => ({
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, data: [t('optimal'), t('actual')] },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 40 },
+        xAxis: {
+            type: 'category',
+            data: STOCK_LEVELS.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            position: isRTL ? 'right' : 'left',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            axisLabel: { color: '#94a3b8', fontSize: 10 },
+        },
+        series: [
+            {
+                name: t('optimal'),
+                type: 'bar',
+                data: STOCK_LEVELS.map(d => d.optimal),
+                itemStyle: { color: '#93c5fd', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+            {
+                name: t('actual'),
+                type: 'bar',
+                data: STOCK_LEVELS.map(d => d.actual),
+                itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+                barWidth: 12,
+            },
+        ],
+    }), [isRTL, t]);
 
     // Radial/Polar Bar Chart for Density
-    const radialOption: EChartsOption = {
+    const radialOption = useMemo<EChartsOption>(() => ({
         title: { text: t('inventory_density'), left: 'center', top: 0, textStyle: { fontSize: 12, color: '#9ca3af' } },
         angleAxis: {
             type: 'category',
@@ -141,7 +218,7 @@ export const InventoryOverviewDashboard: React.FC = () => {
             }
         }],
         tooltip: {}
-    };
+    }), [t]);
 
     return (
         <div className="p-6 bg-white dark:bg-monday-dark-surface min-h-full font-sans text-gray-800 dark:text-gray-200 relative">
@@ -150,7 +227,7 @@ export const InventoryOverviewDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-start gap-2">
-                    <Package size={28} className="text-emerald-600 dark:text-emerald-400 mt-1" />
+                    <Package size={28} className="text-blue-600 dark:text-blue-400 mt-1" />
                     <div className="text-start">
                         <h1 className="text-2xl font-bold">{t('inventory_overview')}</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('inventory_overview_desc')}</p>
@@ -159,16 +236,16 @@ export const InventoryOverviewDashboard: React.FC = () => {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleFullScreen}
-                        className="p-2 text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
-                        title={t('full_screen')}
+                        className="p-2 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        title={isFullScreen ? t('exit_full_screen') : t('full_screen')}
                     >
-                        <ArrowsOut size={18} />
+                        {isFullScreen ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
                     </button>
                     <button
                         onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
+                        className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-monday-dark-elevated px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md"
                     >
-                        <Info size={18} className="text-emerald-500" />
+                        <Info size={18} className="text-blue-500" />
                         {t('about_dashboard')}
                     </button>
                 </div>
@@ -190,7 +267,7 @@ export const InventoryOverviewDashboard: React.FC = () => {
 
                 {/* --- Row 2: Two Charts Side by Side --- */}
 
-                {/* Recharts: Stock by Category */}
+                {/* ECharts: Stock by Category */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('stock_by_category')} />
@@ -202,23 +279,12 @@ export const InventoryOverviewDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('item_count_per_group')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={STOCK_BY_CATEGORY} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={24} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ReactECharts option={stockByCategoryOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}
 
-                {/* Recharts: Stock Levels Trend */}
+                {/* ECharts: Stock Levels Trend */}
                 {isLoading ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-2">
                         <ChartSkeleton height="h-[300px]" title={t('stock_levels')} />
@@ -230,20 +296,7 @@ export const InventoryOverviewDashboard: React.FC = () => {
                             <p className="text-xs text-gray-400">{t('optimal_vs_actual')}</p>
                         </div>
                         <div className="h-[220px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={STOCK_LEVELS} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                    <XAxis dataKey="name" fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <YAxis fontSize={10} tick={{ fill: '#9ca3af' }} />
-                                    <Tooltip
-                                        cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-                                    <Bar dataKey="optimal" name={t('optimal')} fill="#93c5fd" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                    <Bar dataKey="actual" name={t('actual')} fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={12} animationDuration={1000} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            <ReactECharts option={stockLevelsOption} style={{ height: '100%', width: '100%' }} />
                         </div>
                     </div>
                 )}

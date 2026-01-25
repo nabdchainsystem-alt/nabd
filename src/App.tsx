@@ -8,7 +8,7 @@ import { UIProvider, useUI } from './contexts/UIContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { FocusProvider } from './contexts/FocusContext';
 import { lazyWithRetry } from './utils/lazyWithRetry';
-import { AIProvider } from './contexts/AIContext';
+import { AIProvider, useAI } from './contexts/AIContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { RedirectToSignIn } from './auth-adapter';
 import { boardService } from './services/boardService';
@@ -631,6 +631,30 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('app-active-view', activeView);
   }, [activeView]);
+
+  // Set AI page context when view changes
+  const { setCurrentPageContext } = useAI();
+  useEffect(() => {
+    // Define department pages that should provide context to AI
+    const departmentPages = ['sales', 'purchases', 'inventory', 'expenses', 'customers', 'suppliers', 'procurement', 'warehouse', 'shipping', 'fleet', 'vendors', 'planning', 'maintenance', 'production', 'quality', 'hr', 'it_support', 'marketing', 'finance'];
+
+    // Only set context for department pages and board views
+    if (activeView === 'board' && activeBoard) {
+      setCurrentPageContext({
+        view: 'board',
+        boardId: activeBoard.id,
+        boardName: activeBoard.name,
+      });
+    } else if (departmentPages.includes(activeView)) {
+      setCurrentPageContext({
+        view: activeView,
+        department: activeView,
+      });
+    } else {
+      // Clear context for non-relevant pages (home, vault, etc.)
+      setCurrentPageContext(null);
+    }
+  }, [activeView, activeBoard?.id, activeBoard?.name, setCurrentPageContext]);
 
   // Track visited department pages for lazy keep-alive
   const DEPT_PAGES = ['sales', 'purchases', 'inventory', 'expenses', 'customers', 'suppliers'];

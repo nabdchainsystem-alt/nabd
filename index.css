@@ -170,25 +170,54 @@
 }
 
 .shimmer {
+    position: relative;
+    overflow: hidden;
+    background-color: #e4e4e7; /* zinc-200 */
+}
+
+.shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: linear-gradient(
         90deg,
-        rgba(200, 200, 200, 0.1) 25%,
-        rgba(200, 200, 200, 0.3) 50%,
-        rgba(200, 200, 200, 0.1) 75%
+        transparent 0%,
+        rgba(255, 255, 255, 0.6) 50%,
+        transparent 100%
     );
     background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
+    animation: shimmer 0.8s ease-in-out infinite;
 }
 
 .dark .shimmer {
+    background-color: #3f3f46; /* zinc-700 */
+}
+
+.dark .shimmer::after {
     background: linear-gradient(
         90deg,
-        rgba(100, 100, 100, 0.1) 25%,
-        rgba(100, 100, 100, 0.3) 50%,
-        rgba(100, 100, 100, 0.1) 75%
+        transparent 0%,
+        rgba(255, 255, 255, 0.15) 50%,
+        transparent 100%
     );
     background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+    opacity: 0;
 }
 
 .animate-fade-in-up {
@@ -210,6 +239,183 @@
 
 .animate-border-rotate {
     animation: border-rotate 4s linear infinite;
+}
+
+/* AI Brain Button - Smooth Wave Animations */
+@keyframes ai-wave-flow {
+    0% {
+        transform: translateX(-100%) translateY(0);
+    }
+    50% {
+        transform: translateX(0%) translateY(-5%);
+    }
+    100% {
+        transform: translateX(100%) translateY(0);
+    }
+}
+
+@keyframes ai-wave-flow-reverse {
+    0% {
+        transform: translateX(100%) translateY(0);
+    }
+    50% {
+        transform: translateX(0%) translateY(5%);
+    }
+    100% {
+        transform: translateX(-100%) translateY(0);
+    }
+}
+
+@keyframes ai-wave-pulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.02);
+    }
+}
+
+@keyframes ai-glow-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 15px rgba(59, 130, 246, 0.5),
+            0 0 30px rgba(37, 99, 235, 0.3),
+            inset 0 0 20px rgba(219, 234, 254, 0.15);
+    }
+    50% {
+        box-shadow:
+            0 0 25px rgba(96, 165, 250, 0.6),
+            0 0 45px rgba(59, 130, 246, 0.4),
+            inset 0 0 25px rgba(255, 255, 255, 0.2);
+    }
+}
+
+@keyframes ai-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes ai-gradient-rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.ai-wave-button {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 30% 30%, #3b82f6 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, #2563eb 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, #1e40af 0%, #1e3a8a 100%);
+    animation: ai-glow-pulse 3s ease-in-out infinite;
+}
+
+.ai-wave-button::before {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        rgba(147, 197, 253, 0.12) 30deg,
+        rgba(191, 219, 254, 0.18) 60deg,
+        rgba(255, 255, 255, 0.22) 90deg,
+        rgba(191, 219, 254, 0.18) 120deg,
+        rgba(147, 197, 253, 0.12) 150deg,
+        transparent 180deg,
+        transparent 360deg
+    );
+    animation: ai-gradient-rotate 8s linear infinite;
+}
+
+.ai-wave-button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        transparent 0%,
+        rgba(191, 219, 254, 0.12) 25%,
+        rgba(255, 255, 255, 0.18) 50%,
+        rgba(191, 219, 254, 0.12) 75%,
+        transparent 100%
+    );
+    background-size: 200% 200%;
+    animation: ai-shimmer 4s linear infinite;
+}
+
+.ai-wave-layer {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    left: -50%;
+    top: -50%;
+    pointer-events: none;
+    z-index: 2;
+    border-radius: 50%;
+}
+
+.ai-wave-1 {
+    background:
+        radial-gradient(ellipse 100% 50% at 50% 50%,
+            rgba(255, 255, 255, 0.28) 0%,
+            rgba(191, 219, 254, 0.18) 30%,
+            rgba(147, 197, 253, 0.1) 50%,
+            transparent 70%),
+        linear-gradient(45deg,
+            transparent 30%,
+            rgba(219, 234, 254, 0.15) 50%,
+            transparent 70%);
+    animation: ai-wave-flow 4s ease-in-out infinite;
+}
+
+.ai-wave-2 {
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 50%,
+            rgba(255, 255, 255, 0.25) 0%,
+            rgba(219, 234, 254, 0.15) 25%,
+            rgba(191, 219, 254, 0.08) 45%,
+            transparent 65%),
+        linear-gradient(-45deg,
+            transparent 35%,
+            rgba(191, 219, 254, 0.12) 50%,
+            transparent 65%);
+    animation: ai-wave-flow-reverse 5s ease-in-out infinite;
+    animation-delay: -1s;
+}
+
+.ai-wave-3 {
+    background:
+        radial-gradient(ellipse 90% 45% at 50% 50%,
+            rgba(255, 255, 255, 0.22) 0%,
+            rgba(219, 234, 254, 0.12) 35%,
+            rgba(191, 219, 254, 0.06) 55%,
+            transparent 75%),
+        linear-gradient(90deg,
+            transparent 20%,
+            rgba(219, 234, 254, 0.1) 50%,
+            transparent 80%);
+    animation: ai-wave-flow 6s ease-in-out infinite;
+    animation-delay: -2s;
+}
+
+.ai-wave-button-disabled {
+    background: linear-gradient(135deg, #1a1a1a 0%, #252525 50%, #1a1a1a 100%);
+    animation: none;
+}
+
+.ai-wave-button-disabled::before {
+    opacity: 0.3;
 }
 
 @layer base {

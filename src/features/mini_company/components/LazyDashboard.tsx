@@ -45,8 +45,8 @@ export const LazyDashboard: React.FC<LazyDashboardProps> = ({
         }
       },
       {
-        rootMargin: '200px', // Start loading earlier
-        threshold: 0.1
+        rootMargin: '0px', // Only load when actually visible
+        threshold: 0.01
       }
     );
 

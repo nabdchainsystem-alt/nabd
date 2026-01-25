@@ -1,11 +1,162 @@
 import React from 'react';
 import { Plus, X, Flask } from 'phosphor-react';
+import { MemoizedChart as ReactECharts } from '../../components/common/MemoizedChart';
+import type { EChartsOption } from 'echarts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { useAppContext } from '../../contexts/AppContext';
+
+const SAMPLE_DATA = [
+    { name: 'Mon', sales: 4000 },
+    { name: 'Tue', sales: 3000 },
+    { name: 'Wed', sales: 2000 },
+    { name: 'Thu', sales: 2780 },
+    { name: 'Fri', sales: 1890 },
+    { name: 'Sat', sales: 2390 },
+    { name: 'Sun', sales: 3490 },
+];
+
+const PIE_DATA = [
+    { name: 'Online', value: 65 },
+    { name: 'Store', value: 15 },
+    { name: 'Marketplace', value: 12 },
+    { name: 'WhatsApp', value: 8 },
+];
+
+const PIE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e'];
 
 interface Tab {
     id: string;
     title: string;
     content: React.ReactNode;
 }
+
+const Test1Content: React.FC = () => {
+    const { dir } = useAppContext();
+    const isRTL = dir === 'rtl';
+
+    const echartsBarOption: EChartsOption = {
+        tooltip: { trigger: 'axis' },
+        xAxis: {
+            type: 'category',
+            data: SAMPLE_DATA.map(d => d.name),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            inverse: isRTL,
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            splitLine: { lineStyle: { type: 'dashed', color: '#e5e7eb' } },
+            position: isRTL ? 'right' : 'left',
+        },
+        grid: { left: isRTL ? 20 : 50, right: isRTL ? 50 : 20, top: 20, bottom: 30 },
+        series: [{
+            type: 'bar',
+            data: SAMPLE_DATA.map(d => d.sales),
+            itemStyle: { color: '#6366f1', borderRadius: [4, 4, 0, 0] },
+            barWidth: '60%',
+        }],
+    };
+
+    const echartsPieOption: EChartsOption = {
+        tooltip: { trigger: 'item' },
+        legend: { orient: 'vertical', right: isRTL ? 'auto' : 10, left: isRTL ? 10 : 'auto', top: 'center' },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: [isRTL ? '60%' : '40%', '50%'],
+            data: PIE_DATA.map((d, i) => ({ ...d, itemStyle: { color: PIE_COLORS[i] } })),
+            label: { show: false },
+            emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+        }],
+    };
+
+    return (
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* ECharts Bar Chart */}
+            <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">ECharts Bar Chart</h3>
+                <p className="text-xs text-gray-400 mb-4">Sales data visualization</p>
+                <div className="h-[300px]">
+                    <ReactECharts option={echartsBarOption} style={{ height: '100%', width: '100%' }} />
+                </div>
+            </div>
+
+            {/* Recharts Bar Chart */}
+            <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Recharts Bar Chart</h3>
+                <p className="text-xs text-gray-400 mb-4">Sales data visualization</p>
+                <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                            data={SAMPLE_DATA}
+                            margin={{ top: 10, right: isRTL ? 0 : 20, left: isRTL ? 20 : 0, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                            <XAxis
+                                dataKey="name"
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                reversed={isRTL}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                width={45}
+                                orientation={isRTL ? 'right' : 'left'}
+                            />
+                            <Tooltip />
+                            <Bar dataKey="sales" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* ECharts Pie Chart */}
+            <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">ECharts Pie Chart</h3>
+                <p className="text-xs text-gray-400 mb-4">Sales by channel</p>
+                <div className="h-[300px]">
+                    <ReactECharts option={echartsPieOption} style={{ height: '100%', width: '100%' }} />
+                </div>
+            </div>
+
+            {/* Recharts Pie Chart */}
+            <div className="bg-white dark:bg-monday-dark-elevated p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Recharts Pie Chart</h3>
+                <p className="text-xs text-gray-400 mb-4">Sales by channel</p>
+                <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                                data={PIE_DATA}
+                                cx={isRTL ? '60%' : '40%'}
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={100}
+                                dataKey="value"
+                                paddingAngle={2}
+                            >
+                                {PIE_DATA.map((_, index) => (
+                                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index]} />
+                                ))}
+                            </Pie>
+                            <Tooltip />
+                            <Legend
+                                layout="vertical"
+                                align={isRTL ? 'left' : 'right'}
+                                verticalAlign="middle"
+                            />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const TestPage: React.FC = () => {
     // Clear localStorage on first load to start fresh
@@ -28,7 +179,7 @@ export const TestPage: React.FC = () => {
     });
 
     const [tabs, setTabs] = React.useState<Tab[]>([
-        createBlankTab('tab-1', 'Test 1')
+        { id: 'tab-1', title: 'Test 1', content: <Test1Content /> }
     ]);
 
     const [activeTabId, setActiveTabId] = React.useState<string>('tab-1');
