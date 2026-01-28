@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Column } from '../types';
+import { Column, TableGroup, Row } from '../types';
 import { SortableHeader } from './SortableHeader';
 import { Trash as Trash2, Plus } from 'phosphor-react';
 import { HeaderContextMenu } from './HeaderContextMenu';
@@ -31,19 +31,24 @@ const STANDARD_COLUMN_KEYS: Record<string, string> = {
     'world_clock': 'col_world_clock',
 };
 
+interface HeaderMenuPosition {
+    colId: string;
+    position: { x: number; y: number };
+}
+
 interface TableHeaderCellProps {
     col: Column;
     index: number;
     columnsLength: number;
-    group: any;
-    rows: any[];
+    group: TableGroup;
+    rows: Row[];
     renamingColId: string | null;
     setRenamingColId: (id: string | null) => void;
     handleRenameColumn: (colId: string, newName: string) => void;
     handleSort: (colId: string) => void;
     handleDeleteColumn: (colId: string) => void;
     handleSelectAll: (checked: boolean) => void;
-    setActiveHeaderMenu: (menu: any) => void;
+    setActiveHeaderMenu: (menu: HeaderMenuPosition | null) => void;
     startResize: (e: React.MouseEvent, colId: string, currentWidth: number) => void;
     activeColumnDragId: string | null;
     style?: React.CSSProperties;
@@ -76,17 +81,14 @@ export const TableHeaderCell: React.FC<TableHeaderCellProps> = ({
 
     // Get translated label for standard columns, or use the custom label
     const getColumnLabel = (column: Column): string => {
-        // First check by exact ID match
+        // First check by exact ID match for standard columns (name, status, priority, etc.)
         const idTranslationKey = STANDARD_COLUMN_KEYS[column.id];
         if (idTranslationKey) {
             return t(idTranslationKey);
         }
-        // Then check by column type (for dynamically added columns with timestamp IDs)
-        const typeTranslationKey = STANDARD_COLUMN_KEYS[column.type];
-        if (typeTranslationKey) {
-            return t(typeTranslationKey);
-        }
-        // Fall back to the stored label for custom columns
+
+        // For all other columns (custom columns), use their stored label
+        // This preserves user-entered custom names
         return column.label;
     };
     const displayLabel = getColumnLabel(col);

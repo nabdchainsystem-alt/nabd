@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatCurrency } from '../../../../../utils/formatters';
 import { useAppContext } from '../../../../../contexts/AppContext';
+import { useNavigation } from '../../../../../contexts/NavigationContext';
 import { useUser } from '../../../../../auth-adapter';
 import {
     MapPin,
@@ -68,7 +69,8 @@ const getStatusColorClasses = (color: string): string => {
 };
 
 // File icon helper
-const getFileIcon = (filename: string, mimeType?: string): string => {
+const getFileIcon = (filename: string | undefined | null, mimeType?: string): string => {
+    if (!filename) return '📎';
     const ext = filename.split('.').pop()?.toLowerCase();
     if (mimeType?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) return '🖼️';
     if (['pdf'].includes(ext || '')) return '📄';
@@ -79,7 +81,8 @@ const getFileIcon = (filename: string, mimeType?: string): string => {
     return '📎';
 };
 
-const getShortName = (name: string): string => {
+const getShortName = (name: string | undefined | null): string => {
+    if (!name) return 'File';
     if (name.length <= 20) return name;
     const ext = name.split('.').pop();
     const baseName = name.slice(0, name.lastIndexOf('.'));
@@ -169,6 +172,7 @@ export const TableCell: React.FC<TableCellProps> = React.memo(({
     const isActiveCell = activeCell?.rowId === row.id && activeCell?.colId === col.id;
     const { user: currentUser } = useUser();
     const { currency: globalCurrency, t, dir, language } = useAppContext();
+    const { setActivePage } = useNavigation();
 
     // Helper to get the live avatar for a person (uses current user's live avatar if it's the current user)
     const getPersonAvatar = (person: { id?: string; avatar?: string }) => {
@@ -282,8 +286,19 @@ export const TableCell: React.FC<TableCellProps> = React.memo(({
                         autoFocus
                         onBlur={() => onSetActiveCell(null)}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === 'Escape') {
+                            if (e.key === 'Enter') {
                                 e.preventDefault();
+                                // Creation row needs navigateToNextCell to trigger task creation
+                                // Existing rows just exit edit mode and blur
+                                if (row.id === CREATION_ROW_ID) {
+                                    onNavigateToNextCell(row.id, col.id, row.groupId);
+                                } else {
+                                    (e.target as HTMLInputElement).blur();
+                                    onSetActiveCell(null);
+                                }
+                            }
+                            if (e.key === 'Escape') {
+                                (e.target as HTMLInputElement).blur();
                                 onSetActiveCell(null);
                             }
                         }}
@@ -604,10 +619,10 @@ export const TableCell: React.FC<TableCellProps> = React.memo(({
                     }}
                     className="w-full h-full flex items-center justify-center px-2 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors overflow-hidden group/file"
                 >
-                    {files.length > 0 ? (
+                    {files.length > 0 && files[0] ? (
                         <div className="flex items-center gap-1.5 truncate">
-                            <span className="text-base">{getFileIcon(files[0].title || files[0].name, files[0].type)}</span>
-                            <span className="text-sm text-stone-600 dark:text-stone-300 truncate">{getShortName(files[0].title || files[0].name)}</span>
+                            <span className="text-base">{getFileIcon(files[0]?.title || files[0]?.name, files[0]?.type)}</span>
+                            <span className="text-sm text-stone-600 dark:text-stone-300 truncate">{getShortName(files[0]?.title || files[0]?.name)}</span>
                             {files.length > 1 && (
                                 <span className="text-xs text-stone-400 shrink-0">+{files.length - 1}</span>
                             )}
@@ -622,7 +637,7 @@ export const TableCell: React.FC<TableCellProps> = React.memo(({
                 {/* File picker popup when cell is active */}
                 {isActiveCell && activeCell?.trigger && files.length > 0 && (
                     <PortalPopup
-                        triggerRect={activeCell.trigger.getBoundingClientRect()}
+                        triggerRef={{ current: activeCell.trigger } as React.RefObject<HTMLElement>}
                         onClose={() => onSetActiveCell(null)}
                         align="center"
                     >
@@ -641,12 +656,25 @@ export const TableCell: React.FC<TableCellProps> = React.memo(({
                                 </button>
                             </div>
                             <div className="max-h-48 overflow-y-auto">
-                                {files.map((file: any, idx: number) => (
-                                    <div key={file.id || idx} className="flex items-center gap-2 p-2 hover:bg-stone-50 dark:hover:bg-stone-800/50 border-b border-stone-50 dark:border-stone-800/50 last:border-0">
-                                        <span className="text-lg shrink-0">{getFileIcon(file.title || file.name, file.type)}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm text-stone-700 dark:text-stone-300 truncate">{file.title || file.name}</p>
-                                            {file.metadata?.size && (
+                                {files.filter((f: any) => f).map((file: any, idx: number) => (
+                                    <div key={file?.id || idx} className="flex items-center gap-2 p-2 hover:bg-stone-50 dark:hover:bg-stone-800/50 border-b border-stone-50 dark:border-stone-800/50 last:border-0">
+                                        <span className="text-lg shrink-0">{getFileIcon(file?.title || file?.name, file?.type)}</span>
+                                        <div
+                                            className="flex-1 min-w-0 cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (file?.id) {
+                                                    localStorage.setItem('vault-navigate-to', file.id);
+                                                    if (file?.folderId) {
+                                                        localStorage.setItem('vault-navigate-folder', file.folderId);
+                                                    }
+                                                    onSetActiveCell(null);
+                                                    setActivePage('vault');
+                                                }
+                                            }}
+                                        >
+                                            <p className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">{file?.title || file?.name || 'File'}</p>
+                                            {file?.metadata?.size && (
                                                 <p className="text-xs text-stone-400">{typeof file.metadata.size === 'number' ? (file.metadata.size / 1024).toFixed(1) + ' KB' : file.metadata.size}</p>
                                             )}
                                         </div>
@@ -712,12 +740,24 @@ export const TableCell: React.FC<TableCellProps> = React.memo(({
         <div className="h-full w-full">
             <input
                 type="text"
+                autoFocus
                 value={value || ''}
                 placeholder={placeholder}
                 onChange={(e) => onTextChange(row.id, col.id, e.target.value, row.groupId)}
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === 'Escape') {
+                    if (e.key === 'Enter') {
                         e.preventDefault();
+                        // Creation row needs navigateToNextCell to trigger task creation
+                        // Existing rows just exit edit mode and blur
+                        if (isCreationRow) {
+                            onNavigateToNextCell(row.id, col.id, row.groupId);
+                        } else {
+                            (e.target as HTMLInputElement).blur();
+                            onSetActiveCell(null);
+                        }
+                    }
+                    if (e.key === 'Escape') {
+                        (e.target as HTMLInputElement).blur();
                         onSetActiveCell(null);
                     }
                 }}

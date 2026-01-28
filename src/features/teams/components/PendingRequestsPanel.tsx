@@ -64,17 +64,7 @@ export const PendingRequestsPanel: React.FC<PendingRequestsPanelProps> = ({
 
     const totalPending = receivedRequests.length + sentRequests.length;
 
-    if (isLoading) {
-        return (
-            <div className="bg-white dark:bg-monday-dark-surface rounded-xl border border-gray-100 dark:border-monday-dark-border p-6">
-                <div className="flex items-center justify-center py-8">
-                    <CircleNotch size={24} className="animate-spin text-monday-blue" />
-                </div>
-            </div>
-        );
-    }
-
-    if (totalPending === 0) {
+    if (isLoading || totalPending === 0) {
         return null;
     }
 

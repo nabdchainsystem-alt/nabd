@@ -6,6 +6,7 @@
 import { storageLogger } from './logger';
 
 export type StorageKey =
+  // App state
   | 'app-active-view'
   | 'app-workspaces'
   | 'app-boards'
@@ -18,11 +19,21 @@ export type StorageKey =
   | 'app-unsynced-boards'
   | 'app-deleted-boards'
   | 'app-theme'
+  // AI features
   | 'ai-chat-history'
+  | 'ai-chat-sessions'
+  | 'ai-active-session-id'
+  // Board/room data (dynamic keys)
   | `room-table-columns-v4-${string}`
   | `room-items-v3-${string}`
   | `board-tasks-${string}`
-  | `board-statuses-${string}`;
+  | `board-statuses-${string}`
+  | `board-doc-${string}`
+  // Column presets
+  | 'nabd-dropdown-presets'
+  // Development
+  | 'nabd_dev_mode'
+  | 'mock_auth_token';
 
 /**
  * Safely get an item from localStorage with JSON parsing

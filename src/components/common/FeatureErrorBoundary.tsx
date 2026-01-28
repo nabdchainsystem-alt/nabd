@@ -1,4 +1,4 @@
-// @ts-nocheck
+// @ts-nocheck - Class components have type inference issues with strict mode
 import React from 'react';
 import { Warning, ArrowsClockwise } from 'phosphor-react';
 import { appLogger } from '../../utils/logger';

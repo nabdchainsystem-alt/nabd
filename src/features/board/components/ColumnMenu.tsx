@@ -71,16 +71,26 @@ const CURRENCIES = [
     { code: 'RUB', symbol: '₽', name: 'Russian Ruble', flag: '🇷🇺' },
 ];
 
+interface ColumnOption {
+    id: string;
+    label: string;
+    color: string;
+}
+
+interface CurrencyConfig {
+    currency: { code: string; symbol: string };
+}
+
 interface ColumnMenuProps {
     onClose: () => void;
-    onSelect: (type: string, label: string, options?: any[], currency?: string, config?: any) => void;
+    onSelect: (type: string, label: string, options?: ColumnOption[], currency?: string, config?: CurrencyConfig) => void;
     darkMode?: boolean;
 }
 
 interface ColumnType {
     id: string;
     label: string;
-    icon: any;
+    icon: React.ComponentType<{ size?: number; weight?: string; className?: string }>;
     color: string; // Tailwind class for background color
     description: string;
 }
@@ -95,7 +105,6 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
         { id: 'status', label: t('col_status'), icon: CheckSquare, color: 'bg-emerald-500', description: t('desc_status') },
         { id: 'priority', label: t('col_priority'), icon: Flag, color: 'bg-orange-500', description: t('desc_priority') },
         { id: 'dropdown', label: t('col_dropdown'), icon: List, color: 'bg-emerald-500', description: t('desc_dropdown') },
-        { id: 'text', label: t('col_text'), icon: Type, color: 'bg-yellow-400', description: t('desc_text') },
         { id: 'date', label: t('col_date'), icon: Calendar, color: 'bg-purple-500', description: t('desc_date') },
         { id: 'files', label: t('col_files'), icon: Paperclip, color: 'bg-rose-400', description: t('desc_files') },
         { id: 'people', label: t('col_people'), icon: Users, color: 'bg-blue-400', description: t('desc_people') },
@@ -177,8 +186,8 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
         }
     }, [view]);
 
-    const handleSelect = (type: any) => {
-        if (type.id === 'custom' || type.id === 'text') {
+    const handleSelect = (type: ColumnType) => {
+        if (type.id === 'custom') {
             setView('custom_name');
             return;
         }
@@ -191,7 +200,7 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
             return;
         }
 
-        let options: any[] = [];
+        let options: ColumnOption[] = [];
 
         // Provide default status options for status columns
         if (type.id === 'status') {
@@ -251,7 +260,11 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
         };
         const updatedPresets = [...presets, newPreset];
         setPresets(updatedPresets);
-        localStorage.setItem(DROPDOWN_PRESETS_KEY, JSON.stringify(updatedPresets));
+        try {
+            localStorage.setItem(DROPDOWN_PRESETS_KEY, JSON.stringify(updatedPresets));
+        } catch (e) {
+            console.error('Failed to save presets - storage may be full', e);
+        }
         setPresetName('');
         // Show success feedback
         setSaveSuccess(true);
@@ -268,7 +281,11 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
         e.stopPropagation();
         const updatedPresets = presets.filter(p => p.id !== presetId);
         setPresets(updatedPresets);
-        localStorage.setItem(DROPDOWN_PRESETS_KEY, JSON.stringify(updatedPresets));
+        try {
+            localStorage.setItem(DROPDOWN_PRESETS_KEY, JSON.stringify(updatedPresets));
+        } catch (e) {
+            console.error('Failed to save presets - storage may be full', e);
+        }
     };
 
     const handleCreateCurrency = () => {
@@ -287,8 +304,8 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
             dir={dir}
             onClick={() => {
                 handleSelect(type);
-                // For direct actions (not custom/dropdown/currency/text setup), close the menu
-                if (type.id !== 'custom' && type.id !== 'dropdown' && type.id !== 'currency' && type.id !== 'text') {
+                // For direct actions (not custom/dropdown/currency setup), close the menu
+                if (type.id !== 'custom' && type.id !== 'dropdown' && type.id !== 'currency') {
                     onClose();
                 }
             }}

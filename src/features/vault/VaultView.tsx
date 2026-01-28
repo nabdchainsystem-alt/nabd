@@ -97,15 +97,28 @@ export const VaultView: React.FC = () => {
         }
     }, [isLoaded, isSignedIn]);
 
-    // Handle Highlighting after items load
+    // Handle Highlighting after items load (from URL params or board file navigation)
     useEffect(() => {
+        // Check URL params
         const params = new URLSearchParams(window.location.search);
-        const highlightId = params.get('highlight');
+        let highlightId = params.get('highlight');
+
+        // Check localStorage (from board file click)
+        const navId = localStorage.getItem('vault-navigate-to');
+        if (navId) {
+            highlightId = navId;
+            const navFolder = localStorage.getItem('vault-navigate-folder');
+            if (navFolder) {
+                setCurrentFolderId(navFolder);
+                localStorage.removeItem('vault-navigate-folder');
+            }
+            localStorage.removeItem('vault-navigate-to');
+        }
+
         if (highlightId && items.length > 0) {
             const item = items.find(i => i.id === highlightId);
             if (item) {
                 setSelectedItem(item);
-                // Optional: Scroll into view logic could go here
             }
         }
     }, [items]);
@@ -152,7 +165,15 @@ export const VaultView: React.FC = () => {
                     deletedAt: i.deletedAt,
                     folderId: i.folderId,
                     color: i.color,
-                    metadata: i.metadata ? (typeof i.metadata === 'string' ? JSON.parse(i.metadata) : i.metadata) : undefined,
+                    metadata: i.metadata ? (() => {
+                        if (typeof i.metadata !== 'string') return i.metadata;
+                        try {
+                            return JSON.parse(i.metadata);
+                        } catch {
+                            storageLogger.warn(`Failed to parse metadata for item ${i.id}`);
+                            return undefined;
+                        }
+                    })() : undefined,
                     // Removed icon from state to ensure serializability and avoid potential rendering issues
                     previewUrl: i.previewUrl || i.content
                 };
@@ -571,7 +592,10 @@ export const VaultView: React.FC = () => {
 
         try {
             const token = await getToken();
-            if (!token) return;
+            if (!token) {
+                setError(t('authentication_error') || 'Authentication required');
+                return;
+            }
 
             // Note: In a real app we would upload the file to storage here and get a URL.
             // For now we will persist the metadata.
@@ -589,9 +613,11 @@ export const VaultView: React.FC = () => {
             });
             await loadItems();
             setIsMenuOpen(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
         } catch (e) {
             storageLogger.error("Failed to upload file", e);
+            setError(t('upload_failed') || 'Failed to upload file. Please try again.');
+        } finally {
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -886,14 +912,19 @@ export const VaultView: React.FC = () => {
                                         grouped[type].push(item);
                                     });
                                 } else if (groupBy === 'date') {
+                                    // Pre-calculate date boundaries once (avoid mutation issues)
+                                    const now = new Date();
+                                    const yesterday = new Date(now);
+                                    yesterday.setDate(yesterday.getDate() - 1);
+                                    const lastWeek = new Date(now);
+                                    lastWeek.setDate(lastWeek.getDate() - 7);
+
                                     sortedItems.forEach(item => {
-                                        // Simple date grouping
                                         const date = new Date(item.lastModified);
-                                        const now = new Date();
                                         let key = t('older');
                                         if (date.toDateString() === now.toDateString()) key = t('today');
-                                        else if (date.toDateString() === new Date(now.setDate(now.getDate() - 1)).toDateString()) key = t('yesterday');
-                                        else if (date > new Date(now.setDate(now.getDate() - 7))) key = t('last_7_days');
+                                        else if (date.toDateString() === yesterday.toDateString()) key = t('yesterday');
+                                        else if (date > lastWeek) key = t('last_7_days');
 
                                         if (!grouped[key]) grouped[key] = [];
                                         grouped[key].push(item);
