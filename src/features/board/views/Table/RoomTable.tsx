@@ -1628,8 +1628,13 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
         }
 
         updateTimeoutRef.current = setTimeout(() => {
-            const updatedRows = rows.map(r => r.id === id ? { ...r, [colId]: value } : r);
-            if (onUpdateTasks) onUpdateTasks(updatedRows);
+            // Use setTableGroups callback to access latest state and avoid stale closure
+            setTableGroups(currentGroups => {
+                const currentRows = currentGroups.flatMap(g => g.rows);
+                const updatedRows = currentRows.map(r => r.id === id ? { ...r, [colId]: value } : r);
+                if (onUpdateTasks) onUpdateTasks(updatedRows);
+                return currentGroups; // Return unchanged - we're just reading
+            });
         }, 800);
     };
 

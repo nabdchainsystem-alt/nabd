@@ -198,6 +198,83 @@ const AppContent: React.FC = () => {
   const { user } = useUser();
   const { updateUserDisplayName } = useAppContext();
 
+  // Track if workspaces have been loaded from API (needed to prevent board fetch race condition)
+  const [isWorkspacesLoaded, setIsWorkspacesLoaded] = useState(false);
+
+  // Track previous sign-in state to detect sign-out
+  const wasSignedInRef = React.useRef(isSignedIn);
+
+  // CRITICAL FIX: Clear stale navigation state on fresh sign-in
+  // This prevents users from seeing cached pages from previous sessions
+  useEffect(() => {
+    if (isSignedIn && user?.id) {
+      const lastUserId = sessionStorage.getItem('app-last-user-id');
+      const currentUserId = user.id;
+
+      // If this is a different user OR a fresh session (no lastUserId), clear stale state
+      if (!lastUserId || lastUserId !== currentUserId) {
+        appLogger.info('[App] Fresh sign-in detected, clearing stale navigation state', {
+          lastUserId,
+          currentUserId,
+          isFreshSession: !lastUserId
+        });
+
+        // Clear navigation state but keep user preferences like sidebar width
+        const keysToReset = [
+          'app-active-view',
+          'app-active-board',
+          'app-recently-visited'
+        ];
+
+        // Only clear if we're on root path (not deep-linked to a specific page)
+        const path = window.location.pathname;
+        if (path === '/' || path === '') {
+          keysToReset.forEach(key => localStorage.removeItem(key));
+          appLogger.info('[App] Cleared stale navigation keys for fresh session');
+        }
+
+        // Mark this session with the current user
+        sessionStorage.setItem('app-last-user-id', currentUserId);
+      }
+      wasSignedInRef.current = true;
+    }
+  }, [isSignedIn, user?.id]);
+
+  // CRITICAL FIX: Clear ALL user data on sign-out (for Clerk auth)
+  // This ensures next login starts fresh without cached data
+  useEffect(() => {
+    if (wasSignedInRef.current && !isSignedIn) {
+      appLogger.info('[App] Sign-out detected, clearing user data');
+
+      // Clear all user-specific localStorage data
+      const keysToRemove = [
+        'app-active-workspace',
+        'app-active-board',
+        'app-active-view',
+        'app-workspaces',
+        'app-boards',
+        'app-recently-visited',
+        'app-page-visibility',
+        'app-deleted-boards',
+        'app-unsynced-boards',
+      ];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Clear board-specific data
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.startsWith('room-') || key.startsWith('board-')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Clear session storage
+      sessionStorage.removeItem('app-last-user-id');
+
+      wasSignedInRef.current = false;
+    }
+  }, [isSignedIn]);
+
   // Sync user preferences (display name, etc.) with the server
   // This hook handles fetching from server on login and syncing changes back
   useUserPreferences();
@@ -261,9 +338,12 @@ const AppContent: React.FC = () => {
             } else if (data.length === 0) {
               appLogger.warn('[App] No workspaces found. Prompting creation or waiting.');
             }
+            // Mark workspaces as loaded so boards can fetch
+            setIsWorkspacesLoaded(true);
           } else {
             appLogger.error('[App] Failed to fetch workspaces. Status:', response.status);
-            // Fallback to local storage if API fails (already loaded in initial state, so just keep it)
+            // Fallback to local storage if API fails - still mark as loaded to unblock boards
+            setIsWorkspacesLoaded(true);
           }
         } else {
           // Fallback to local storage if no token (already loaded in initial state)
@@ -271,9 +351,13 @@ const AppContent: React.FC = () => {
           if (workspaces.length > 0 && !activeWorkspaceId) {
             setActiveWorkspaceId(workspaces[0].id);
           }
+          // Still mark as loaded even without token
+          setIsWorkspacesLoaded(true);
         }
       } catch (error) {
         appLogger.error("Failed to fetch workspaces", error);
+        // Still mark as loaded on error to prevent infinite blocking
+        setIsWorkspacesLoaded(true);
       }
     };
     fetchWorkspaces();
@@ -372,10 +456,17 @@ const AppContent: React.FC = () => {
   }, [unsyncedBoardIds]);
 
   // Fetch Boards from API
+  // CRITICAL FIX: Wait for workspaces to be loaded before fetching boards
+  // This prevents race condition where boards fetch with empty/wrong workspace ID
   useEffect(() => {
     const fetchBoards = async () => {
       if (!isSignedIn) {
         setIsBoardsLoading(false);
+        return;
+      }
+      // Wait for workspaces to be loaded to prevent race condition
+      if (!isWorkspacesLoaded) {
+        boardLogger.info('[Boards Fetch] Waiting for workspaces to load...');
         return;
       }
       try {
@@ -492,7 +583,7 @@ const AppContent: React.FC = () => {
       }
     };
     fetchBoards();
-  }, [isSignedIn, getToken, activeWorkspaceId]);
+  }, [isSignedIn, getToken, activeWorkspaceId, isWorkspacesLoaded]);
 
   const [activeBoardId, setActiveBoardId] = useState<string | null>(() => {
     // Only restore board ID if URL is a board URL
@@ -691,25 +782,39 @@ const AppContent: React.FC = () => {
     localStorage.setItem('app-workspaces', JSON.stringify(workspaces));
   }, [workspaces]);
 
-  // Boards persistence - immediate for deletions, debounced for other changes
+  // Boards persistence - immediate for additions/deletions, short debounce for modifications
   const prevBoardsLengthRef = React.useRef(boards.length);
   useEffect(() => {
     const currentLength = boards.length;
     const prevLength = prevBoardsLengthRef.current;
     prevBoardsLengthRef.current = currentLength;
 
-    // Immediate update for deletions to prevent resurrection on quick refresh
-    if (currentLength < prevLength) {
+    // Immediate update for additions or deletions (count changed)
+    // This prevents boards from disappearing on quick navigation
+    if (currentLength !== prevLength) {
       localStorage.setItem('app-boards', JSON.stringify(boards));
-      boardLogger.info('[Boards Persistence] Immediate save after deletion', { count: currentLength });
+      boardLogger.info('[Boards Persistence] Immediate save after count change', {
+        before: prevLength,
+        after: currentLength,
+        action: currentLength > prevLength ? 'addition' : 'deletion'
+      });
       return;
     }
 
-    // Debounced update for additions/modifications
+    // Very short debounce (50ms) for modifications only - prevents rapid writes
     const timeoutId = setTimeout(() => {
       localStorage.setItem('app-boards', JSON.stringify(boards));
-    }, 300);
+    }, 50);
     return () => clearTimeout(timeoutId);
+  }, [boards]);
+
+  // Save boards before page unload to prevent data loss
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      localStorage.setItem('app-boards', JSON.stringify(boards));
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [boards]);
 
   useEffect(() => {
@@ -934,7 +1039,7 @@ const AppContent: React.FC = () => {
       const url = boardId ? `/board/${boardId}` : `/${view}`;
       window.history.pushState({ view, boardId }, '', url);
     }
-  }, [boards]);
+  }, [boards, activeWorkspaceId]);
 
   // Handle browser back/forward button
   useEffect(() => {

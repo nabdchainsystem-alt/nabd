@@ -1,6 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { Plus, X, Flask, CurrencyDollar, Users, ShoppingCart, TrendUp, ChartLine, Package, Target, Percent, Activity, Wallet, CreditCard, Lightning, ChartBar, ArrowUp, ArrowDown, Minus } from 'phosphor-react';
 import { MemoizedChart as ReactECharts } from '../../components/common/MemoizedChart';
+import ReactEChartsCore from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useAppContext } from '../../contexts/AppContext';
@@ -26,8 +27,8 @@ const EChartsSparkline: React.FC<{ data: number[] }> = memo(({ data }) => {
         grid: {
             left: 0,
             right: 0,
-            top: 0,
-            bottom: 0,
+            top: 2,
+            bottom: 2,
         },
         xAxis: {
             type: 'category',
@@ -66,11 +67,16 @@ const EChartsSparkline: React.FC<{ data: number[] }> = memo(({ data }) => {
         animation: false,
     }), [data]);
 
+    // Use ReactEChartsCore directly with explicit small dimensions
+    // MemoizedChart has minWidth/minHeight of 100px which is too large for sparklines
     return (
         <div className="h-10 w-20 opacity-50 mb-1">
-            <ReactECharts
+            <ReactEChartsCore
                 option={chartOption}
-                style={{ height: '100%', width: '100%' }}
+                style={{ height: 40, width: 80 }}
+                opts={{ renderer: 'canvas' }}
+                notMerge={true}
+                lazyUpdate={true}
             />
         </div>
     );

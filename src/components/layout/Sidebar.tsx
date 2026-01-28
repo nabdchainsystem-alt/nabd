@@ -579,11 +579,18 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         }
     }, [width, isResizing]);
 
-    // Resize Logic - only update parent state on mouse up to prevent flashing
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!isResizing) return;
+    // Resize Logic - optimized to reduce listener re-registration
+    // Store current values in refs to avoid stale closures
+    const resizeStateRef = React.useRef({ dir, initialMouseX, initialWidth, localWidth });
+    resizeStateRef.current = { dir, initialMouseX, initialWidth, localWidth };
+    const onResizeRef = React.useRef(onResize);
+    onResizeRef.current = onResize;
 
+    useEffect(() => {
+        if (!isResizing) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const { dir, initialMouseX, initialWidth } = resizeStateRef.current;
             const delta = dir === 'rtl'
                 ? initialMouseX - e.clientX
                 : e.clientX - initialMouseX;
@@ -591,26 +598,26 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             const newWidth = initialWidth + delta;
 
             if (newWidth > 200 && newWidth < 450) {
-                // Update local width immediately (no parent re-render)
                 setLocalWidth(newWidth);
             }
         };
         const handleMouseUp = () => {
             setIsResizing(false);
             document.body.style.cursor = 'default';
-            // Only update parent state when done resizing
-            onResize(localWidth);
+            // Use ref to get latest localWidth
+            onResizeRef.current(resizeStateRef.current.localWidth);
         };
-        if (isResizing) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            document.body.style.cursor = 'col-resize';
-        }
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = 'col-resize';
+
         return () => {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'default';
         };
-    }, [isResizing, onResize, dir, initialMouseX, initialWidth, localWidth]);
+    }, [isResizing]); // Only depend on isResizing - rest stored in refs
 
 
 
@@ -1565,6 +1572,10 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                             <div className="border-t border-gray-100 dark:border-monday-dark-border pt-1">
                                                 <button
                                                     onClick={() => {
+                                                        setEditingWorkspaceId(null);
+                                                        setNewWorkspaceName('');
+                                                        setNewWorkspaceIcon('Briefcase');
+                                                        setNewWorkspaceNameDirection('auto');
                                                         setIsAddWorkspaceModalOpen(true);
                                                         setIsWorkspaceMenuOpen(false);
                                                         setWorkspaceSearchTerm('');
@@ -1903,12 +1914,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
 
 
 
-                {/* Create/Edit Workspace Modal (Only for Editing now, Creation is inline) */}
+                {/* Create/Edit Workspace Modal */}
                 {
                     isAddWorkspaceModalOpen && (
                         <div className="fixed inset-0 flex items-center justify-center z-[70]">
-                            <div className="absolute inset-0" onClick={() => setIsAddWorkspaceModalOpen(false)} />
-                            <div className="bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl w-[450px] border border-gray-100 dark:border-monday-dark-border">
+                            <div className="absolute inset-0 bg-black/30" onClick={() => setIsAddWorkspaceModalOpen(false)} />
+                            <div className="relative bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl w-[450px] border border-gray-100 dark:border-monday-dark-border">
                                 <div className="p-5 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center bg-gray-50/50 dark:bg-monday-dark-bg/50 rounded-t-xl">
                                     <h3 className="font-semibold text-lg text-gray-800 dark:text-monday-dark-text">{editingWorkspaceId ? t('edit_workspace') : t('add_workspace')}</h3>
                                     <button onClick={() => {
@@ -2051,11 +2062,11 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                 }
 
                 {/* Create Board Modal */}
-                {/* Create Board Modal */}
                 {
                     isNewBoardModalOpen && (
-                        <div className="fixed inset-0 z-[70] flex items-center justify-center pointer-events-none">
-                            <div className={`pointer-events-auto bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl transition-colors duration-100 flex flex-col ${creationStep === 'template' ? 'w-[90vw] max-w-5xl h-[80vh]' : 'w-96 max-h-[90vh]'}`}>
+                        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/30" onClick={() => setIsNewBoardModalOpen(false)} />
+                            <div className={`relative bg-white dark:bg-monday-dark-surface rounded-xl shadow-2xl transition-colors duration-100 flex flex-col ${creationStep === 'template' ? 'w-[90vw] max-w-5xl h-[80vh]' : 'w-96 max-h-[90vh]'}`}>
                                 {/* Header */}
                                 <div className="p-5 border-b border-gray-100 dark:border-monday-dark-border flex justify-between items-center bg-white dark:bg-monday-dark-surface rounded-t-xl flex-shrink-0">
                                     <div className="flex items-center gap-2">
