@@ -33,6 +33,8 @@ const translations: Translations = {
   workspace_name_placeholder: { en: 'e.g. Marketing Team', ar: 'مثال: فريق التسويق' },
   save_changes: { en: 'Save Changes', ar: 'حفظ التغييرات' },
   cancel: { en: 'Cancel', ar: 'إلغاء' },
+  text_direction: { en: 'Text Direction', ar: 'اتجاه النص' },
+  auto: { en: 'Auto', ar: 'تلقائي' },
   // Workspace Icons
   'Briefcase': { en: 'Briefcase', ar: 'حقيبة عمل' },
   'Layout': { en: 'Layout', ar: 'تخطيط' },

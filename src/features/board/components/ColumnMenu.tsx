@@ -141,40 +141,26 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
             return saved ? JSON.parse(saved) : [];
         } catch { return []; }
     });
-    const [dropdownOptions, setDropdownOptions] = useState<{ id: string, label: string, color: string }[]>(() => [
-        { id: 'opt1', label: 'Option 1', color: 'bg-rose-500' },
-        { id: 'opt2', label: 'Option 2', color: 'bg-purple-500' }
-    ]);
+    // Track if user has customized options (to avoid overwriting their changes)
+    const userCustomizedRef = React.useRef(false);
+
+    // Initialize with translated options based on current language
+    const getDefaultOptions = React.useCallback(() => [
+        { id: 'opt1', label: t('option_1'), color: 'bg-rose-500' },
+        { id: 'opt2', label: t('option_2'), color: 'bg-purple-500' }
+    ], [t]);
+
+    const [dropdownOptions, setDropdownOptions] = useState<{ id: string, label: string, color: string }[]>(getDefaultOptions);
     const [newOptionName, setNewOptionName] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
     const dropdownInputRef = useRef<HTMLInputElement>(null);
 
-    // Set translated default options on mount and when language changes
-    const prevLangRef = React.useRef<string | null>(null);
+    // Update options when language changes (if user hasn't customized them)
     React.useEffect(() => {
-        // Get current language from dir (rtl = Arabic, ltr = English)
-        const currentLang = dir === 'rtl' ? 'ar' : 'en';
-
-        // Check if this is first mount or language changed
-        const isFirstMount = prevLangRef.current === null;
-        const languageChanged = prevLangRef.current !== null && prevLangRef.current !== currentLang;
-
-        // Check if options still have default/untranslated labels
-        const hasDefaultLabels = dropdownOptions.some(o =>
-            o.label === 'Option 1' || o.label === 'Option 2' ||
-            o.label === 'option_1' || o.label === 'option_2' ||
-            o.label === 'الخيار 1' || o.label === 'الخيار 2'
-        );
-
-        if (isFirstMount || languageChanged || hasDefaultLabels) {
-            setDropdownOptions([
-                { id: 'opt1', label: t('option_1'), color: 'bg-rose-500' },
-                { id: 'opt2', label: t('option_2'), color: 'bg-purple-500' }
-            ]);
+        if (!userCustomizedRef.current) {
+            setDropdownOptions(getDefaultOptions());
         }
-
-        prevLangRef.current = currentLang;
-    }, [t, dir, dropdownOptions]);
+    }, [getDefaultOptions]);
     const [activeColorPicker, setActiveColorPicker] = useState<string | null>(null);
     const [currencyName, setCurrencyName] = useState('');
     const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]);
@@ -241,6 +227,7 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
         const colors = ['bg-rose-500', 'bg-purple-500', 'bg-indigo-500', 'bg-blue-500', 'bg-teal-500', 'bg-emerald-500', 'bg-amber-500', 'bg-orange-400'];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
+        userCustomizedRef.current = true; // Mark as customized
         setDropdownOptions([
             ...dropdownOptions,
             { id: Date.now().toString(), label: newOptionName, color: randomColor }
@@ -272,6 +259,7 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
     };
 
     const handleLoadPreset = (preset: DropdownPreset) => {
+        userCustomizedRef.current = true; // Mark as customized
         setDropdownOptions(preset.options.map(o => ({ ...o, id: `${o.id}-${Date.now()}` })));
         setShowPresets(false);
     };
@@ -515,13 +503,19 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
                                         <input
                                             type="text"
                                             value={opt.label}
-                                            onChange={(e) => setDropdownOptions(prev => prev.map(o => o.id === opt.id ? { ...o, label: e.target.value } : o))}
+                                            onChange={(e) => {
+                                                userCustomizedRef.current = true;
+                                                setDropdownOptions(prev => prev.map(o => o.id === opt.id ? { ...o, label: e.target.value } : o));
+                                            }}
                                             className="flex-1 text-sm bg-transparent border-none outline-none text-stone-700 dark:text-stone-300 placeholder:text-stone-400 min-w-0"
                                         />
 
                                         {/* Delete Button */}
                                         <button
-                                            onClick={() => setDropdownOptions(prev => prev.filter(o => o.id !== opt.id))}
+                                            onClick={() => {
+                                                userCustomizedRef.current = true;
+                                                setDropdownOptions(prev => prev.filter(o => o.id !== opt.id));
+                                            }}
                                             className="opacity-0 group-hover:opacity-100 p-1 text-stone-400 hover:text-red-500 transition-all"
                                         >
                                             <X size={14} />
@@ -536,6 +530,7 @@ export const ColumnMenu: React.FC<ColumnMenuProps> = ({ onClose, onSelect, darkM
                                                     key={c}
                                                     className={`w-5 h-5 rounded-full ${c} hover:scale-110 transition-transform ${opt.color === c ? 'ring-2 ring-stone-900 dark:ring-white ring-offset-1 dark:ring-offset-stone-800' : ''}`}
                                                     onClick={() => {
+                                                        userCustomizedRef.current = true;
                                                         setDropdownOptions(prev => prev.map(o => o.id === opt.id ? { ...o, color: c } : o));
                                                         setActiveColorPicker(null);
                                                     }}

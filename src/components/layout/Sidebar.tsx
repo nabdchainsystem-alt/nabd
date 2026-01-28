@@ -423,15 +423,15 @@ interface SidebarProps {
     workspaces: Workspace[];
     activeWorkspaceId: string;
     onWorkspaceChange: (id: string) => void;
-    onAddWorkspace: (name: string, icon: string, color?: string) => void;
-    onRenameWorkspace: (id: string, name: string, icon: string, color?: string) => void;
+    onAddWorkspace: (name: string, icon: string, color?: string, nameDirection?: 'rtl' | 'ltr' | 'auto') => void;
+    onRenameWorkspace: (id: string, name: string, icon: string, color?: string, nameDirection?: 'rtl' | 'ltr' | 'auto') => void;
     onDeleteWorkspace: (id: string) => void;
     boards: Board[];
     onDeleteBoard: (id: string, mode?: 'single' | 'recursive') => void;
     onToggleFavorite: (id: string) => void;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
-    onAddBoard: (name: string, icon: string, template?: BoardTemplate, defaultView?: string, parentId?: string) => void;
+    onAddBoard: (name: string, icon: string, template?: BoardTemplate, defaultView?: string, parentId?: string, nameDirection?: 'rtl' | 'ltr' | 'auto') => void;
     pageVisibility: Record<string, boolean>;
 }
 
@@ -488,6 +488,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     const [newWorkspaceIcon, setNewWorkspaceIcon] = useState('Briefcase');
     const [isWorkspaceIconPickerOpen, setIsWorkspaceIconPickerOpen] = useState(false);
     const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null);
+    const [newWorkspaceNameDirection, setNewWorkspaceNameDirection] = useState<'rtl' | 'ltr' | 'auto'>('auto');
 
     // Workspace Search State
     const [workspaceSearchTerm, setWorkspaceSearchTerm] = useState('');
@@ -498,6 +499,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     const [isNewBoardModalOpen, setIsNewBoardModalOpen] = useState(false);
     const [newBoardName, setNewBoardName] = useState('');
     const [newBoardIcon, setNewBoardIcon] = useState('Table');
+    const [newBoardNameDirection, setNewBoardNameDirection] = useState<'rtl' | 'ltr' | 'auto'>('auto');
 
     // Delete Board Modal State
     const [isDeleteBoardModalOpen, setIsDeleteBoardModalOpen] = useState(false);
@@ -632,13 +634,14 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             const color = gradients[Math.max(0, iconIndex) % gradients.length];
 
             if (editingWorkspaceId) {
-                onRenameWorkspace(editingWorkspaceId, newWorkspaceName, newWorkspaceIcon, color);
+                onRenameWorkspace(editingWorkspaceId, newWorkspaceName, newWorkspaceIcon, color, newWorkspaceNameDirection);
             } else {
-                onAddWorkspace(newWorkspaceName, newWorkspaceIcon, color);
+                onAddWorkspace(newWorkspaceName, newWorkspaceIcon, color, newWorkspaceNameDirection);
             }
             setIsAddWorkspaceModalOpen(false);
             setNewWorkspaceName('');
             setNewWorkspaceIcon('Briefcase');
+            setNewWorkspaceNameDirection('auto');
             setEditingWorkspaceId(null);
             setIsAddMenuOpen(false);
             setAddMenuMode('board');
@@ -648,7 +651,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     const handleCreateBoard = (e: React.FormEvent) => {
         e.preventDefault();
         if (newBoardName.trim()) {
-            onAddBoard(newBoardName, newBoardIcon, selectedTemplate, selectedLayout, parentBoardIdForCreation);
+            onAddBoard(newBoardName, newBoardIcon, selectedTemplate, selectedLayout, parentBoardIdForCreation, newBoardNameDirection);
 
             // Auto-expand the parent board to show the new sub-board
             if (parentBoardIdForCreation) {
@@ -662,6 +665,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
             setIsNewBoardModalOpen(false);
             setNewBoardName('');
             setNewBoardIcon('Table');
+            setNewBoardNameDirection('auto');
             setSelectedLayout('table');
             setIsIconPickerOpen(false);
             setCreationStep('template'); // Reset for next time
@@ -1992,6 +1996,32 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                         </div>
                                     </div>
 
+                                    {/* Text Direction Option */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-monday-dark-text-secondary uppercase tracking-wider mb-3">{t('text_direction')}</label>
+                                        <div className="flex gap-2">
+                                            {[
+                                                { id: 'auto', label: t('auto') },
+                                                { id: 'ltr', label: 'LTR' },
+                                                { id: 'rtl', label: 'RTL' }
+                                            ].map((option) => (
+                                                <button
+                                                    key={option.id}
+                                                    type="button"
+                                                    onClick={() => setNewWorkspaceNameDirection(option.id as 'rtl' | 'ltr' | 'auto')}
+                                                    className={`
+                                                        flex-1 px-3 py-2 rounded-sm text-[13px] font-medium border transition-colors duration-100
+                                                        ${newWorkspaceNameDirection === option.id
+                                                            ? 'border-monday-blue bg-monday-blue/10 text-monday-blue'
+                                                            : 'border-gray-200 dark:border-monday-dark-border text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'}
+                                                    `}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-monday-dark-border">
                                         <button
                                             type="button"
@@ -2000,6 +2030,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                 setEditingWorkspaceId(null);
                                                 setNewWorkspaceName('');
                                                 setNewWorkspaceIcon('Briefcase');
+                                                setNewWorkspaceNameDirection('auto');
                                             }}
                                             className="px-5 py-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-monday-dark-hover rounded-sm text-[14px] font-medium transition-colors"
                                         >
@@ -2208,10 +2239,39 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
                                                 </div>
                                             </div>
 
+                                            {/* Text Direction Option */}
+                                            <div className="space-y-3">
+                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">{t('text_direction')}</label>
+                                                <div className="flex gap-2">
+                                                    {[
+                                                        { id: 'auto', label: t('auto') },
+                                                        { id: 'ltr', label: 'LTR' },
+                                                        { id: 'rtl', label: 'RTL' }
+                                                    ].map((option) => (
+                                                        <button
+                                                            key={option.id}
+                                                            type="button"
+                                                            onClick={() => setNewBoardNameDirection(option.id as 'rtl' | 'ltr' | 'auto')}
+                                                            className={`
+                                                                flex-1 px-3 py-2 rounded-lg text-[13px] font-medium border transition-colors duration-100
+                                                                ${newBoardNameDirection === option.id
+                                                                    ? 'border-monday-blue bg-monday-blue/10 text-monday-blue'
+                                                                    : 'border-gray-200 dark:border-monday-dark-border text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'}
+                                                            `}
+                                                        >
+                                                            {option.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
                                             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-monday-dark-border mt-6">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setIsNewBoardModalOpen(false)}
+                                                    onClick={() => {
+                                                        setIsNewBoardModalOpen(false);
+                                                        setNewBoardNameDirection('auto');
+                                                    }}
                                                     className="px-5 py-2.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-monday-dark-hover rounded-sm text-[14px] font-medium transition-colors"
                                                 >
                                                     {t('cancel')}

@@ -5,27 +5,30 @@ import { Trash as Trash2, Plus } from 'phosphor-react';
 import { HeaderContextMenu } from './HeaderContextMenu';
 import { useAppContext } from '../../../../../contexts/AppContext';
 
-// Standard column IDs that should be translated
+// Standard column IDs/types that should be translated
 const STANDARD_COLUMN_KEYS: Record<string, string> = {
     'name': 'name',
-    'people': 'people',
-    'status': 'status',
-    'priority': 'priority',
-    'date': 'date',
+    'people': 'col_people',
+    'status': 'col_status',
+    'priority': 'col_priority',
+    'date': 'col_date',
     'dueDate': 'due_date',
-    'timeline': 'timeline',
-    'files': 'files',
-    'checkbox': 'checkbox',
-    'number': 'number',
-    'text': 'text',
-    'email': 'email',
-    'phone': 'phone',
-    'url': 'link',
-    'location': 'location',
-    'rating': 'rating',
-    'tags': 'tags',
-    'currency': 'currency',
-    'dropdown': 'dropdown',
+    'timeline': 'col_timeline',
+    'files': 'col_files',
+    'checkbox': 'col_checkbox',
+    'number': 'col_numbers',
+    'text': 'col_text',
+    'email': 'col_email',
+    'phone': 'col_phone',
+    'url': 'col_url',
+    'location': 'col_location',
+    'rating': 'col_rating',
+    'tags': 'col_tags',
+    'currency': 'col_currency',
+    'dropdown': 'col_dropdown',
+    'doc': 'col_doc',
+    'voting': 'col_voting',
+    'world_clock': 'col_world_clock',
 };
 
 interface TableHeaderCellProps {
@@ -73,10 +76,17 @@ export const TableHeaderCell: React.FC<TableHeaderCellProps> = ({
 
     // Get translated label for standard columns, or use the custom label
     const getColumnLabel = (column: Column): string => {
-        const translationKey = STANDARD_COLUMN_KEYS[column.id];
-        if (translationKey) {
-            return t(translationKey);
+        // First check by exact ID match
+        const idTranslationKey = STANDARD_COLUMN_KEYS[column.id];
+        if (idTranslationKey) {
+            return t(idTranslationKey);
         }
+        // Then check by column type (for dynamically added columns with timestamp IDs)
+        const typeTranslationKey = STANDARD_COLUMN_KEYS[column.type];
+        if (typeTranslationKey) {
+            return t(typeTranslationKey);
+        }
+        // Fall back to the stored label for custom columns
         return column.label;
     };
     const displayLabel = getColumnLabel(col);

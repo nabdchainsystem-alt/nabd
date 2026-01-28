@@ -2833,10 +2833,13 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                 })}
                                                                 <div className="relative h-full flex flex-col justify-center shrink-0">
                                                                     <button
+                                                                        type="button"
                                                                         onClick={(e) => {
+                                                                            e.stopPropagation();
                                                                             const rect = e.currentTarget.getBoundingClientRect();
                                                                             setActiveColumnMenu({ rect });
                                                                         }}
+                                                                        onPointerDown={(e) => e.stopPropagation()}
                                                                         className="flex items-center justify-center w-8 h-full border-s border-stone-200/50 dark:border-stone-800 text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
                                                                     >
                                                                         <Plus size={14} />
@@ -2854,16 +2857,37 @@ const RoomTable: React.FC<RoomTableProps> = ({ roomId, viewId, defaultColumns, t
                                                                                 style={{
                                                                                     top: `${activeColumnMenu.rect.bottom + 8}px`,
                                                                                     // Position menu to stay within viewport
-                                                                                    // In RTL: if button is near left edge, position from left; otherwise from right
-                                                                                    // In LTR: if button is near right edge, position from right; otherwise from left
-                                                                                    ...(isRTL
-                                                                                        ? activeColumnMenu.rect.left < 350
-                                                                                            ? { left: `${Math.max(8, activeColumnMenu.rect.left)}px` }
-                                                                                            : { right: `${Math.max(8, window.innerWidth - activeColumnMenu.rect.right)}px` }
-                                                                                        : activeColumnMenu.rect.right > window.innerWidth - 350
-                                                                                            ? { right: `${Math.max(8, window.innerWidth - activeColumnMenu.rect.right)}px` }
-                                                                                            : { left: `${Math.max(8, activeColumnMenu.rect.left)}px` }
-                                                                                    ),
+                                                                                    // Menu width is ~350px, so check if there's room
+                                                                                    ...((() => {
+                                                                                        const menuWidth = 350;
+                                                                                        const buttonRect = activeColumnMenu.rect;
+                                                                                        const viewportWidth = window.innerWidth;
+                                                                                        const padding = 8;
+
+                                                                                        if (isRTL) {
+                                                                                            // In RTL: button is typically at the left end of the table
+                                                                                            // Try to position menu extending rightward from button
+                                                                                            const spaceOnRight = viewportWidth - buttonRect.left;
+                                                                                            if (spaceOnRight >= menuWidth + padding) {
+                                                                                                // Enough space on right - align menu's left edge to button's left edge
+                                                                                                return { left: `${Math.max(padding, buttonRect.left)}px` };
+                                                                                            } else {
+                                                                                                // Not enough space - align to right edge of viewport
+                                                                                                return { right: `${padding}px` };
+                                                                                            }
+                                                                                        } else {
+                                                                                            // In LTR: button is typically at the right end of the table
+                                                                                            // Try to position menu extending leftward from button
+                                                                                            const spaceOnLeft = buttonRect.right;
+                                                                                            if (spaceOnLeft >= menuWidth + padding) {
+                                                                                                // Enough space on left - align menu's right edge to button's right edge
+                                                                                                return { right: `${Math.max(padding, viewportWidth - buttonRect.right)}px` };
+                                                                                            } else {
+                                                                                                // Not enough space - align to left edge of viewport
+                                                                                                return { left: `${padding}px` };
+                                                                                            }
+                                                                                        }
+                                                                                    })()),
                                                                                 }}
                                                                             >
                                                                                 <ColumnMenu

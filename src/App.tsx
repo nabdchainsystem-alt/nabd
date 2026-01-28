@@ -784,7 +784,7 @@ const AppContent: React.FC = () => {
     }
   }, [getToken, activeWorkspaceId, logActivity]);
 
-  const handleQuickAddBoard = (name: string, icon?: string, template?: BoardTemplate, defaultView: BoardViewType = 'table', parentId?: string) => {
+  const handleQuickAddBoard = (name: string, icon?: string, template?: BoardTemplate, defaultView: BoardViewType = 'table', parentId?: string, nameDirection?: 'rtl' | 'ltr' | 'auto') => {
     const newBoardId = Date.now().toString();
 
     // Determine columns based on template or default
@@ -893,7 +893,8 @@ const AppContent: React.FC = () => {
       defaultView: 'overview', // Standard start with Overview
       availableViews: ['overview', defaultView], // Overview + Selected Tool
       icon: icon,
-      parentId: parentId
+      parentId: parentId,
+      nameDirection: nameDirection
     };
 
     // Mark as unsynced immediately
@@ -1007,7 +1008,7 @@ const AppContent: React.FC = () => {
     });
   };
 
-  const handleAddWorkspace = React.useCallback(async (name: string, icon: string, color?: string) => {
+  const handleAddWorkspace = React.useCallback(async (name: string, icon: string, color?: string, nameDirection?: 'rtl' | 'ltr' | 'auto') => {
     // Optimistic Update
     const tempId = `ws-${Date.now()}`;
     const newWorkspaceOptimistic: Workspace = {
@@ -1015,6 +1016,7 @@ const AppContent: React.FC = () => {
       name,
       icon: icon as any,
       color: color || 'from-gray-400 to-gray-500',
+      nameDirection: nameDirection,
     };
 
     setWorkspaces(prev => [...prev, newWorkspaceOptimistic]);
@@ -1029,7 +1031,7 @@ const AppContent: React.FC = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ name, icon, color })
+          body: JSON.stringify({ name, icon, color, nameDirection })
         });
 
         if (response.ok) {
@@ -1086,9 +1088,9 @@ const AppContent: React.FC = () => {
     }
   }, [getToken]);
 
-  const handleRenameWorkspace = React.useCallback(async (id: string, newName: string, newIcon: string, newColor?: string) => {
+  const handleRenameWorkspace = React.useCallback(async (id: string, newName: string, newIcon: string, newColor?: string, nameDirection?: 'rtl' | 'ltr' | 'auto') => {
     // Optimistic Update
-    setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name: newName, icon: newIcon as any, color: newColor || w.color } : w));
+    setWorkspaces(prev => prev.map(w => w.id === id ? { ...w, name: newName, icon: newIcon as any, color: newColor || w.color, nameDirection: nameDirection } : w));
 
     try {
       const token = await getToken();
@@ -1099,7 +1101,7 @@ const AppContent: React.FC = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ name: newName, icon: newIcon, color: newColor })
+          body: JSON.stringify({ name: newName, icon: newIcon, color: newColor, nameDirection })
         });
 
         if (!response.ok) {
@@ -1471,7 +1473,7 @@ const AppContent: React.FC = () => {
           boards={workspaceBoards}
           onDeleteBoard={handleDeleteBoard}
           onToggleFavorite={handleToggleFavorite}
-          onAddBoard={(name, icon, template, defaultView, parentId) => handleQuickAddBoard(name, icon, template, defaultView as any, parentId)}
+          onAddBoard={(name, icon, template, defaultView, parentId, nameDirection) => handleQuickAddBoard(name, icon, template, defaultView as any, parentId, nameDirection)}
           pageVisibility={effectivePageVisibility}
         />
 

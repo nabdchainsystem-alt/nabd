@@ -848,7 +848,7 @@ export const BoardView: React.FC<BoardViewProps> = memo(({ board: initialBoard, 
             });
         }
         return [...VIEW_OPTIONS, ...customOptions];
-    }, [isWarehouseBoard, dashboardSections]);
+    }, [isWarehouseBoard, dashboardSections, t, isDepartmentLayout]);
 
     const handleRenameBoard = (newName: string) => {
         onUpdateBoard?.(board.id, { name: newName });

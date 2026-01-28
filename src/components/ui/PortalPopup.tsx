@@ -48,16 +48,25 @@ export const PortalPopup: React.FC<PortalPopupProps> = ({
             const GAP = 4;
             const VIEWPORT_PADDING = 12; // Increased from 10 for better visual spacing
 
+            // Check for RTL mode
+            const isRTL = document.dir === 'rtl' || document.documentElement.dir === 'rtl';
+
+            // Determine effective alignment based on RTL
+            // In RTL: 'start' means right side, 'end' means left side
+            const effectiveAlign = isRTL
+                ? (align === 'start' ? 'end' : align === 'end' ? 'start' : align)
+                : align;
+
             // Initial Position (Viewport Relative)
             if (side === 'bottom') {
                 top = triggerRect.bottom + GAP;
-                if (align === 'start') left = triggerRect.left;
-                else if (align === 'end') left = triggerRect.right - contentRect.width;
+                if (effectiveAlign === 'start') left = triggerRect.left;
+                else if (effectiveAlign === 'end') left = triggerRect.right - contentRect.width;
                 else left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
             } else if (side === 'top') {
                 top = triggerRect.top - contentRect.height - GAP;
-                if (align === 'start') left = triggerRect.left;
-                else if (align === 'end') left = triggerRect.right - contentRect.width;
+                if (effectiveAlign === 'start') left = triggerRect.left;
+                else if (effectiveAlign === 'end') left = triggerRect.right - contentRect.width;
                 else left = triggerRect.left + (triggerRect.width / 2) - (contentRect.width / 2);
             } else if (side === 'right') {
                 left = triggerRect.right + GAP;

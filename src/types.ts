@@ -79,6 +79,7 @@ export interface Board {
   parentId?: string;
   pinnedViews?: string[];
   type?: 'project';
+  nameDirection?: 'rtl' | 'ltr' | 'auto';
 }
 
 export interface Workspace {
@@ -86,6 +87,7 @@ export interface Workspace {
   name: string;
   icon: string;
   color: string;
+  nameDirection?: 'rtl' | 'ltr' | 'auto';
 }
 
 export type ViewState = 'dashboard' | 'board' | 'inbox' | 'teams' | 'vault' | 'my_work' | 'flow_hub' | 'process_map' | 'procurement' | 'warehouse' | 'shipping' | 'fleet' | 'vendors' | 'planning' | 'maintenance' | 'production' | 'quality' | 'sales_factory' | 'sales_listing' | 'sales' | 'finance' | 'it_support' | 'hr' | 'marketing' | 'local_marketplace' | 'foreign_marketplace' | 'cornell_notes' | 'quick_notes' | 'settings' | 'test' | 'arcade';
